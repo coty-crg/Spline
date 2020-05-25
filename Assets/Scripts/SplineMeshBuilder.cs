@@ -131,6 +131,97 @@ public class SplineMeshBuilder : MonoBehaviour
             }
         }
 
+        if(height > 0f)
+        {
+
+            var vert_count = verts.Count;
+
+            // floor 
+            for(var v = 0; v < vert_count; ++v)
+            {
+                var new_vert = verts[v];
+                var new_normal = normals[v] * -1f;
+                var new_uv = uvs[v];
+
+                new_uv.x = 1.0f - new_uv.x;
+                // new_uv.y = 1.0f - new_uv.y;
+
+                new_vert += new_normal * height;
+
+                verts.Add(new_vert);
+                normals.Add(new_normal);
+                uvs.Add(new_uv);
+            }
+
+
+            // generate triangles
+            for(var v = vert_count; v < verts.Count; v += 4)
+            {
+                tris.Add(v + 2);
+                tris.Add(v + 3);
+                tris.Add(v + 0);
+
+                tris.Add(v + 3);
+                tris.Add(v + 1);
+                tris.Add(v + 0);
+
+                if (v < verts.Count - 4)
+                {
+                    tris.Add(v + 5);
+                    tris.Add(v + 3);
+                    tris.Add(v + 4);
+
+                    tris.Add(v + 4);
+                    tris.Add(v + 3);
+                    tris.Add(v + 2);
+                }
+            }
+
+
+            // wall triangles 
+            for(var v = 0; v < vert_count; v += 4)
+            {
+                // right wall 
+                tris.Add(v + vert_count + 1);
+                tris.Add(v + 3);
+                tris.Add(v + 1);
+
+                tris.Add(v + 3);
+                tris.Add(v + vert_count + 1);
+                tris.Add(v + vert_count + 3);
+
+                // left wall
+                tris.Add(v + vert_count + 0);
+                tris.Add(v + 0);
+                tris.Add(v + 2);
+
+                tris.Add(v + vert_count + 2);
+                tris.Add(v + vert_count + 0);
+                tris.Add(v + 2);
+
+
+                //
+                if (v < vert_count - 4)
+                {
+
+                    // right wall 
+                    tris.Add(v + vert_count + 1 + 2);
+                    tris.Add(v + 3 + 2);
+                    tris.Add(v + 1 + 2);
+                    tris.Add(v + 3 + 2);
+                    tris.Add(v + vert_count + 1 + 2);
+                    tris.Add(v + vert_count + 3 + 2);
+
+                    // left wall
+                    tris.Add(v + vert_count + 0 + 2);
+                    tris.Add(v + 0 + 2);
+                    tris.Add(v + 2 + 2);
+                    tris.Add(v + vert_count + 2 + 2);
+                    tris.Add(v + vert_count + 0 + 2);
+                    tris.Add(v + 2 + 2);
+                }
+            }
+        }
 
         mesh = new Mesh();
         mesh.SetVertices(verts);
