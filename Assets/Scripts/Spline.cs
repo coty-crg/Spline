@@ -719,6 +719,28 @@ public class Spline : MonoBehaviour
         }
     }
 
+    public Vector3 GetForward(float t)
+    {
+        var delta_t = 1f / 512f;
+
+        if (t == 1f)
+        {
+            var p0 = GetPoint(t - delta_t * 1);
+            var p1 = GetPoint(t - delta_t * 0);
+
+            var forward = (p1.position - p0.position).normalized;
+            return forward;
+        }
+        else
+        {
+            var p0 = GetPoint(t + delta_t * 0);
+            var p1 = GetPoint(t + delta_t * 1);
+
+            var forward = (p1.position - p0.position).normalized;
+            return forward;
+        }
+    }
+
     public static float GetPercentageLinear(SplinePoint a, SplinePoint b, Vector3 point)
     {
         var betweenAB = b.position - a.position;
