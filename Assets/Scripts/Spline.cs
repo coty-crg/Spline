@@ -412,7 +412,6 @@ public class Spline : MonoBehaviour
 
     private void DrawGizmos()
     {
-
         if (Mode == SplineMode.Linear)
         {
             for (var i = 1; i < Points.Length; ++i)
@@ -423,38 +422,20 @@ public class Spline : MonoBehaviour
                 Gizmos.DrawLine(previous.position, current.position);
             }
         }
-        else if(Mode == SplineMode.Bezier)
+        else
         {
-            int quality = 32;
+            int quality = 256;
 
-            for (var i = 0; i < Points.Length - 3; i += 3)
+            for (var r = 0; r <= quality; ++r)
             {
 
-                // if(i != 0)
-                // {
-                //     var point_n1 = Points[i - 1];
-                //     var point_n0 = Points[i - 0];
-                // 
-                //     Gizmos.DrawLine(point_n1.position, point_n0.position);
-                // }
+                var t0 = (float)r / quality - (1f / quality);
+                var t1 = (float)r / quality;
 
+                var p0 = GetPoint(t0);
+                var p1 = GetPoint(t1);
 
-                var point0 = Points[i + 0];
-                var point1 = Points[i + 1];
-                var point2 = Points[i + 2];
-                var point3 = Points[i + 3];
-
-                for (var r = 0; r <= quality; ++r)
-                {
-
-                    var t0 = (float)r / quality - (1f / quality);
-                    var t1 = (float)r / quality;
-
-                    var p0 = QuadraticInterpolate(point0.position, point1.position, point2.position, point3.position, t0);
-                    var p1 = QuadraticInterpolate(point0.position, point1.position, point2.position, point3.position, t1);
-
-                    Gizmos.DrawLine(p0, p1);
-                }
+                Gizmos.DrawLine(p0.position, p1.position);
             }
         }
     }
@@ -721,24 +702,13 @@ public class Spline : MonoBehaviour
 
     public Vector3 GetForward(float t)
     {
-        var delta_t = 1f / 512f;
+        var delta_t = 1f / 256f;
 
-        if (t == 1f)
-        {
-            var p0 = GetPoint(t - delta_t * 1);
-            var p1 = GetPoint(t - delta_t * 0);
+        var p0 = GetPoint(t - delta_t * 1);
+        var p1 = GetPoint(t + delta_t * 1);
 
-            var forward = (p1.position - p0.position).normalized;
-            return forward;
-        }
-        else
-        {
-            var p0 = GetPoint(t + delta_t * 0);
-            var p1 = GetPoint(t + delta_t * 1);
-
-            var forward = (p1.position - p0.position).normalized;
-            return forward;
-        }
+        var forward = (p1.position - p0.position).normalized;
+        return forward;
     }
 
     public static float GetPercentageLinear(SplinePoint a, SplinePoint b, Vector3 point)
