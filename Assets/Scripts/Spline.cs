@@ -95,9 +95,9 @@ public class SplineEditor : Editor
 
     private void OnSceneGUI()
     {
+        var instance = (Spline)target;
         if(SelectedPoint >= 0)
         {
-            var instance = (Spline)target;
 
             var splinePoint = instance.Points[SelectedPoint];
 
@@ -159,12 +159,75 @@ public class SplineEditor : Editor
                     Handles.DrawLine(splinePoint.position, handle1.position);
                 }
             }
-
-
+            
             if(anyMoved)
             {
                 Undo.RegisterCompleteObjectUndo(instance, "Move Point");
                 instance.Points[SelectedPoint] = splinePoint;
+            }
+        }
+
+        // selectable points
+        for(var p = 0; p < instance.Points.Length; ++p)
+        {
+            if(p == SelectedPoint)
+            {
+                continue;
+            }
+
+            var point = instance.Points[p];
+            var position = point.position;
+            var isHandle = instance.Mode == SplineMode.Bezier && p % 3 != 0;
+
+
+
+            if(isHandle)
+            {
+                // when nothing is selected, do not draw handles 
+                if(SelectedPoint == -1)
+                {
+                    continue;
+                }
+
+                // when a handle is selected, we only want to draw the other handle touching our center point 
+                var isSelectedHandle = SelectedPoint % 3 != 0;
+                if (isSelectedHandle)
+                {
+                    var handleIndex = p % 3;
+                    if(handleIndex == 1)
+                    {
+                        var parentPoint = p - 2;
+                        if(parentPoint != SelectedPoint)
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        var parentPoint = p + 2;
+                        if(parentPoint != SelectedPoint)
+                        {
+                            continue; 
+                        }
+                    }
+                }
+
+                // but if its a point selected, we want to draw both handles 
+                else
+                {
+                    if (p < SelectedPoint - 1 || p > SelectedPoint + 1)
+                    {
+                        continue;
+                    }
+                }
+            }
+
+            Handles.color = isHandle ? Color.green : Color.blue;
+            
+            var selected = Handles.Button(position, Quaternion.identity, 0.25f, 0.25f, Handles.DotHandleCap);
+            if(selected)
+            {
+                SelectedPoint = p;
             }
         }
     }
