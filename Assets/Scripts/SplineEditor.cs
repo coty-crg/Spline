@@ -269,58 +269,61 @@ public class SplineEditor : Editor
         Handles.color = Color.white;
         var anyMoved = DrawHandle(Vector3.zero, ref splinePoint.position, out Vector3 splinePointDelta);
 
-        var pointIsHandle = SelectedPoint % 3 != 0;
-        if (pointIsHandle)
+        if (instance.Mode == SplineMode.Bezier)
         {
-            var pointIndex0 = SelectedPoint - SelectedPoint % 3 + 0;
-            var pointIndex1 = SelectedPoint - SelectedPoint % 3 + 3;
-
-            var index = SelectedPoint % 3 == 1 ? pointIndex0 : pointIndex1;
-
-            var anchorPoint = instance.Points[index];
-
-            Handles.color = Color.gray;
-            Handles.DrawLine(splinePoint.position, anchorPoint.position);
-
-
-            if (MirrorAnchors && SelectedPoint != 1 && SelectedPoint != instance.Points.Length - 2)
+            var pointIsHandle = SelectedPoint % 3 != 0;
+            if (pointIsHandle)
             {
-                var otherHandleIndex = index == pointIndex0
-                    ? pointIndex0 - 1
-                    : pointIndex1 + 1;
+                var pointIndex0 = SelectedPoint - SelectedPoint % 3 + 0;
+                var pointIndex1 = SelectedPoint - SelectedPoint % 3 + 3;
 
-                var otherHandlePoint = instance.Points[otherHandleIndex];
+                var index = SelectedPoint % 3 == 1 ? pointIndex0 : pointIndex1;
 
-                if (anyMoved)
-                {
-                    var toAnchorPoint = anchorPoint.position - splinePoint.position;
-                    var otherHandlePosition = anchorPoint.position + toAnchorPoint;
-                    otherHandlePoint.position = otherHandlePosition;
-                    instance.Points[otherHandleIndex] = otherHandlePoint;
-                }
-
-                Handles.DrawLine(otherHandlePoint.position, anchorPoint.position);
-            }
-        }
-        else
-        {
-            if (instance.Points.Length > 1)
-            {
-                var handleIndex0 = SelectedPoint != 0 ? SelectedPoint - 1 : SelectedPoint + 1;
-                var handleIndex1 = SelectedPoint != instance.Points.Length - 1 ? SelectedPoint + 1 : SelectedPoint - 1;
-
-                var handle0 = instance.Points[handleIndex0];
-                var handle1 = instance.Points[handleIndex1];
-
-                handle0.position = handle0.position + splinePointDelta;
-                handle1.position = handle1.position + splinePointDelta;
-
-                instance.Points[handleIndex0] = handle0;
-                instance.Points[handleIndex1] = handle1;
+                var anchorPoint = instance.Points[index];
 
                 Handles.color = Color.gray;
-                Handles.DrawLine(splinePoint.position, handle0.position);
-                Handles.DrawLine(splinePoint.position, handle1.position);
+                Handles.DrawLine(splinePoint.position, anchorPoint.position);
+
+
+                if (MirrorAnchors && SelectedPoint != 1 && SelectedPoint != instance.Points.Length - 2)
+                {
+                    var otherHandleIndex = index == pointIndex0
+                        ? pointIndex0 - 1
+                        : pointIndex1 + 1;
+
+                    var otherHandlePoint = instance.Points[otherHandleIndex];
+
+                    if (anyMoved)
+                    {
+                        var toAnchorPoint = anchorPoint.position - splinePoint.position;
+                        var otherHandlePosition = anchorPoint.position + toAnchorPoint;
+                        otherHandlePoint.position = otherHandlePosition;
+                        instance.Points[otherHandleIndex] = otherHandlePoint;
+                    }
+
+                    Handles.DrawLine(otherHandlePoint.position, anchorPoint.position);
+                }
+            }
+            else
+            {
+                if (instance.Points.Length > 1)
+                {
+                    var handleIndex0 = SelectedPoint != 0 ? SelectedPoint - 1 : SelectedPoint + 1;
+                    var handleIndex1 = SelectedPoint != instance.Points.Length - 1 ? SelectedPoint + 1 : SelectedPoint - 1;
+
+                    var handle0 = instance.Points[handleIndex0];
+                    var handle1 = instance.Points[handleIndex1];
+
+                    handle0.position = handle0.position + splinePointDelta;
+                    handle1.position = handle1.position + splinePointDelta;
+
+                    instance.Points[handleIndex0] = handle0;
+                    instance.Points[handleIndex1] = handle1;
+
+                    Handles.color = Color.gray;
+                    Handles.DrawLine(splinePoint.position, handle0.position);
+                    Handles.DrawLine(splinePoint.position, handle1.position);
+                }
             }
         }
 
