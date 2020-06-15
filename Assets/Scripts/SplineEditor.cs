@@ -7,6 +7,14 @@ using UnityEditorInternal;
 [CustomEditor(typeof(Spline))]
 public class SplineEditor : Editor
 {
+    public enum SplinePlacePointMode
+    {
+        CameraPlane,
+        Plane,
+        MeshSurface,
+        CollisionSurface,
+    }
+
     public int SelectedPoint = -1;
     public bool MirrorAnchors = true;
 
@@ -42,7 +50,7 @@ public class SplineEditor : Editor
         {
             PlaceMode = (SplinePlacePointMode)EditorGUILayout.EnumPopup("Place Point Mode", PlaceMode);
 
-            if (PlaceMode == SplinePlacePointMode.Surface)
+            if (PlaceMode == SplinePlacePointMode.CollisionSurface)
             {
                 LayerMask tempMask = EditorGUILayout.MaskField("Surface Layers", InternalEditorUtility.LayerMaskToConcatenatedLayersMask(PlaceLayerMask), InternalEditorUtility.layers);
                 PlaceLayerMask = InternalEditorUtility.ConcatenatedLayersMaskToLayerMask(tempMask);
@@ -129,85 +137,126 @@ public class SplineEditor : Editor
 
     private void OnSceneGUI()
     {
+        // if moving camera with mouse, dont draw all our gizmos.. 
+        if((Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseDrag) && Event.current.button != 0)
+        {
+            return;
+        }
+
         var instance = (Spline)target;
 
         if (PlacingPoint)
         {
             DrawPlacePointView(instance);
         }
-        else if (SelectedPoint >= 0)
+        else
         {
-            DrawSelectedSplineHandle(instance);
+            if (SelectedPoint >= 0)
+            {
+                DrawSelectedSplineHandle(instance);
+            }
+
+            DrawSelectablePoints(instance);
         }
 
-        DrawSelectablePoints(instance);
+    }
+
+
+    private SplinePoint previousMeshSurfacePoint;
+    private bool hasPreviousMeshSurfacePoint;
+
+    private bool TryGetPointFromMouse(Spline instance, out SplinePoint point)
+    {
+        var mousePosition = Event.current.mousePosition;
+        var worldRay = HandleUtility.GUIPointToWorldRay(mousePosition);
+
+        switch (PlaceMode)
+        {
+            case SplinePlacePointMode.CameraPlane:
+                var position = worldRay.origin + worldRay.direction * 1f; // * Camera.current.nearClipPlane;
+                var up = Vector3.up;
+                point = new SplinePoint(position, up);
+                return true; 
+            case SplinePlacePointMode.Plane:
+
+                if (PlacePlaneNormal.sqrMagnitude < 0.01f)
+                {
+                    PlacePlaneNormal = Vector3.up;
+                }
+
+                PlacePlaneNormal = PlacePlaneNormal.normalized;
+
+                var projectedOnPlane = Vector3.ProjectOnPlane(worldRay.origin - PlacePlaneOffset, PlacePlaneNormal) + PlacePlaneOffset;
+                point = new SplinePoint(projectedOnPlane, PlacePlaneNormal);
+
+                return true; 
+            case SplinePlacePointMode.MeshSurface:
+
+                // HandleUtility.PickGameObject only works in certain event types, so we need to cache the result to use between event types 
+                if (Event.current.type == EventType.MouseMove || Event.current.type == EventType.MouseDown)
+                {
+                    var go = HandleUtility.PickGameObject(mousePosition, false);
+                    if(go != null)
+                    {
+                        var hit = RXLookingGlass.IntersectRayGameObject(worldRay, go, out RaycastHit info);
+                        if (hit)
+                        {
+                            point = new SplinePoint(info.point, info.normal);
+                            previousMeshSurfacePoint = point;
+                            hasPreviousMeshSurfacePoint = true; 
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        previousMeshSurfacePoint = new SplinePoint();
+                        hasPreviousMeshSurfacePoint = false; 
+                    }
+                }
+
+                point = previousMeshSurfacePoint;
+                return hasPreviousMeshSurfacePoint; 
+            case SplinePlacePointMode.CollisionSurface:
+                RaycastHit collisionInfo;
+                var collisionHit = Physics.Raycast(worldRay, out collisionInfo, 256f, PlaceLayerMask, QueryTriggerInteraction.Ignore);
+                if(collisionHit)
+                {
+                    point = new SplinePoint(collisionInfo.point, collisionInfo.normal); 
+                    return true; 
+                }
+                else
+                {
+                    point = new SplinePoint(); 
+                    return false; 
+                }
+        }
+
+        point = new SplinePoint(); 
+        return false; 
     }
 
     private void DrawPlacePointView(Spline instance)
     {
         Handles.color = Color.red;
 
+        var mousePosition = Event.current.mousePosition;
+        var worldRay = HandleUtility.GUIPointToWorldRay(mousePosition);
+
+        // per place type handles? 
         if (PlaceMode == SplinePlacePointMode.Plane)
         {
             DrawHandle(Vector3.zero, ref PlacePlaneOffset, out Vector3 offsetDelta);
         }
 
-        var mousePosition = Event.current.mousePosition;
-        var worldRay = HandleUtility.GUIPointToWorldRay(mousePosition);
-        worldRay.origin += worldRay.direction * Camera.current.nearClipPlane;
+        // try finding point 
+        var validPoint = TryGetPointFromMouse(instance, out SplinePoint placingPoint);
+        if (!validPoint) return; 
 
-        var selected = Handles.Button(worldRay.origin, Quaternion.identity, 0.05f, 0.05f, Handles.DotHandleCap);
+        // try placing it 
+        var selected = Handles.Button(placingPoint.position, Quaternion.identity, 0.05f, 0.05f, Handles.DotHandleCap);
         if (selected)
         {
-            switch (PlaceMode)
-            {
-                case SplinePlacePointMode.CameraPlane:
-                    AppendPoint(instance, worldRay.origin, Vector3.up);
-                    break;
-                case SplinePlacePointMode.Plane:
-
-                    if (PlacePlaneNormal.sqrMagnitude < 0.01f)
-                    {
-                        PlacePlaneNormal = Vector3.up;
-                    }
-
-                    PlacePlaneNormal = PlacePlaneNormal.normalized;
-
-                    var projectedOnPlane = Vector3.ProjectOnPlane(worldRay.origin - PlacePlaneOffset, PlacePlaneNormal) + PlacePlaneOffset;
-                    AppendPoint(instance, projectedOnPlane, PlacePlaneNormal);
-
-                    break;
-                case SplinePlacePointMode.Surface:
-
-
-                    RaycastHit info = new RaycastHit();
-                    bool hit = false;
-
-                    var overObjects = HandleUtility.PickRectObjects(new Rect(mousePosition, Vector2.one * 0.25f));
-                    foreach (var go in overObjects)
-                    {
-                        if (PlaceLayerMask == (PlaceLayerMask | (1 << go.layer)))
-                        {
-                            hit = RXLookingGlass.IntersectRayGameObject(worldRay, go, out info);
-                            if (hit)
-                            {
-                                break;
-                            }
-                        }
-                    }
-
-                    if (hit)
-                    {
-                        AppendPoint(instance, info.point, info.normal);
-                    }
-                    else
-                    {
-                        Debug.LogError("No hit.");
-                    }
-
-
-                    break;
-            }
+            AppendPoint(instance, placingPoint.position, placingPoint.up); 
         }
     }
 

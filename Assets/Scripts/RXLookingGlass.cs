@@ -25,7 +25,7 @@ public class RXLookingGlass
 	
 	public static bool IntersectRayMesh(Ray ray, MeshFilter meshFilter, out RaycastHit hit)
 	{
-		return IntersectRayMesh(ray,meshFilter.mesh,meshFilter.transform.localToWorldMatrix,out hit);
+		return IntersectRayMesh(ray, meshFilter.sharedMesh, meshFilter.transform.localToWorldMatrix, out hit);
 	}
 	
 	public static bool IntersectRayMesh(Ray ray, Mesh mesh, Matrix4x4 matrix, out RaycastHit hit)

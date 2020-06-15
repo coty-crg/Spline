@@ -24,13 +24,6 @@ public enum SplineMode
     Bezier,
 }
 
-public enum SplinePlacePointMode
-{
-    CameraPlane,
-    Plane,
-    Surface,
-}
-
 public class Spline : MonoBehaviour
 {
     public SplinePoint[] Points;
