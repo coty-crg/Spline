@@ -223,10 +223,11 @@ public class SplineEditor : Editor
             }
 
             Handles.color = isHandle ? Color.green : Color.blue;
-            
+
             var selected = Handles.Button(position, Quaternion.identity, 0.25f, 0.25f, Handles.DotHandleCap);
             if(selected)
             {
+                Undo.RegisterCompleteObjectUndo(this, "Selected Point");
                 SelectedPoint = p;
             }
         }
