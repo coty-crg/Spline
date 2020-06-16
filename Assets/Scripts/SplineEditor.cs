@@ -123,13 +123,14 @@ public class SplineEditor : Editor
 
             instance.Points = newArray;
 
-            var last0 = instance.Points[instance.Points.Length - 5];
-            var last1 = instance.Points[instance.Points.Length - 4];
-            var lastDirection = (last1.position - last0.position).normalized;
+            var last0 = instance.Points[instance.Points.Length - 5]; 
+            var last1 = instance.Points[instance.Points.Length - 4]; 
+            var lastDirection = (last1.position - last0.position).normalized; 
 
-            instance.Points[instance.Points.Length - 3] = new SplinePoint(position - lastDirection * 2, up);
-            instance.Points[instance.Points.Length - 2] = new SplinePoint(position - lastDirection * 1, up);
-            instance.Points[instance.Points.Length - 1] = new SplinePoint(position - lastDirection * 0, up);
+            // todo, ensure handles on both sides of a point are mirrored, if mirror handles is checked 
+            instance.Points[instance.Points.Length - 3] = new SplinePoint(position - lastDirection * 2, up); // handle 1
+            instance.Points[instance.Points.Length - 2] = new SplinePoint(position - lastDirection * 1, up); // handle 2 
+            instance.Points[instance.Points.Length - 1] = new SplinePoint(position - lastDirection * 0, up); // point 
         }
 
         EditorUtility.SetDirty(instance);
@@ -137,7 +138,7 @@ public class SplineEditor : Editor
 
     private void OnSceneGUI()
     {
-        // if moving camera with mouse, dont draw all our gizmos.. 
+        // if moving camera with mouse, dont draw all our gizmos.. (they would block trying to click the handles) 
         if((Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseDrag) && Event.current.button != 0)
         {
             return;
@@ -156,6 +157,7 @@ public class SplineEditor : Editor
                 DrawSelectedSplineHandle(instance);
             }
 
+            // todo, draw these in PlacingPoint too, but non selectable 
             DrawSelectablePoints(instance);
         }
 
