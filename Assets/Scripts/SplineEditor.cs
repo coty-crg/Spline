@@ -24,6 +24,8 @@ public class SplineEditor : Editor
     public Vector3 PlacePlaneOffset;
     public Vector3 PlacePlaneNormal;
 
+    public bool SnapToNearestVert;
+
     public override void OnInspectorGUI()
     {
         base.OnInspectorGUI();
@@ -54,6 +56,8 @@ public class SplineEditor : Editor
             {
                 LayerMask tempMask = EditorGUILayout.MaskField("Surface Layers", InternalEditorUtility.LayerMaskToConcatenatedLayersMask(PlaceLayerMask), InternalEditorUtility.layers);
                 PlaceLayerMask = InternalEditorUtility.ConcatenatedLayersMaskToLayerMask(tempMask);
+
+                SnapToNearestVert = EditorGUILayout.Toggle("Snap To Nearest Vertex", SnapToNearestVert); 
             }
 
             if (PlaceMode == SplinePlacePointMode.Plane)
@@ -223,8 +227,59 @@ public class SplineEditor : Editor
                 var collisionHit = Physics.Raycast(worldRay, out collisionInfo, 256f, PlaceLayerMask, QueryTriggerInteraction.Ignore);
                 if(collisionHit)
                 {
-                    point = new SplinePoint(collisionInfo.point, collisionInfo.normal); 
-                    return true; 
+                    if(SnapToNearestVert && collisionInfo.triangleIndex >= 0)
+                    {
+                        var meshFilter = collisionInfo.collider.GetComponent<MeshFilter>();
+                        var mesh = meshFilter.sharedMesh;
+
+                        var localToWorld = meshFilter.transform.localToWorldMatrix;
+
+                        var vertices = mesh.vertices;
+                        var normals = mesh.normals;
+                        
+                        var triangles = mesh.triangles;
+                        var triIndex = collisionInfo.triangleIndex;
+                        
+                        var vertIndex0 = triangles[triIndex * 3 + 0];
+                        var vertIndex1 = triangles[triIndex * 3 + 1];
+                        var vertIndex2 = triangles[triIndex * 3 + 2];
+
+                        var vertex0 = localToWorld.MultiplyPoint(vertices[vertIndex0]);
+                        var vertex1 = localToWorld.MultiplyPoint(vertices[vertIndex1]);
+                        var vertex2 = localToWorld.MultiplyPoint(vertices[vertIndex2]);
+
+                        var normal0 = localToWorld.MultiplyVector(normals[vertIndex0]);
+                        var normal1 = localToWorld.MultiplyVector(normals[vertIndex1]);
+                        var normal2 = localToWorld.MultiplyVector(normals[vertIndex2]);
+
+                        var distance0 = Vector3.Distance(vertex0, collisionInfo.point);
+                        var distance1 = Vector3.Distance(vertex1, collisionInfo.point);
+                        var distance2 = Vector3.Distance(vertex2, collisionInfo.point);
+
+                        
+
+                        if(distance0 < distance1 && distance0 < distance2)
+                        {
+                            point = new SplinePoint(vertex0, normal0);
+                        }
+                        else if(distance1 < distance0 && distance1 < distance2)
+                        {
+
+                            point = new SplinePoint(vertex1, normal1);
+                        }
+                        else
+                        {
+                            point = new SplinePoint(vertex2, normal2);
+
+                        }
+
+                        return true; 
+                    }
+                    else
+                    {
+                        point = new SplinePoint(collisionInfo.point, collisionInfo.normal); 
+                        return true; 
+                    }
                 }
                 else
                 {
