@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditorInternal;
 
 [CustomEditor(typeof(Spline))]
+[DefaultExecutionOrder(-10000)]
 public class SplineEditor : Editor
 {
     public enum SplinePlacePointMode
@@ -142,8 +143,10 @@ public class SplineEditor : Editor
 
     private void OnSceneGUI()
     {
+        DrawToolbar();
+
         // if moving camera with mouse, dont draw all our gizmos.. (they would block trying to click the handles) 
-        if((Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseDrag) && Event.current.button != 0)
+        if ((Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseDrag) && Event.current.button != 0)
         {
             return;
         }
@@ -152,6 +155,18 @@ public class SplineEditor : Editor
 
         if (PlacingPoint)
         {
+            // block scene input 
+            if (Event.current.type == EventType.Layout)
+            {
+                HandleUtility.AddDefaultControl(GUIUtility.GetControlID(GetHashCode(), FocusType.Passive));
+            }
+
+            if(Event.current.isKey && Event.current.keyCode == KeyCode.Escape)
+            {
+                PlacingPoint = false;
+                return; 
+            }
+
             DrawPlacePointView(instance);
         }
         else
@@ -307,14 +322,24 @@ public class SplineEditor : Editor
 
         // try finding point 
         var validPoint = TryGetPointFromMouse(instance, out SplinePoint placingPoint);
-        if (!validPoint) return; 
+        if (!validPoint) return;
+
+        // the button is just for visualizing where the spline point will be placed 
+        Handles.Button(placingPoint.position, Quaternion.identity, 0.05f, 0.05f, Handles.DotHandleCap); 
 
         // try placing it 
-        var selected = Handles.Button(placingPoint.position, Quaternion.identity, 0.05f, 0.05f, Handles.DotHandleCap);
-        if (selected)
+        var mouseLeftPressedDown = Event.current.type == EventType.MouseDown && Event.current.button == 0;
+        if (mouseLeftPressedDown)
         {
             AppendPoint(instance, placingPoint.position, placingPoint.up); 
+            Event.current.Use();
         }
+
+        // var selected = Handles.Button(placingPoint.position, Quaternion.identity, 0.05f, 0.05f, Handles.DotHandleCap);
+        // if (selected)
+        // {
+        //     AppendPoint(instance, placingPoint.position, placingPoint.up); 
+        // }
     }
 
     private void DrawSelectedSplineHandle(Spline instance)
@@ -468,6 +493,60 @@ public class SplineEditor : Editor
         var changed = delta.sqrMagnitude > 0;
         return changed;
     }
+
+
+
+    private void DrawToolbar()
+    {
+
+        Handles.BeginGUI();
+
+        GUILayout.BeginArea(new Rect(0, 0, 256 + 64, 256));
+
+        // anything within this vertical group will be stacked on top of one another 
+        var vertical_rect = EditorGUILayout.BeginVertical();
+
+        // anything within this horizontal group will be displayed horizontal to one another 
+        var horizontal_rect_row_0 = EditorGUILayout.BeginHorizontal(); 
+
+            GUI.color = Color.black;
+            GUI.Box(horizontal_rect_row_0, GUIContent.none);
+
+            GUI.color = Color.white; 
+            GUILayout.Label("Spline Editor");
+
+        GUILayout.EndHorizontal();
+
+
+        if(PlacingPoint)
+        {
+            var horizontal_rect_row_1 = EditorGUILayout.BeginHorizontal();
+
+                GUI.color = Color.black;
+                GUI.Box(horizontal_rect_row_1, GUIContent.none);
+
+                GUI.color = Color.white;
+                GUILayout.Label("Place Mode (escape to quit)");
+
+                if (PlaceMode == SplinePlacePointMode.CollisionSurface && SnapToNearestVert)
+                {
+                    GUI.color = Color.white;
+                    GUILayout.Label("[Snapping to vertex]");
+                }
+
+            GUILayout.EndHorizontal();
+        }
+
+        GUILayout.EndVertical();
+
+        GUILayout.EndArea();
+
+        Handles.EndGUI(); 
+
+    }
+
+    
+
 }
 
 #endif
