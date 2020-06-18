@@ -311,9 +311,6 @@ public class SplineEditor : Editor
     {
         Handles.color = Color.red;
 
-        var mousePosition = Event.current.mousePosition;
-        var worldRay = HandleUtility.GUIPointToWorldRay(mousePosition);
-
         // per place type handles? 
         if (PlaceMode == SplinePlacePointMode.Plane)
         {
@@ -324,22 +321,19 @@ public class SplineEditor : Editor
         var validPoint = TryGetPointFromMouse(instance, out SplinePoint placingPoint);
         if (!validPoint) return;
 
-        // the button is just for visualizing where the spline point will be placed 
-        Handles.Button(placingPoint.position, Quaternion.identity, 0.05f, 0.05f, Handles.DotHandleCap); 
+        DrawSquareGUI(placingPoint.position, Color.white); 
 
         // try placing it 
-        var mouseLeftPressedDown = Event.current.type == EventType.MouseDown && Event.current.button == 0;
-        if (mouseLeftPressedDown)
+        if (IsLeftMouseClicked())
         {
             AppendPoint(instance, placingPoint.position, placingPoint.up); 
             Event.current.Use();
         }
+    }
 
-        // var selected = Handles.Button(placingPoint.position, Quaternion.identity, 0.05f, 0.05f, Handles.DotHandleCap);
-        // if (selected)
-        // {
-        //     AppendPoint(instance, placingPoint.position, placingPoint.up); 
-        // }
+    private bool IsLeftMouseClicked()
+    {
+        return Event.current.type == EventType.MouseDown && Event.current.button == 0;
     }
 
     private void DrawSelectedSplineHandle(Spline instance)
@@ -473,14 +467,43 @@ public class SplineEditor : Editor
                 }
             }
 
-            Handles.color = isHandle ? Color.green : Color.blue;
+            // var sceneView = SceneView.currentDrawingSceneView;
+            // var sceneCamera = sceneView.camera;
+            // var screenPoint = sceneCamera.WorldToScreenPoint(position);
+            // screenPoint.y = Screen.height - screenPoint.y - 40; // 40 is scene view offset? 
+            // screenPoint.z = 0f;
+            // 
+            // var mousePosition = Input.mousePosition;
+            // var mouseOverButton = Vector3.Distance(screenPoint, mousePosition) < 0.1f;
+            // 
+            // var dotColor = mouseOverButton ? Color.white : isHandle ? Color.green : Color.blue;
+            // DrawSquareGUI(position, dotColor);
+            // 
+            // 
+            // 
+            // if (IsLeftMouseClicked() && mouseOverButton)
+            // {
+            // 
+            //     Undo.RegisterCompleteObjectUndo(this, "Selected Point");
+            //     SelectedPoint = p;
+            //     Event.current.Use();
+            // }
 
-            var selected = Handles.Button(position, Quaternion.identity, 0.25f, 0.25f, Handles.DotHandleCap);
+            Handles.BeginGUI();
+
+            var sceneView = SceneView.currentDrawingSceneView;
+            var sceneCamera = sceneView.camera;
+            var screenPoint = sceneCamera.WorldToScreenPoint(position);
+            screenPoint.y = Screen.height - screenPoint.y - 40; // 40 is scene view offset? 
+            screenPoint.z = 0f;
+
+            var selected = Handles.Button(screenPoint, Quaternion.identity, 16f, 16f, Handles.DotHandleCap);
             if (selected)
             {
                 Undo.RegisterCompleteObjectUndo(this, "Selected Point");
                 SelectedPoint = p;
             }
+            Handles.EndGUI();
         }
     }
 
@@ -494,7 +517,18 @@ public class SplineEditor : Editor
         return changed;
     }
 
+    private void DrawSquareGUI(Vector3 worldPosition, Color color)
+    {
+        Handles.BeginGUI();
+        var sceneView = SceneView.currentDrawingSceneView;
+        var screenPoint = sceneView.camera.WorldToScreenPoint(worldPosition);
+        screenPoint.y = Screen.height - screenPoint.y - 40; // 40 is for scene view offset? 
 
+        var iconWidth = 8;
+        var iconRect = new Rect(screenPoint.x - iconWidth * 0.5f, screenPoint.y - iconWidth * 0.5f, iconWidth, iconWidth);
+        EditorGUI.DrawRect(iconRect, color);
+        Handles.EndGUI();
+    }
 
     private void DrawToolbar()
     {
@@ -545,8 +579,34 @@ public class SplineEditor : Editor
 
     }
 
-    
+    // helper gui draw functions
+    // https://forum.unity.com/threads/draw-a-simple-rectangle-filled-with-a-color.116348/#post-2751340
+    private static Texture2D backgroundTexture;
+    private static GUIStyle textureStyle;
 
+    private void OnEnable()
+    {
+        backgroundTexture = Texture2D.whiteTexture;
+        textureStyle = new GUIStyle { normal = new GUIStyleState { background = backgroundTexture } };
+    }
+
+    public static void DrawRect(Rect position, Color color, GUIContent content = null)
+    {
+        // EditorGUI.DrawRect(position, color);
+
+        var backgroundColor = GUI.backgroundColor;
+        GUI.backgroundColor = color;
+        GUI.Box(position, content ?? GUIContent.none, textureStyle);
+        GUI.backgroundColor = backgroundColor;
+    }
+
+    public static void LayoutBox(Color color, GUIContent content = null)
+    {
+        var backgroundColor = GUI.backgroundColor;
+        GUI.backgroundColor = color;
+        GUILayout.Box(content ?? GUIContent.none, textureStyle);
+        GUI.backgroundColor = backgroundColor;
+    }
 }
 
 #endif
