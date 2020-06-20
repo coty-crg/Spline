@@ -502,7 +502,7 @@ public class Spline : MonoBehaviour
             // index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
             // index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
 
-            if (index0 > Points.Length - 3)
+            if (index0 > Points.Length - 4)
             {
                 return Points[Points.Length - 1];
             }

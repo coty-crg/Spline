@@ -363,6 +363,11 @@ public class SplineEditor : Editor
 
                 var index = SelectedPoint % 3 == 1 ? pointIndex0 : pointIndex1;
 
+                if(index < 0 || index >= instance.Points.Length)
+                {
+                    return;
+                }
+
                 var anchorPoint = instance.Points[index];
 
                 Handles.color = Color.gray;
