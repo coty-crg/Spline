@@ -466,44 +466,20 @@ public class SplineEditor : Editor
                     }
                 }
             }
-
-            // var sceneView = SceneView.currentDrawingSceneView;
-            // var sceneCamera = sceneView.camera;
-            // var screenPoint = sceneCamera.WorldToScreenPoint(position);
-            // screenPoint.y = Screen.height - screenPoint.y - 40; // 40 is scene view offset? 
-            // screenPoint.z = 0f;
-            // 
-            // var mousePosition = Input.mousePosition;
-            // var mouseOverButton = Vector3.Distance(screenPoint, mousePosition) < 0.1f;
-            // 
-            // var dotColor = mouseOverButton ? Color.white : isHandle ? Color.green : Color.blue;
-            // DrawSquareGUI(position, dotColor);
-            // 
-            // 
-            // 
-            // if (IsLeftMouseClicked() && mouseOverButton)
-            // {
-            // 
-            //     Undo.RegisterCompleteObjectUndo(this, "Selected Point");
-            //     SelectedPoint = p;
-            //     Event.current.Use();
-            // }
-
-            Handles.BeginGUI();
-
+            
             var sceneView = SceneView.currentDrawingSceneView;
             var sceneCamera = sceneView.camera;
             var screenPoint = sceneCamera.WorldToScreenPoint(position);
-            screenPoint.y = Screen.height - screenPoint.y - 40; // 40 is scene view offset? 
-            screenPoint.z = 0f;
+            screenPoint.z = 10f;
 
-            var selected = Handles.Button(screenPoint, Quaternion.identity, 16f, 16f, Handles.DotHandleCap);
+            var cameraPoint = sceneCamera.ScreenToWorldPoint(screenPoint);
+
+            var selected = Handles.Button(cameraPoint, Quaternion.identity, .1f, .1f, Handles.DotHandleCap);
             if (selected)
             {
                 Undo.RegisterCompleteObjectUndo(this, "Selected Point");
                 SelectedPoint = p;
             }
-            Handles.EndGUI();
         }
     }
 
