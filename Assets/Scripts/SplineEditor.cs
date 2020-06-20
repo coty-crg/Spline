@@ -31,15 +31,17 @@ public class SplineEditor : Editor
     {
         base.OnInspectorGUI();
 
+
         var instance = (Spline)target;
 
-        if (GUILayout.Button("Append Point"))
-        {
-            var lastPos = instance.GetPoint(1f);
-            AppendPoint(instance, lastPos.position, lastPos.up);
-        }
-
-
+        GUILayout.BeginVertical("GroupBox");
+        
+        // if (GUILayout.Button("Append Point"))
+        // {
+        //     var lastPos = instance.GetPoint(1f);
+        //     AppendPoint(instance, lastPos.position, lastPos.up);
+        // }
+        
         if (!PlacingPoint && GUILayout.Button("Start Placing Points"))
         {
             PlacingPoint = !PlacingPoint;
@@ -98,6 +100,7 @@ public class SplineEditor : Editor
         SelectedPoint = EditorGUILayout.IntPopup(SelectedPoint, optionsStr, optionsInt);
         MirrorAnchors = EditorGUILayout.Toggle("Mirror Anchors", MirrorAnchors);
 
+        GUILayout.EndVertical();
     }
 
 
@@ -127,15 +130,21 @@ public class SplineEditor : Editor
             }
 
             instance.Points = newArray;
+            
+            var index = instance.Points.Length - 4;
+            var previousHandle = instance.Points[instance.Points.Length - 5];
+            var anchorPoint = instance.Points[instance.Points.Length - 4];
 
-            var last0 = instance.Points[instance.Points.Length - 5]; 
-            var last1 = instance.Points[instance.Points.Length - 4]; 
+            var toAnchorPoint = anchorPoint.position - previousHandle.position;
+            var toNewHandlePoint = anchorPoint.position + toAnchorPoint;
+            
+            var last0 = instance.Points[instance.Points.Length - 7]; 
+            var last1 = instance.Points[instance.Points.Length - 4];   
             var lastDirection = (last1.position - last0.position).normalized; 
-
-            // todo, ensure handles on both sides of a point are mirrored, if mirror handles is checked 
-            instance.Points[instance.Points.Length - 3] = new SplinePoint(position - lastDirection * 2, up); // handle 1
-            instance.Points[instance.Points.Length - 2] = new SplinePoint(position - lastDirection * 1, up); // handle 2 
-            instance.Points[instance.Points.Length - 1] = new SplinePoint(position - lastDirection * 0, up); // point 
+            
+            instance.Points[instance.Points.Length - 3] = new SplinePoint(toNewHandlePoint, up);         // handle 1
+            instance.Points[instance.Points.Length - 2] = new SplinePoint(position - lastDirection, up); // handle 2 
+            instance.Points[instance.Points.Length - 1] = new SplinePoint(position, up);                 // point 
         }
 
         EditorUtility.SetDirty(instance);
@@ -181,8 +190,7 @@ public class SplineEditor : Editor
         }
 
     }
-
-
+    
     private SplinePoint previousMeshSurfacePoint;
     private bool hasPreviousMeshSurfacePoint;
 
