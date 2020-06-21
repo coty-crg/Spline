@@ -513,7 +513,6 @@ public class SplineEditor : Editor
                 break; 
         }
 
-        UpdateHandlesWhenPointMoved(instance, point_index, splinePointDelta); 
 
         if (anyMoved || anyRotated || anyScaled)
         {
@@ -521,6 +520,8 @@ public class SplineEditor : Editor
 
             var original_point = instance.Points[point_index];
             instance.Points[point_index] = splinePoint;
+
+            UpdateHandlesWhenPointMoved(instance, point_index, splinePointDelta); 
 
             if (anyMoved)
             {
@@ -597,13 +598,10 @@ public class SplineEditor : Editor
 
                     var otherHandlePoint = instance.Points[otherHandleIndex];
 
-                    if (move_delta.sqrMagnitude > 0.001f)
-                    {
-                        var toAnchorPoint = anchorPoint.position - splinePoint.position;
-                        var otherHandlePosition = anchorPoint.position + toAnchorPoint;
-                        otherHandlePoint.position = otherHandlePosition;
-                        instance.Points[otherHandleIndex] = otherHandlePoint;
-                    }
+                    var toAnchorPoint = anchorPoint.position - splinePoint.position;
+                    var otherHandlePosition = anchorPoint.position + toAnchorPoint;
+                    otherHandlePoint.position = otherHandlePosition;
+                    instance.Points[otherHandleIndex] = otherHandlePoint;
 
                     Handles.DrawLine(otherHandlePoint.position, anchorPoint.position);
                 }
