@@ -77,9 +77,18 @@ public class SplineEditor : Editor
         }
         else
         {
-            foreach (var pointIndex in SelectedPoints)
+            selectedPointButtonSb.Append("Selected: ");
+
+            for (var i = 0; i < SelectedPoints.Count; ++i)
             {
-                selectedPointButtonSb.Append($"{pointIndex:N0}, ");
+                var pointIndex = SelectedPoints[i];
+                var pointName = GetPointName(spline, pointIndex);
+                selectedPointButtonSb.Append($"{pointName}");
+
+                if(i < SelectedPoints.Count - 1)
+                {
+                    selectedPointButtonSb.Append($", ");
+                }
             }
         }
 
@@ -94,26 +103,33 @@ public class SplineEditor : Editor
             {
                 var splinePoint = spline.Points[i];
 
-                var menuString = $"point {i:N0}";
-
-                if (spline.Mode == SplineMode.Bezier)
-                {
-                    if (i % 3 == 0)
-                    {
-                        menuString = $"[point] {i:N0}";
-                    }
-                    else
-                    {
-                        menuString = $"[handle] {i:N0}";
-                    }
-                }
-
+                var menuString = GetPointName(spline, i);
                 var pointSelected = SelectedPoints.Contains(i);
+
                 selectedMenu.AddItem(new GUIContent(menuString), pointSelected, OnPointSelected, i);
             }
 
             selectedMenu.ShowAsContext();
         }
+    }
+
+    private static string GetPointName(Spline spline, int i)
+    {
+        var name = $"point {i:N0}";
+
+        if (spline.Mode == SplineMode.Bezier)
+        {
+            if (i % 3 == 0)
+            {
+                name = $"[point] {i:N0}";
+            }
+            else
+            {
+                name = $"[handle] {i:N0}";
+            }
+        }
+
+        return name; 
     }
 
     public override void OnInspectorGUI()
