@@ -25,14 +25,16 @@ public struct SplinePoint
         var otherPoint = (SplinePoint)obj;
         var matchPosition = (position - otherPoint.position).sqrMagnitude < 0.001f;
         var matchUp = (rotation.eulerAngles - otherPoint.rotation.eulerAngles).sqrMagnitude < 0.001f;
-        return matchPosition && matchUp;
+        var matchScale = (scale - otherPoint.scale).sqrMagnitude < 0.001f;
+        return matchPosition && matchUp && matchScale;
     }
 
     public override int GetHashCode()
     {
-        int hashCode = -1959666502;
+        int hashCode = -1285106862;
         hashCode = hashCode * -1521134295 + position.GetHashCode();
         hashCode = hashCode * -1521134295 + rotation.GetHashCode();
+        hashCode = hashCode * -1521134295 + scale.GetHashCode();
         return hashCode;
     }
 }
