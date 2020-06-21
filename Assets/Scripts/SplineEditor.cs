@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 [CustomEditor(typeof(Spline))]
 [DefaultExecutionOrder(-10000)]
@@ -17,16 +19,102 @@ public class SplineEditor : Editor
         CollisionSurface,
     }
 
-    public int SelectedPoint = -1;
-    public bool MirrorAnchors = true;
-
+    private List<int> SelectedPoints = new List<int>();
+    private bool MirrorAnchors = true;
     private bool PlacingPoint;
-    public SplinePlacePointMode PlaceMode;
-    public LayerMask PlaceLayerMask;
-    public Vector3 PlacePlaneOffset;
-    public Quaternion PlacePlaneNormalRotation;
+    private SplinePlacePointMode PlaceMode;
+    private LayerMask PlaceLayerMask;
+    private Vector3 PlacePlaneOffset;
+    private Quaternion PlacePlaneNormalRotation;
 
     public bool SnapToNearestVert;
+
+    private void OnPointSelected(object index)
+    {
+        var intIndex = (int) index; 
+
+        if(SelectedPoints.Contains(intIndex))
+        {
+            SelectedPoints.Remove(intIndex);
+        }
+        else
+        {
+            SelectedPoints.Add(intIndex); 
+        }
+    }
+
+    private void OnAllPointsSelected(object splineObj)
+    {
+        var spline = (Spline) splineObj;
+
+        SelectedPoints.Clear();
+        
+        for(var i = 0; i < spline.Points.Length; ++i)
+        {
+            SelectedPoints.Add(i); 
+        }
+    }
+
+    private void OnNoPointsSelected()
+    {
+        SelectedPoints.Clear();
+    }
+
+    private void DrawPointSelectorInspector(Spline spline)
+    {
+        var selectedPointButtonSb = new System.Text.StringBuilder();
+
+        var selected_none = SelectedPoints.Count == 0;
+        var selected_all = SelectedPoints.Count == spline.Points.Length;
+
+        if (selected_none)
+        {
+            selectedPointButtonSb.Append("No points selected.");
+        }
+        else if(selected_all)
+        {
+            selectedPointButtonSb.Append("All points selected.");
+        }
+        else
+        {
+            foreach (var pointIndex in SelectedPoints)
+            {
+                selectedPointButtonSb.Append($"{pointIndex:N0}, ");
+            }
+        }
+
+        if (GUILayout.Button(selectedPointButtonSb.ToString()))
+        {
+            var selectedMenu = new GenericMenu();
+
+            selectedMenu.AddItem(new GUIContent("Select All"), selected_all, OnAllPointsSelected, spline);
+            selectedMenu.AddItem(new GUIContent("Select None"), selected_none, OnNoPointsSelected);
+
+            for (var i = 0; i < spline.Points.Length; ++i)
+            {
+                var splinePoint = spline.Points[i];
+
+                var menuString = $"point {i:N0}";
+
+                if (spline.Mode == SplineMode.Bezier)
+                {
+                    if (i % 3 == 0)
+                    {
+                        menuString = $"[point] {i:N0}";
+                    }
+                    else
+                    {
+                        menuString = $"[handle] {i:N0}";
+                    }
+                }
+
+                var pointSelected = SelectedPoints.Contains(i);
+                selectedMenu.AddItem(new GUIContent(menuString), pointSelected, OnPointSelected, i);
+            }
+
+            selectedMenu.ShowAsContext();
+        }
+    }
 
     public override void OnInspectorGUI()
     {
@@ -45,7 +133,7 @@ public class SplineEditor : Editor
         
         if (!PlacingPoint && GUILayout.Button("Start Placing Points"))
         {
-            SelectPoint(-1);
+            SelectedPoints.Clear();
             PlacingPoint = !PlacingPoint;
         }
         else if (PlacingPoint && GUILayout.Button("Stop Placing Points"))
@@ -73,47 +161,20 @@ public class SplineEditor : Editor
         }
         else
         {
-            var optionsStr = new string[instance.Points.Length + 1];
-            var optionsInt = new int[instance.Points.Length + 1];
-
-            optionsStr[0] = "none";
-            optionsInt[0] = -1;
-
-            for (var i = 0; i < instance.Points.Length; ++i)
-            {
-                if (instance.Mode == SplineMode.Linear)
-                {
-                    optionsStr[i + 1] = $"point {i:N0}";
-                }
-                else if (instance.Mode == SplineMode.Bezier)
-                {
-                    if (i % 3 == 0)
-                    {
-                        optionsStr[i + 1] = $"[point] {i:N0}";
-                    }
-                    else
-                    {
-                        optionsStr[i + 1] = $"[handle] {i:N0}";
-                    }
-                }
-
-                optionsInt[i + 1] = i;
-            }
-
             GUILayout.BeginVertical("GroupBox");
-
 
             GUILayout.Label("Point Editor", UnityEditor.EditorStyles.largeLabel);
 
             MirrorAnchors = EditorGUILayout.Toggle("Mirror Anchors", MirrorAnchors);
 
+            DrawPointSelectorInspector(instance);
 
-            SelectedPoint = EditorGUILayout.IntPopup(SelectedPoint, optionsStr, optionsInt);
-            var point_index = SelectedPoint;
-            if (point_index >= 0)
+            if(SelectedPoints.Count > 0)
             {
                 GUILayout.BeginVertical("GroupBox");
-                var point = instance.Points[SelectedPoint];
+
+                var first_point_index = SelectedPoints[0];
+                var point = instance.Points[first_point_index];
 
                 var editPoint = point;
                 editPoint.position              = EditorGUILayout.Vector3Field("point position", editPoint.position);
@@ -123,7 +184,10 @@ public class SplineEditor : Editor
                 if (!point.Equals(editPoint))
                 {
                     Undo.RecordObject(instance, "Point Edited");
-                    instance.Points[point_index] = editPoint;
+                    instance.Points[first_point_index] = editPoint;
+
+                    // update handles if necessary 
+                    UpdateHandlesWhenPointMoved(instance, first_point_index, editPoint.position - point.position);
                 }
 
                 GUILayout.EndVertical();
@@ -233,13 +297,14 @@ public class SplineEditor : Editor
         }
         else
         {
-            if (SelectedPoint >= 0)
+            if(SelectedPoints.Count > 0)
             {
-                DrawSelectedSplineHandle(instance, SelectedPoint);
+                var first_selected_point = SelectedPoints[0];
+                DrawSelectedSplineHandle(instance, first_selected_point);
             }
-
+            
             // todo, draw these in PlacingPoint too, but non selectable 
-            DrawSelectablePoints(instance, SelectedPoint);
+            DrawSelectablePoints(instance);
         }
 
     }
@@ -415,6 +480,8 @@ public class SplineEditor : Editor
         Handles.color = Color.white;
 
         var anyMoved = false;
+        var anyRotated = false;
+        var anyScaled = false;
         var splinePointDelta = Vector3.zero;
 
         switch (Tools.current)
@@ -423,12 +490,67 @@ public class SplineEditor : Editor
                 anyMoved = DrawHandle(Vector3.zero, ref splinePoint.position, out splinePointDelta);
                 break;
             case Tool.Rotate:
-                anyMoved = DrawHandleRotation(splinePoint.position, ref splinePoint.rotation);
+                anyRotated = DrawHandleRotation(splinePoint.position, ref splinePoint.rotation);
                 break;
             case Tool.Scale:
-                anyMoved = DrawHandleScale(splinePoint.position, ref splinePoint.scale); 
+                anyScaled = DrawHandleScale(splinePoint.position, ref splinePoint.scale); 
                 break; 
         }
+
+        UpdateHandlesWhenPointMoved(instance, point_index, splinePointDelta); 
+
+        if (anyMoved || anyRotated || anyScaled)
+        {
+            Undo.RegisterCompleteObjectUndo(instance, "Move Point");
+
+            var original_point = instance.Points[point_index];
+            instance.Points[point_index] = splinePoint;
+
+            if (anyMoved)
+            {
+                var delta_move = splinePoint.position - original_point.position;
+
+                for(var i = 0; i < SelectedPoints.Count; ++i)
+                {
+                    var other_index = SelectedPoints[i];
+                    if (other_index == point_index) continue;
+
+                    UpdateHandlesWhenPointMoved(instance, other_index, splinePointDelta);
+
+                    instance.Points[other_index].position += delta_move;
+                }
+            }
+
+            if (anyRotated)
+            {
+                var delta_rotation = Quaternion.Inverse(original_point.rotation) * splinePoint.rotation;
+
+                for (var i = 0; i < SelectedPoints.Count; ++i)
+                {
+                    var other_index = SelectedPoints[i];
+                    if (other_index == point_index) continue;
+                    instance.Points[other_index].rotation *= delta_rotation;
+                }
+            }
+
+            if (anyScaled)
+            {
+                var delta_scale = splinePoint.scale - original_point.scale;
+
+                for (var i = 0; i < SelectedPoints.Count; ++i)
+                {
+                    var other_index = SelectedPoints[i];
+                    if (other_index == point_index) continue;
+                    instance.Points[other_index].scale += delta_scale;
+                }
+            }
+
+        }
+    }
+
+    private void UpdateHandlesWhenPointMoved(Spline instance, int point_index, Vector3 move_delta)
+    {
+        var splinePoint = instance.Points[point_index];
 
         if (instance.Mode == SplineMode.Bezier)
         {
@@ -440,7 +562,7 @@ public class SplineEditor : Editor
 
                 var index = point_index % 3 == 1 ? pointIndex0 : pointIndex1;
 
-                if(index < 0 || index >= instance.Points.Length)
+                if (index < 0 || index >= instance.Points.Length)
                 {
                     return;
                 }
@@ -459,7 +581,7 @@ public class SplineEditor : Editor
 
                     var otherHandlePoint = instance.Points[otherHandleIndex];
 
-                    if (anyMoved)
+                    if (move_delta.sqrMagnitude > 0.001f)
                     {
                         var toAnchorPoint = anchorPoint.position - splinePoint.position;
                         var otherHandlePosition = anchorPoint.position + toAnchorPoint;
@@ -480,11 +602,12 @@ public class SplineEditor : Editor
                     var handle0 = instance.Points[handleIndex0];
                     var handle1 = instance.Points[handleIndex1];
 
-                    handle0.position = handle0.position + splinePointDelta;
-                    handle1.position = handle1.position + splinePointDelta;
+                    handle0.position = handle0.position + move_delta;
+                    handle1.position = handle1.position + move_delta;
 
-                    instance.Points[handleIndex0] = handle0;
-                    instance.Points[handleIndex1] = handle1;
+                    // only update these if they are not also selected 
+                    if (!SelectedPoints.Contains(handleIndex0)) instance.Points[handleIndex0] = handle0;
+                    if (!SelectedPoints.Contains(handleIndex1)) instance.Points[handleIndex1] = handle1;
 
                     Handles.color = Color.gray;
                     Handles.DrawLine(splinePoint.position, handle0.position);
@@ -492,20 +615,16 @@ public class SplineEditor : Editor
                 }
             }
         }
-
-        if (anyMoved)
-        {
-            Undo.RegisterCompleteObjectUndo(instance, "Move Point");
-            instance.Points[point_index] = splinePoint;
-        }
     }
 
-    private void DrawSelectablePoints(Spline instance, int selected_point_index)
+    private void DrawSelectablePoints(Spline instance)
     {
+
+        var first_selected_point = SelectedPoints.Count > 0 ? SelectedPoints[0] : -1;
 
         for (var p = 0; p < instance.Points.Length; ++p)
         {
-            if (p == selected_point_index)
+            if (p == first_selected_point)
             {
                 continue;
             }
@@ -514,25 +633,23 @@ public class SplineEditor : Editor
             var position = point.position;
             var isHandle = instance.Mode == SplineMode.Bezier && p % 3 != 0;
 
-
-
             if (isHandle)
             {
                 // when nothing is selected, do not draw handles 
-                if (selected_point_index == -1)
+                if (first_selected_point == -1)
                 {
                     continue;
                 }
 
                 // when a handle is selected, we only want to draw the other handle touching our center point 
-                var isSelectedHandle = selected_point_index % 3 != 0;
+                var isSelectedHandle = first_selected_point % 3 != 0;
                 if (isSelectedHandle)
                 {
                     var handleIndex = p % 3;
                     if (handleIndex == 1)
                     {
                         var parentPoint = p - 2;
-                        if (parentPoint != selected_point_index)
+                        if (parentPoint != first_selected_point)
                         {
                             continue;
                         }
@@ -540,7 +657,7 @@ public class SplineEditor : Editor
                     else
                     {
                         var parentPoint = p + 2;
-                        if (parentPoint != selected_point_index)
+                        if (parentPoint != first_selected_point)
                         {
                             continue;
                         }
@@ -550,7 +667,7 @@ public class SplineEditor : Editor
                 // but if its a point selected, we want to draw both handles 
                 else
                 {
-                    if (p < selected_point_index - 1 || p > selected_point_index + 1)
+                    if (p < first_selected_point - 1 || p > first_selected_point + 1)
                     {
                         continue;
                     }
@@ -564,21 +681,33 @@ public class SplineEditor : Editor
 
             var cameraPoint = sceneCamera.ScreenToWorldPoint(screenPoint);
 
-            Handles.color = isHandle ? Color.green : Color.blue; 
+            Handles.color = SelectedPoints.Contains(p) ? Color.white : isHandle ? Color.green : Color.blue; 
             var selected = Handles.Button(cameraPoint, Quaternion.identity, .1f, .1f, Handles.DotHandleCap);
             if (selected)
             {
                 Undo.RegisterCompleteObjectUndo(this, "Selected Point");
 
                 // select a new point
-                SelectPoint(p);
+                var select_multiple = Event.current.modifiers == EventModifiers.Control;
+
+                if(select_multiple)
+                {
+                    if (!SelectedPoints.Contains(p))
+                    {
+                        SelectedPoints.Add(p);
+                    }
+                    else
+                    {
+                        SelectedPoints.Remove(p);
+                    }
+                }
+                else
+                {
+                    SelectedPoints.Clear();
+                    SelectedPoints.Add(p); 
+                }
             }
         }
-    }
-
-    private void SelectPoint(int index)
-    {
-        SelectedPoint = index;
     }
 
     private bool DrawHandle(Vector3 offset, ref Vector3 positionRef, out Vector3 delta)
