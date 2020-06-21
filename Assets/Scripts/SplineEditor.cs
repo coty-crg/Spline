@@ -241,10 +241,10 @@ public class SplineEditor : Editor
 
                 var firstPointPos = instance.Points[0].position;
                 var fromFirstPointPos = position - firstPointPos;
-                    fromFirstPointPos = fromFirstPointPos.normalized;
+                var distanceScale = 0.25f;
 
-                instance.Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos, rotation, scale);    // handle 1
-                instance.Points[2] = new SplinePoint(position - fromFirstPointPos, rotation, scale);         // handle 2
+                instance.Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos * distanceScale, rotation, scale);    // handle 1
+                instance.Points[2] = new SplinePoint(position - fromFirstPointPos * distanceScale, rotation, scale);         // handle 2
                 instance.Points[3] = new SplinePoint(position, rotation, scale);                             // point  2
                 return;
             }
@@ -260,13 +260,15 @@ public class SplineEditor : Editor
 
                 // update previous handle to mirror new handle
                 var new_to_prev = position - prev_point.position;
-                    new_to_prev = new_to_prev.normalized;
+                var distanceScale = 0.25f;
 
-                prev_handle.position = prev_point.position - new_to_prev;
+                //    new_to_prev = new_to_prev.normalized;
+
+                prev_handle.position = prev_point.position - new_to_prev * distanceScale;
                 instance.Points[index_prev_handle] = prev_handle;
             
-                instance.Points[instance.Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev, rotation, scale);       // handle 1
-                instance.Points[instance.Points.Length - 2] = new SplinePoint(position - new_to_prev, rotation, scale);                  // handle 2 
+                instance.Points[instance.Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev * distanceScale, rotation, scale);       // handle 1
+                instance.Points[instance.Points.Length - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale);                  // handle 2 
                 instance.Points[instance.Points.Length - 1] = new SplinePoint(position, rotation, scale);                                // point 
             }
         }
