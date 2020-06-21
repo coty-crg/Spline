@@ -75,10 +75,6 @@ public class SplineMeshBuilder : MonoBehaviour
         var lastPoint = SplineReference.GetPoint(1f);
         var previousPosition = firstPoint.position;
 
-
-
-
-
         quality = quality - quality % 2;
 
         for (var step = 0; step < quality; ++step)
@@ -92,12 +88,13 @@ public class SplineMeshBuilder : MonoBehaviour
             var position0 = splinePoint0.position;
             var position1 = splinePoint1.position;
 
-            var up0 = splinePoint0.up;
-            var up1 = splinePoint1.up;
+            var rotation0 = splinePoint0.rotation;
+            var rotation1 = splinePoint1.rotation;
 
             var position = Vector3.Lerp(position0, position1, 0.5f);
             var forward = (position1 - position0).normalized;
-            var up = Vector3.Slerp(up0, up1, 0.5f);
+            var rotation = Quaternion.Slerp(rotation0, rotation1, 0.5f);
+            var up = rotation * Vector3.forward;
             var right = Vector3.Cross(forward, up);
 
             // verts 

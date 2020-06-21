@@ -3,6 +3,7 @@
 using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
+using System;
 
 [CustomEditor(typeof(Spline))]
 [DefaultExecutionOrder(-10000)]
@@ -44,6 +45,7 @@ public class SplineEditor : Editor
         
         if (!PlacingPoint && GUILayout.Button("Start Placing Points"))
         {
+            SelectedPoint = -1;
             PlacingPoint = !PlacingPoint;
         }
         else if (PlacingPoint && GUILayout.Button("Stop Placing Points"))
@@ -69,85 +71,135 @@ public class SplineEditor : Editor
                 PlacePlaneNormal = EditorGUILayout.Vector3Field("Plane Normal", PlacePlaneNormal);
             }
         }
-
-        var optionsStr = new string[instance.Points.Length + 1];
-        var optionsInt = new int[instance.Points.Length + 1];
-
-        optionsStr[0] = "none";
-        optionsInt[0] = -1;
-
-        for (var i = 0; i < instance.Points.Length; ++i)
+        else
         {
-            if (instance.Mode == SplineMode.Linear)
+            var optionsStr = new string[instance.Points.Length + 1];
+            var optionsInt = new int[instance.Points.Length + 1];
+
+            optionsStr[0] = "none";
+            optionsInt[0] = -1;
+
+            for (var i = 0; i < instance.Points.Length; ++i)
             {
-                optionsStr[i + 1] = $"point {i:N0}";
-            }
-            else if (instance.Mode == SplineMode.Bezier)
-            {
-                if (i % 3 == 0)
+                if (instance.Mode == SplineMode.Linear)
                 {
-                    optionsStr[i + 1] = $"[point] {i:N0}";
+                    optionsStr[i + 1] = $"point {i:N0}";
                 }
-                else
+                else if (instance.Mode == SplineMode.Bezier)
                 {
-                    optionsStr[i + 1] = $"[handle] {i:N0}";
+                    if (i % 3 == 0)
+                    {
+                        optionsStr[i + 1] = $"[point] {i:N0}";
+                    }
+                    else
+                    {
+                        optionsStr[i + 1] = $"[handle] {i:N0}";
+                    }
                 }
+
+                optionsInt[i + 1] = i;
             }
 
-            optionsInt[i + 1] = i;
+            GUILayout.BeginVertical("GroupBox");
+
+
+            GUILayout.Label("Point Editor", UnityEditor.EditorStyles.largeLabel);
+
+            MirrorAnchors = EditorGUILayout.Toggle("Mirror Anchors", MirrorAnchors);
+            SelectedPoint = EditorGUILayout.IntPopup(SelectedPoint, optionsStr, optionsInt);
+
+            if (SelectedPoint >= 0)
+            {
+                GUILayout.BeginVertical("GroupBox");
+                var point = instance.Points[SelectedPoint];
+
+                var editPoint = point;
+                editPoint.position              = EditorGUILayout.Vector3Field("point position", editPoint.position);
+                editPoint.rotation.eulerAngles  = EditorGUILayout.Vector3Field("point rotation", editPoint.rotation.eulerAngles);
+                editPoint.scale                 = EditorGUILayout.Vector3Field("point scale", editPoint.scale);
+
+                if (!point.Equals(editPoint))
+                {
+                    Undo.RecordObject(instance, "Point Edited");
+                    instance.Points[SelectedPoint] = editPoint;
+                }
+
+                GUILayout.EndVertical();
+            }
+
+            GUILayout.EndVertical();
         }
 
-        SelectedPoint = EditorGUILayout.IntPopup(SelectedPoint, optionsStr, optionsInt);
-        MirrorAnchors = EditorGUILayout.Toggle("Mirror Anchors", MirrorAnchors);
 
         GUILayout.EndVertical();
     }
 
 
-    private void AppendPoint(Spline instance, Vector3 position, Vector3 up)
+    private void AppendPoint(Spline instance, Vector3 position, Quaternion rotation, Vector3 scale)
     {
         Undo.RegisterCompleteObjectUndo(instance, "Append Point");
 
         if (instance.Mode == SplineMode.Linear)
         {
-            var newArray = new SplinePoint[instance.Points.Length + 1];
-            for (var i = 0; i < instance.Points.Length; ++i)
-            {
-                newArray[i] = instance.Points[i];
-            }
-
-            instance.Points = newArray;
-
-            instance.Points[instance.Points.Length - 1] = new SplinePoint(position, up);
+            ExpandPointArray(instance, instance.Points.Length + 1);
+            instance.Points[instance.Points.Length - 1] = new SplinePoint(position, rotation, scale);
         }
         else if (instance.Mode == SplineMode.Bezier)
         {
-
-            var newArray = new SplinePoint[instance.Points.Length + 3];
-            for (var i = 0; i < instance.Points.Length; ++i)
+            if(instance.Points.Length == 0)
             {
-                newArray[i] = instance.Points[i];
+                ExpandPointArray(instance, instance.Points.Length + 1);
+                instance.Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale);                 // point 1
+                return;
             }
+            else if(instance.Points.Length == 1)
+            {
+                ExpandPointArray(instance, instance.Points.Length + 3);
 
-            instance.Points = newArray;
-            
-            var index = instance.Points.Length - 4;
-            var previousHandle = instance.Points[instance.Points.Length - 5];
-            var anchorPoint = instance.Points[instance.Points.Length - 4];
+                var firstPointPos = instance.Points[0].position;
+                var fromFirstPointPos = position - firstPointPos;
+                    fromFirstPointPos = fromFirstPointPos.normalized;
 
-            var toAnchorPoint = anchorPoint.position - previousHandle.position;
-            var toNewHandlePoint = anchorPoint.position + toAnchorPoint;
+                instance.Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos, rotation, scale);    // handle 1
+                instance.Points[2] = new SplinePoint(position - fromFirstPointPos, rotation, scale);         // handle 2
+                instance.Points[3] = new SplinePoint(position, rotation, scale);                             // point  2
+                return;
+            }
+            else
+            {
+                ExpandPointArray(instance, instance.Points.Length + 3);
+
+                var index_prev_handle = instance.Points.Length - 5;
+                var index_prev_point  = instance.Points.Length - 4;
+
+                var prev_handle = instance.Points[index_prev_handle];
+                var prev_point  = instance.Points[index_prev_point];
+
+                // update previous handle to mirror new handle
+                var new_to_prev = position - prev_point.position;
+                    new_to_prev = new_to_prev.normalized;
+
+                prev_handle.position = prev_point.position - new_to_prev;
+                instance.Points[index_prev_handle] = prev_handle;
             
-            var last0 = instance.Points[instance.Points.Length - 7]; 
-            var last1 = instance.Points[instance.Points.Length - 4];   
-            var lastDirection = (last1.position - last0.position).normalized; 
-            
-            instance.Points[instance.Points.Length - 3] = new SplinePoint(toNewHandlePoint, up);         // handle 1
-            instance.Points[instance.Points.Length - 2] = new SplinePoint(position - lastDirection, up); // handle 2 
-            instance.Points[instance.Points.Length - 1] = new SplinePoint(position, up);                 // point 
+                instance.Points[instance.Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev, rotation, scale);       // handle 1
+                instance.Points[instance.Points.Length - 2] = new SplinePoint(position - new_to_prev, rotation, scale);                  // handle 2 
+                instance.Points[instance.Points.Length - 1] = new SplinePoint(position, rotation, scale);                                // point 
+            }
         }
 
         EditorUtility.SetDirty(instance);
+    }
+
+    private void ExpandPointArray(Spline spline, int newLength)
+    {
+        var newArray = new SplinePoint[newLength];
+        for (var i = 0; i < spline.Points.Length; ++i)
+        {
+            newArray[i] = spline.Points[i];
+        }
+
+        spline.Points = newArray;
     }
 
     private void OnSceneGUI()
@@ -204,7 +256,7 @@ public class SplineEditor : Editor
             case SplinePlacePointMode.CameraPlane:
                 var position = worldRay.origin + worldRay.direction * 1f; // * Camera.current.nearClipPlane;
                 var up = Vector3.up;
-                point = new SplinePoint(position, up);
+                point = new SplinePoint(position, Quaternion.LookRotation(worldRay.direction, Vector3.up), Vector3.one);
                 return true; 
             case SplinePlacePointMode.Plane:
 
@@ -216,7 +268,7 @@ public class SplineEditor : Editor
                 PlacePlaneNormal = PlacePlaneNormal.normalized;
 
                 var projectedOnPlane = Vector3.ProjectOnPlane(worldRay.origin - PlacePlaneOffset, PlacePlaneNormal) + PlacePlaneOffset;
-                point = new SplinePoint(projectedOnPlane, PlacePlaneNormal);
+                point = new SplinePoint(projectedOnPlane, Quaternion.LookRotation(PlacePlaneNormal, Vector3.up), Vector3.one);
 
                 return true; 
             case SplinePlacePointMode.MeshSurface:
@@ -230,7 +282,7 @@ public class SplineEditor : Editor
                         var hit = RXLookingGlass.IntersectRayGameObject(worldRay, go, out RaycastHit info);
                         if (hit)
                         {
-                            point = new SplinePoint(info.point, info.normal);
+                            point = new SplinePoint(info.point, Quaternion.LookRotation(info.normal, Vector3.up), Vector3.one);
                             previousMeshSurfacePoint = point;
                             hasPreviousMeshSurfacePoint = true; 
                             return true;
@@ -279,28 +331,29 @@ public class SplineEditor : Editor
                         var distance1 = Vector3.Distance(vertex1, collisionInfo.point);
                         var distance2 = Vector3.Distance(vertex2, collisionInfo.point);
 
-                        
+                        var rotation0 = Quaternion.LookRotation(normal0, Vector3.up);
+                        var rotation1 = Quaternion.LookRotation(normal1, Vector3.up);
+                        var rotation2 = Quaternion.LookRotation(normal2, Vector3.up);
 
-                        if(distance0 < distance1 && distance0 < distance2)
+                        if (distance0 < distance1 && distance0 < distance2)
                         {
-                            point = new SplinePoint(vertex0, normal0);
+                            point = new SplinePoint(vertex0, rotation0, Vector3.one);
                         }
                         else if(distance1 < distance0 && distance1 < distance2)
                         {
 
-                            point = new SplinePoint(vertex1, normal1);
+                            point = new SplinePoint(vertex1, rotation1, Vector3.one);
                         }
                         else
                         {
-                            point = new SplinePoint(vertex2, normal2);
-
+                            point = new SplinePoint(vertex2, rotation2, Vector3.one);
                         }
 
                         return true; 
                     }
                     else
                     {
-                        point = new SplinePoint(collisionInfo.point, collisionInfo.normal); 
+                        point = new SplinePoint(collisionInfo.point, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one); 
                         return true; 
                     }
                 }
@@ -334,7 +387,7 @@ public class SplineEditor : Editor
         // try placing it 
         if (IsLeftMouseClicked())
         {
-            AppendPoint(instance, placingPoint.position, placingPoint.up); 
+            AppendPoint(instance, placingPoint.position, placingPoint.rotation, placingPoint.scale); 
             Event.current.Use();
         }
     }
@@ -351,7 +404,22 @@ public class SplineEditor : Editor
 
 
         Handles.color = Color.white;
-        var anyMoved = DrawHandle(Vector3.zero, ref splinePoint.position, out Vector3 splinePointDelta);
+
+        var anyMoved = false;
+        var splinePointDelta = Vector3.zero;
+
+        switch (Tools.current)
+        {
+            case Tool.Move:
+                anyMoved = DrawHandle(Vector3.zero, ref splinePoint.position, out splinePointDelta);
+                break;
+            case Tool.Rotate:
+                anyMoved = DrawHandleRotation(splinePoint.position, ref splinePoint.rotation);
+                break;
+            case Tool.Scale:
+                anyMoved = DrawHandleScale(splinePoint.position, ref splinePoint.scale); 
+                break; 
+        }
 
         if (instance.Mode == SplineMode.Bezier)
         {
@@ -487,6 +555,7 @@ public class SplineEditor : Editor
 
             var cameraPoint = sceneCamera.ScreenToWorldPoint(screenPoint);
 
+            Handles.color = isHandle ? Color.green : Color.blue; 
             var selected = Handles.Button(cameraPoint, Quaternion.identity, .1f, .1f, Handles.DotHandleCap);
             if (selected)
             {
@@ -503,6 +572,30 @@ public class SplineEditor : Editor
 
         delta = positionRef - startPosition;
         var changed = delta.sqrMagnitude > 0;
+        return changed;
+    }
+
+    private bool DrawHandleRotation(Vector3 position, ref Quaternion rotation)
+    {
+        var normal = rotation * Vector3.forward;
+        Handles.color = Color.green;
+        Handles.DrawLine(position, position + normal);
+
+        rotation = Handles.RotationHandle(rotation, position);
+        var new_normal = rotation * Vector3.forward;
+        
+        var delta_normal = new_normal - normal;
+        var changed = delta_normal.sqrMagnitude > 0;
+        return changed;
+    }
+
+    private bool DrawHandleScale(Vector3 position, ref Vector3 scale)
+    {
+        var startScale = scale; 
+        scale = Handles.ScaleHandle(scale, position, Quaternion.identity, HandleUtility.GetHandleSize(position));
+
+        var delta_scale = startScale - scale;
+        var changed = delta_scale.sqrMagnitude > 0;
         return changed;
     }
 

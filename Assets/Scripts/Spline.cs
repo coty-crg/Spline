@@ -4,17 +4,36 @@ using UnityEngine;
 using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
 using System;
+using System.Text.RegularExpressions;
 
 [System.Serializable]
 public struct SplinePoint
 {
     public Vector3 position;
-    public Vector3 up;
+    public Quaternion rotation;
+    public Vector3 scale;
 
-    public SplinePoint(Vector3 position, Vector3 up)
+    public SplinePoint(Vector3 position, Quaternion rotation, Vector3 scale)
     {
         this.position = position;
-        this.up = up;
+        this.rotation = rotation;
+        this.scale = scale; 
+    }
+
+    public override bool Equals(object obj)
+    {
+        var otherPoint = (SplinePoint)obj;
+        var matchPosition = (position - otherPoint.position).sqrMagnitude < 0.001f;
+        var matchUp = (rotation.eulerAngles - otherPoint.rotation.eulerAngles).sqrMagnitude < 0.001f;
+        return matchPosition && matchUp;
+    }
+
+    public override int GetHashCode()
+    {
+        int hashCode = -1959666502;
+        hashCode = hashCode * -1521134295 + position.GetHashCode();
+        hashCode = hashCode * -1521134295 + rotation.GetHashCode();
+        return hashCode;
     }
 }
 
@@ -33,7 +52,7 @@ public class Spline : MonoBehaviour
 
     public SplinePoint ProjectOnSpline(Vector3 position)
     {
-        var interpolatedPoint = new SplinePoint(position, new Vector3(0, 1, 0));
+        var interpolatedPoint = new SplinePoint(position, Quaternion.identity, Vector3.one);
 
         if(Points.Length == 0)
         {
@@ -117,10 +136,10 @@ public class Spline : MonoBehaviour
 
             var projectedPosition = ProjectLinear(point0, point1, position);
             var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-            var projectedUp = InterpolateUp(point0, point1, Mode, percentageBetweenPoints);
+            var projectedUp = InterpolateRotation(point0, point1, Mode, percentageBetweenPoints);
 
             interpolatedPoint.position = projectedPosition;
-            interpolatedPoint.up = projectedUp;
+            interpolatedPoint.rotation = projectedUp;
 
             return interpolatedPoint;
         }
@@ -221,48 +240,6 @@ public class Spline : MonoBehaviour
         }
     }
 
-    public void OnDrawGizmosSelected()
-    {
-        if (EditorAlwaysDraw) return; 
-        DrawGizmos();
-    }
-
-    private void OnDrawGizmos()
-    {
-        if (!EditorAlwaysDraw) return;
-        DrawGizmos();
-    }
-
-    private void DrawGizmos()
-    {
-        if (Mode == SplineMode.Linear)
-        {
-            for (var i = 1; i < Points.Length; ++i)
-            {
-                var previous = Points[i - 1];
-                var current = Points[i];
-
-                Gizmos.DrawLine(previous.position, current.position);
-            }
-        }
-        else
-        {
-            int quality = 256;
-
-            for (var r = 0; r <= quality; ++r)
-            {
-
-                var t0 = (float)r / quality - (1f / quality);
-                var t1 = (float)r / quality;
-
-                var p0 = GetPoint(t0);
-                var p1 = GetPoint(t1);
-
-                Gizmos.DrawLine(p0.position, p1.position);
-            }
-        }
-    }
-
     public static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
     {
         var oneMinusT = 1f - t;
@@ -286,6 +263,29 @@ public class Spline : MonoBehaviour
         // return ad; 
     }
 
+    public static Quaternion QuadraticInterpolate(Quaternion point0, Quaternion point1, Quaternion point2, Quaternion point3, float t)
+    {
+        // var oneMinusT = 1f - t;
+        // var result =
+        //     oneMinusT * oneMinusT * oneMinusT * point0 +
+        //     3f * oneMinusT * oneMinusT * t * point1 +
+        //     3f * oneMinusT * t * t * point2 +
+        //     t * t * t * point3;
+        // 
+        // return result;
+
+        var ab = Quaternion.Slerp(point0, point1, t);
+        var bc = Quaternion.Slerp(point1, point2, t);
+        var cd = Quaternion.Slerp(point2, point3, t);
+
+        var ac = Quaternion.Slerp(ab, bc, t);
+        var bd = Quaternion.Slerp(bc, cd, t);
+
+        var ad = Quaternion.Slerp(ac, bd, t);
+        
+        return ad; 
+    }
+
     public static SplinePoint CalculateBezierPoint(SplinePoint point0, SplinePoint point1, SplinePoint point2, SplinePoint point3, float t)
     {
         var result = new SplinePoint();
@@ -306,7 +306,7 @@ public class Spline : MonoBehaviour
         // var up_bd = Vector3.Slerp(up_bc, up_cd, t);
         // var up_ad = Vector3.Slerp(up_ac, up_bd, t);
 
-        result.up = QuadraticInterpolate(point0.up, point1.up, point2.up, point3.up, t).normalized;
+        result.rotation = QuadraticInterpolate(point0.rotation, point1.rotation, point2.rotation, point3.rotation, t).normalized;
 
         return result;
     }
@@ -425,13 +425,13 @@ public class Spline : MonoBehaviour
         }
     }
 
-    public static Vector3 InterpolateUp(SplinePoint a, SplinePoint b, SplineMode mode, float t)
+    public static Quaternion InterpolateRotation(SplinePoint a, SplinePoint b, SplineMode mode, float t)
     {
         switch (mode)
         {
             default:
             case SplineMode.Linear:
-                return Vector3.Slerp(a.up, b.up, t);
+                return Quaternion.Slerp(a.rotation, b.rotation, t);
         }
     }
 
@@ -478,7 +478,7 @@ public class Spline : MonoBehaviour
 
             var result = new SplinePoint();
             result.position = Vector3.Lerp(point0.position, point1.position, inner_t);
-            result.up = Vector3.Slerp(point0.up, point1.up, inner_t);
+            result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, inner_t);
 
             return result; 
         }
@@ -545,4 +545,49 @@ public class Spline : MonoBehaviour
         var percentage = distanceToPoint / distanceAB;
         return percentage;
     }
+
+#if UNITY_EDITOR
+    public void OnDrawGizmosSelected()
+    {
+        if (EditorAlwaysDraw) return;
+        DrawGizmos();
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!EditorAlwaysDraw) return;
+        DrawGizmos();
+    }
+
+    private void DrawGizmos()
+    {
+        if (Mode == SplineMode.Linear)
+        {
+            for (var i = 1; i < Points.Length; ++i)
+            {
+                var previous = Points[i - 1];
+                var current = Points[i];
+
+                Gizmos.DrawLine(previous.position, current.position);
+            }
+        }
+        else
+        {
+            int quality = 512;
+
+            for (var r = 0; r <= quality; ++r)
+            {
+
+                var t0 = (float)r / quality - (1f / quality);
+                var t1 = (float)r / quality;
+
+                var p0 = GetPoint(t0);
+                var p1 = GetPoint(t1);
+
+                Gizmos.DrawLine(p0.position, p1.position);
+            }
+        }
+    }
+#endif
+
 }
