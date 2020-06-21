@@ -19,13 +19,13 @@ public class SplineEditor : Editor
         CollisionSurface,
     }
 
-    private List<int> SelectedPoints = new List<int>();
-    private bool MirrorAnchors = true;
-    private bool PlacingPoint;
-    private SplinePlacePointMode PlaceMode;
-    private LayerMask PlaceLayerMask;
-    private Vector3 PlacePlaneOffset;
-    private Quaternion PlacePlaneNormalRotation;
+    [SerializeField] private List<int> SelectedPoints = new List<int>();
+    [SerializeField] private bool MirrorAnchors = true;
+    [SerializeField] private bool PlacingPoint;
+    [SerializeField] private SplinePlacePointMode PlaceMode;
+    [SerializeField] private LayerMask PlaceLayerMask;
+    [SerializeField] private Vector3 PlacePlaneOffset;
+    [SerializeField] private Quaternion PlacePlaneNormalRotation;
 
     public bool SnapToNearestVert;
 
@@ -94,6 +94,8 @@ public class SplineEditor : Editor
 
         if (GUILayout.Button(selectedPointButtonSb.ToString()))
         {
+            Undo.RecordObject(this, "Point Selection");
+
             var selectedMenu = new GenericMenu();
 
             selectedMenu.AddItem(new GUIContent("Select All"), selected_all, OnAllPointsSelected, spline);
