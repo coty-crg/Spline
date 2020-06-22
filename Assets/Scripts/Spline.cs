@@ -37,6 +37,39 @@ public struct SplinePoint
         hashCode = hashCode * -1521134295 + scale.GetHashCode();
         return hashCode;
     }
+
+    public static bool IsHandle(SplineMode mode, int index)
+    {
+        var isHandle = mode == SplineMode.Bezier && index % 3 != 0;
+        return isHandle;
+    }
+
+    public static int GetAnchorIndex(SplineMode mode, int index)
+    {
+        if(mode == SplineMode.Linear)
+        {
+            return index;
+        }
+        else
+        {
+            return index - index % 3;
+        }
+    }
+
+    public static void GetHandleIndexes(SplineMode mode, int index, out int handleIndex0, out int handleIndex1)
+    {
+        if (mode == SplineMode.Linear)
+        {
+            handleIndex0 = index;
+            handleIndex1 = index;
+        }
+        else
+        {
+            var anchorIndex = GetAnchorIndex(mode, index);
+            handleIndex0 = anchorIndex - 1;
+            handleIndex1 = anchorIndex - 1;
+        }
+    }
 }
 
 public enum SplineMode

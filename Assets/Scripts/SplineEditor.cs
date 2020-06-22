@@ -289,6 +289,8 @@ public class SplineEditor : Editor
 
     private void OnSceneGUI()
     {
+        var instance = (Spline)target;
+
         DrawToolbar();
 
         // if moving camera with mouse, dont draw all our gizmos.. (they would block trying to click the handles) 
@@ -297,7 +299,55 @@ public class SplineEditor : Editor
             return;
         }
 
-        var instance = (Spline)target;
+        if((Event.current.type == EventType.KeyDown) && Event.current.keyCode == KeyCode.Delete)
+        {
+            if(SelectedPoints.Count == 0)
+            {
+                return;
+            }
+
+            else
+            {
+                // sort, 0, 1, 2, etc 
+                SelectedPoints.Sort();
+
+                // copy points into easier to modify list 
+                var pointList = instance.Points.ToList();
+
+                // then delete from highest to lowest 
+                for (var i = SelectedPoints.Count - 1; i >= 0; --i)
+                {
+                    var point_index = SelectedPoints[i];
+
+                    // don't allow deleting handles directly? 
+                    var isHandle = SplinePoint.IsHandle(instance.Mode, point_index);
+                    if (isHandle) continue; 
+
+                    // if we have neighbor handles, find them and delete them too.. 
+                    if(instance.Mode == SplineMode.Bezier)
+                    {
+                        SplinePoint.GetHandleIndexes(instance.Mode, point_index, out int handleIndex0, out int handleIndex1);
+
+                        if (pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
+                        if (pointList.Count > point_index) pointList.RemoveAt(point_index);
+                        if (pointList.Count > handleIndex0) pointList.RemoveAt(handleIndex0);
+                    }
+                    else if(instance.Mode == SplineMode.Linear)
+                    {
+                        if (pointList.Count > point_index) pointList.RemoveAt(point_index);
+                    }
+                }
+
+                // update original points with modified list 
+                instance.Points = pointList.ToArray(); 
+
+                // consume event and exit 
+                Event.current.Use();
+                return;
+            }
+        }
+
+
 
         if (PlacingPoint)
         {
