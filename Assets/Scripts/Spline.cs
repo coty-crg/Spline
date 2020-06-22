@@ -86,18 +86,148 @@ public class Spline : MonoBehaviour
 
     public bool EditorAlwaysDraw;
 
+    // api 
     public SplinePoint ProjectOnSpline(Camera camera, Vector3 screenPosition)
     {
-        var interpolatedPoint = new SplinePoint();
+        var t = ProjectOnSpline_t(camera, screenPosition);
+        return GetPoint(t);
+    }
 
+    public SplinePoint ProjectOnSpline(Vector3 position)
+    {
+        var t = ProjectOnSpline_t(position);
+        return GetPoint(t);
+    }
+
+    public float ProjectOnSpline_t(Vector3 position)
+    {
         if (Points.Length == 0)
         {
-            return interpolatedPoint;
+            return 0f;
         }
 
         if (Points.Length == 1)
         {
-            return Points[0];
+            return 0f;
+        }
+
+        var length = Points.Length;
+
+        if (Mode == SplineMode.Linear)
+        {
+            // find closest point 
+            var closestDistance = float.MaxValue;
+            var closestIndex = -1;
+
+            for (var i = 0; i < length; ++i)
+            {
+                var point = Points[i];
+
+                var toPoint = point.position - position;
+                var toPointDistance = toPoint.magnitude;
+                if (toPointDistance < closestDistance)
+                {
+                    closestDistance = toPointDistance;
+                    closestIndex = i;
+                }
+            }
+
+            SplinePoint point0;
+            SplinePoint point1;
+
+            if (closestIndex <= 0)
+            {
+                var index_a = closestIndex;
+                var index_b = closestIndex + 1;
+
+                point0 = Points[index_a];
+                point1 = Points[index_b];
+            }
+
+            else if (closestIndex == Points.Length - 1)
+            {
+                var index_a = closestIndex;
+                var index_b = closestIndex - 1;
+
+                point0 = Points[index_a];
+                point1 = Points[index_b];
+            }
+
+            else
+            {
+                var index_a = closestIndex;
+                var index_b = closestIndex - 1;
+                var index_c = closestIndex + 1;
+
+                var point_a = Points[index_a];
+                var point_b = Points[index_b];
+                var point_c = Points[index_c];
+
+                var projected_ab = ProjectLinear(point_a, point_b, position);
+                var projected_ac = ProjectLinear(point_a, point_c, position);
+
+                var distance_ab = Vector3.Distance(position, projected_ab);
+                var distance_ac = Vector3.Distance(position, projected_ac);
+
+                if (distance_ab < distance_ac)
+                {
+                    point0 = point_b;
+                    point1 = point_a;
+                }
+                else
+                {
+                    point0 = point_a;
+                    point1 = point_c;
+                }
+            }
+
+            var projectedPosition = ProjectLinear(point0, point1, position);
+            var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
+            return (float) closestIndex / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+        }
+        else if(Mode == SplineMode.Bezier)
+        {
+            // find closest point 
+            var closestDistance = float.MaxValue;
+            var best_t = 0f;
+            var best_i = -1;
+
+            for (var i = 0; i < length - 3; i += 3)
+            {
+                var p0 = Points[i + 0];
+                var p1 = Points[i + 1];
+                var p2 = Points[i + 2];
+                var p3 = Points[i + 3];
+
+                var t = QuadraticProject(p0.position, p1.position, p2.position, p3.position, position);
+                var projected = QuadraticInterpolate(p0.position, p1.position, p2.position, p3.position, t);
+                var distance = Vector3.Distance(projected, position);
+
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+
+                    best_i = i;
+                    best_t = t;
+                }
+            }
+
+            return (float) best_i / Points.Length + best_t * (3f / Points.Length);
+        }
+
+        return 0f; 
+    }
+
+    public float ProjectOnSpline_t(Camera camera, Vector3 screenPosition)
+    {
+        if (Points.Length == 0)
+        {
+            return 0f;
+        }
+
+        if (Points.Length == 1)
+        {
+            return 0f;
         }
 
         var length = Points.Length;
@@ -166,11 +296,15 @@ public class Spline : MonoBehaviour
 
                 if (distance_ab < distance_ac)
                 {
-                    point0 = point_a;
-                    point1 = point_b;
+                    closestIndex = index_b;
+
+                    point0 = point_b;
+                    point1 = point_a;
                 }
                 else
                 {
+                    closestIndex = index_a;
+
                     point0 = point_a;
                     point1 = point_c;
                 }
@@ -178,19 +312,14 @@ public class Spline : MonoBehaviour
 
             var projectedPosition = ProjectLinear(point0, point1, screenPosition);
             var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-            var projectedUp = InterpolateRotation(point0, point1, Mode, percentageBetweenPoints);
-
-            // converts back from screen to world coordinates 
-            interpolatedPoint.position = camera.ScreenToWorldPoint(projectedPosition);
-            interpolatedPoint.rotation = projectedUp;
-
-            return interpolatedPoint;
+            return (float) closestIndex / Points.Length + percentageBetweenPoints * (1f / Points.Length);
         }
-        else if(Mode == SplineMode.Bezier)
+        else if (Mode == SplineMode.Bezier)
         {
             // find closest point 
             var closestDistance = float.MaxValue;
-            var closestProjectedPosition = Vector3.zero;
+            var best_i = 0;
+            var best_t = 0f;
 
             for (var i = 0; i < length - 3; i += 3)
             {
@@ -212,211 +341,109 @@ public class Spline : MonoBehaviour
                 if (distance < closestDistance)
                 {
                     closestDistance = distance;
-                    closestProjectedPosition = projected;
+
+                    best_i = i;
+                    best_t = t;
                 }
             }
 
-            // converts back to world coords 
-            interpolatedPoint.position = camera.ScreenToWorldPoint(closestProjectedPosition);
-            return interpolatedPoint;
+            return (float) best_i / Points.Length + best_t * (3f / Points.Length);
         }
         else
         {
-            return interpolatedPoint;
+            return 0f; 
         }
     }
 
-    public SplinePoint ProjectOnSpline(Vector3 position)
+    public SplinePoint GetPoint(float t)
     {
-        var interpolatedPoint = new SplinePoint(position, Quaternion.identity, Vector3.one);
-
-        if(Points.Length == 0)
+        if (Points.Length == 0)
         {
-            return interpolatedPoint;
+            return new SplinePoint();
         }
 
-        if (Points.Length == 1)
+        t = Mathf.Clamp01(t);
+
+        if (Mode == SplineMode.Linear)
         {
-            return Points[0];
+            var delta_t = 1f / Points.Length;
+            var mod_t = Mathf.Repeat(t, delta_t);
+            var inner_t = mod_t / delta_t;
+
+            var index0 = Mathf.FloorToInt(t * Points.Length);
+            var index1 = index0 + 1;
+
+            index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+            index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+
+            if (index0 == Points.Length - 1)
+            {
+                return Points[index0];
+            }
+
+            var point0 = Points[index0];
+            var point1 = Points[index1];
+
+            var result = new SplinePoint();
+            result.position = Vector3.Lerp(point0.position, point1.position, inner_t);
+            result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, inner_t);
+
+            return result;
+        }
+        else if (Mode == SplineMode.Bezier)
+        {
+
+            var delta_t = 3f / Points.Length;
+            var mod_t = Mathf.Repeat(t, delta_t);
+            var inner_t = mod_t / delta_t;
+
+
+            var index0 = Mathf.FloorToInt(t * Points.Length);
+            index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+            index0 = index0 - index0 % 3;
+
+            var index1 = index0 + 1;
+            var index2 = index0 + 2;
+            var index3 = index0 + 3;
+
+            // index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+            // index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
+            // index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+
+            if (index0 > Points.Length - 4)
+            {
+                return Points[Points.Length - 1];
+            }
+
+            var point0 = Points[index0];
+            var point1 = Points[index1];
+            var point2 = Points[index2];
+            var point3 = Points[index3];
+
+            var result = CalculateBezierPoint(point0, point1, point2, point3, inner_t);
+            return result;
         }
 
-        var length = Points.Length;
-
-        if(Mode == SplineMode.Linear)
-        {
-            // find closest point 
-            var closestDistance = float.MaxValue;
-            var closestIndex = -1;
-
-            for (var i = 0; i < length; ++i)
-            {
-                var point = Points[i];
-
-                var toPoint = point.position - position;
-                var toPointDistance = toPoint.magnitude;
-                if (toPointDistance < closestDistance)
-                {
-                    closestDistance = toPointDistance;
-                    closestIndex = i;
-                }
-            }
-
-            SplinePoint point0;
-            SplinePoint point1;
-
-            if (closestIndex <= 0)
-            {
-                var index_a = closestIndex;
-                var index_b = closestIndex + 1;
-
-                point0 = Points[index_a];
-                point1 = Points[index_b];
-            }
-
-            else if (closestIndex == Points.Length - 1)
-            {
-                var index_a = closestIndex;
-                var index_b = closestIndex - 1;
-
-                point0 = Points[index_a];
-                point1 = Points[index_b];
-            }
-
-            else
-            {
-                var index_a = closestIndex;
-                var index_b = closestIndex - 1;
-                var index_c = closestIndex + 1;
-
-                var point_a = Points[index_a];
-                var point_b = Points[index_b];
-                var point_c = Points[index_c];
-
-                var projected_ab = ProjectLinear(point_a, point_b, position);
-                var projected_ac = ProjectLinear(point_a, point_c, position);
-
-                var distance_ab = Vector3.Distance(position, projected_ab);
-                var distance_ac = Vector3.Distance(position, projected_ac);
-
-                if (distance_ab < distance_ac)
-                {
-                    point0 = point_a;
-                    point1 = point_b;
-                }
-                else
-                {
-                    point0 = point_a;
-                    point1 = point_c;
-                }
-            }
-
-            var projectedPosition = ProjectLinear(point0, point1, position);
-            var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-            var projectedUp = InterpolateRotation(point0, point1, Mode, percentageBetweenPoints);
-
-            interpolatedPoint.position = projectedPosition;
-            interpolatedPoint.rotation = projectedUp;
-
-            return interpolatedPoint;
-        }
+        // not implemented 
         else
         {
-
-
-
-            // find closest point 
-            var closestDistance = float.MaxValue;
-            var closestProjectedPosition = Vector3.zero;
-            
-            for (var i = 0; i < length - 3; i += 3)
-            {
-                var p0 = Points[i + 0];
-                var p1 = Points[i + 1];
-                var p2 = Points[i + 2];
-                var p3 = Points[i + 3];
-            
-                var t = QuadraticProject(p0.position, p1.position, p2.position, p3.position, position);
-                var projected = QuadraticInterpolate(p0.position, p1.position, p2.position, p3.position, t);
-                var distance = Vector3.Distance(projected, position); 
-            
-                if (distance < closestDistance)
-                {
-                    closestDistance = distance;
-                    closestProjectedPosition = projected; 
-                }
-            }
-            
-            
-            interpolatedPoint.position = closestProjectedPosition;
-            return interpolatedPoint;
-
-
-
-
-
-
-
-
-
-            // find closest point 
-            // var closestDistance = float.MaxValue;
-            // var closestIndex = -1;
-            // 
-            // for (var i = 0; i < length - 3; i += 3)
-            // {
-            //     var point = Points[i];
-            // 
-            //     var toPoint = point.position - position;
-            //     var toPointDistance = toPoint.magnitude;
-            //     if (toPointDistance < closestDistance)
-            //     {
-            //         closestDistance = toPointDistance;
-            //         closestIndex = i;
-            //     }
-            // }
-            // 
-            // if(closestIndex == -1)
-            // {
-            //     return interpolatedPoint;
-            // }
-            // 
-            // var index0 = closestIndex;
-            // var q0_point0 = Points[index0 + 0];
-            // var q0_point1 = Points[index0 + 1];
-            // var q0_point2 = Points[index0 + 2];
-            // var q0_point3 = Points[index0 + 3];
-            // 
-            // var t0 = QuadraticProject(q0_point0.position, q0_point1.position, q0_point2.position, q0_point3.position, position);
-            // var projectedPosition0 = QuadraticInterpolate(q0_point0.position, q0_point1.position, q0_point2.position, q0_point3.position, t0);
-            // 
-            // var bestProjectedPosition = projectedPosition0;
-            // 
-            // if (index0 != 0)
-            // {
-            //     var index1 = closestIndex - 3;
-            //     var q1_point0 = Points[index1 + 0];
-            //     var q1_point1 = Points[index1 + 1];
-            //     var q1_point2 = Points[index1 + 2];
-            //     var q1_point3 = Points[index1 + 3];
-            // 
-            //     var t1 = QuadraticProject(q1_point0.position, q1_point1.position, q1_point2.position, q1_point3.position, position);
-            //     var projectedPosition1 = QuadraticInterpolate(q1_point0.position, q1_point1.position, q1_point2.position, q1_point3.position, t1);
-            // 
-            // 
-            //     var distance0 = (projectedPosition0 - position).magnitude;
-            //     var distance1 = (projectedPosition1 - position).magnitude;
-            // 
-            //     bestProjectedPosition = distance0 < distance1 ? projectedPosition0 : projectedPosition1;
-            // }
-            // 
-            // interpolatedPoint.position = bestProjectedPosition;
-            // interpolatedPoint.up = Vector3.up;
-            // 
-            // return interpolatedPoint;
+            return new SplinePoint();
         }
     }
 
-    public static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
+    public Vector3 GetForward(float t)
+    {
+        var delta_t = 1f / 256f;
+
+        var p0 = GetPoint(t - delta_t * 1);
+        var p1 = GetPoint(t + delta_t * 1);
+
+        var forward = (p1.position - p0.position).normalized;
+        return forward;
+    }
+
+    // helpers 
+    private static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
     {
         var oneMinusT = 1f - t;
         var result = 
@@ -439,7 +466,7 @@ public class Spline : MonoBehaviour
         // return ad; 
     }
 
-    public static Quaternion QuadraticInterpolate(Quaternion point0, Quaternion point1, Quaternion point2, Quaternion point3, float t)
+    private static Quaternion QuadraticInterpolate(Quaternion point0, Quaternion point1, Quaternion point2, Quaternion point3, float t)
     {
         // var oneMinusT = 1f - t;
         // var result =
@@ -462,7 +489,7 @@ public class Spline : MonoBehaviour
         return ad; 
     }
 
-    public static SplinePoint CalculateBezierPoint(SplinePoint point0, SplinePoint point1, SplinePoint point2, SplinePoint point3, float t)
+    private static SplinePoint CalculateBezierPoint(SplinePoint point0, SplinePoint point1, SplinePoint point2, SplinePoint point3, float t)
     {
         var result = new SplinePoint();
 
@@ -487,7 +514,7 @@ public class Spline : MonoBehaviour
         return result;
     }
 
-    public static float QuadraticProject(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, Vector3 projectPoint)
+    private static float QuadraticProject(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, Vector3 projectPoint)
     {
 
         
@@ -591,7 +618,7 @@ public class Spline : MonoBehaviour
         //    return t_x; 
     }
 
-    public static Vector3 InterpolatePosition(SplinePoint a, SplinePoint b, SplineMode mode, float t)
+    private static Vector3 InterpolatePosition(SplinePoint a, SplinePoint b, SplineMode mode, float t)
     {
         switch(mode)
         {
@@ -601,7 +628,7 @@ public class Spline : MonoBehaviour
         }
     }
 
-    public static Quaternion InterpolateRotation(SplinePoint a, SplinePoint b, SplineMode mode, float t)
+    private static Quaternion InterpolateRotation(SplinePoint a, SplinePoint b, SplineMode mode, float t)
     {
         switch (mode)
         {
@@ -611,7 +638,7 @@ public class Spline : MonoBehaviour
         }
     }
 
-    public static Vector3 ProjectLinear(SplinePoint a, SplinePoint b, Vector3 point)
+    private static Vector3 ProjectLinear(SplinePoint a, SplinePoint b, Vector3 point)
     {
         var direction = b.position - a.position;
         var toPoint = point - a.position;
@@ -623,94 +650,7 @@ public class Spline : MonoBehaviour
         return projected;
     }
 
-    public SplinePoint GetPoint(float t)
-    {
-        if(Points.Length == 0)
-        {
-            return new SplinePoint(); 
-        }
-
-        t = Mathf.Clamp01(t); 
-
-        if (Mode == SplineMode.Linear)
-        {
-            var delta_t = 1f / Points.Length;
-            var mod_t = Mathf.Repeat(t, delta_t);
-            var inner_t = mod_t / delta_t;
-
-            var index0 = Mathf.FloorToInt(t * Points.Length);
-            var index1 = index0 + 1;
-
-            index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
-            index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
-
-            if (index0 == Points.Length - 1)
-            {
-                return Points[index0];
-            }
-
-            var point0 = Points[index0];
-            var point1 = Points[index1];
-
-            var result = new SplinePoint();
-            result.position = Vector3.Lerp(point0.position, point1.position, inner_t);
-            result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, inner_t);
-
-            return result; 
-        }
-        else if (Mode == SplineMode.Bezier)
-        {
-
-            var delta_t = 3f / Points.Length;
-            var mod_t = Mathf.Repeat(t, delta_t);
-            var inner_t = mod_t / delta_t;
-
-
-            var index0 = Mathf.FloorToInt(t * Points.Length);
-                index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
-                index0 = index0 - index0 % 3;
-
-            var index1 = index0 + 1;
-            var index2 = index0 + 2;
-            var index3 = index0 + 3;
-
-            // index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
-            // index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
-            // index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
-
-            if (index0 > Points.Length - 4)
-            {
-                return Points[Points.Length - 1];
-            }
-
-            var point0 = Points[index0];
-            var point1 = Points[index1];
-            var point2 = Points[index2];
-            var point3 = Points[index3];
-
-            var result = CalculateBezierPoint(point0, point1, point2, point3, inner_t);
-            return result; 
-        }
-
-        // not implemented 
-        else
-        {
-            return new SplinePoint(); 
-        }
-    }
-
-    public Vector3 GetForward(float t)
-    {
-        var delta_t = 1f / 256f;
-
-        var p0 = GetPoint(t - delta_t * 1);
-        var p1 = GetPoint(t + delta_t * 1);
-
-        var forward = (p1.position - p0.position).normalized;
-        return forward;
-    }
-
-    public static float GetPercentageLinear(SplinePoint a, SplinePoint b, Vector3 point)
+    private static float GetPercentageLinear(SplinePoint a, SplinePoint b, Vector3 point)
     {
         var betweenAB = b.position - a.position;
         var distanceAB = betweenAB.magnitude;
@@ -723,7 +663,7 @@ public class Spline : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    public void OnDrawGizmosSelected()
+    private void OnDrawGizmosSelected()
     {
         if (EditorAlwaysDraw) return;
         DrawGizmos();
