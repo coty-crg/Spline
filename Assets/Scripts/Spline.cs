@@ -67,7 +67,7 @@ public struct SplinePoint
         {
             var anchorIndex = GetAnchorIndex(mode, index);
             handleIndex0 = anchorIndex - 1;
-            handleIndex1 = anchorIndex - 1;
+            handleIndex1 = anchorIndex + 1;
         }
     }
 }

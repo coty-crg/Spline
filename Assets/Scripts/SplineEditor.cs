@@ -328,18 +328,21 @@ public class SplineEditor : Editor
                     {
                         SplinePoint.GetHandleIndexes(instance.Mode, point_index, out int handleIndex0, out int handleIndex1);
 
-                        if (pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
-                        if (pointList.Count > point_index) pointList.RemoveAt(point_index);
-                        if (pointList.Count > handleIndex0) pointList.RemoveAt(handleIndex0);
+                        if (pointList.Count > 0 && pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
+                        if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
+                        if (pointList.Count > 0 && pointList.Count > handleIndex0) pointList.RemoveAt(handleIndex0);
                     }
                     else if(instance.Mode == SplineMode.Linear)
                     {
-                        if (pointList.Count > point_index) pointList.RemoveAt(point_index);
+                        if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
                     }
                 }
 
                 // update original points with modified list 
-                instance.Points = pointList.ToArray(); 
+                instance.Points = pointList.ToArray();
+
+                // deselect all points 
+                SelectedPoints.Clear(); 
 
                 // consume event and exit 
                 Event.current.Use();
