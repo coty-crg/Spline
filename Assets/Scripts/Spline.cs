@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
 using System;
 using System.Text.RegularExpressions;
+using System.Drawing;
 
 [System.Serializable]
 public struct SplinePoint
@@ -84,6 +85,146 @@ public class Spline : MonoBehaviour
     public SplineMode Mode;
 
     public bool EditorAlwaysDraw;
+
+    public SplinePoint ProjectOnSpline(Camera camera, Vector3 screenPosition)
+    {
+        var interpolatedPoint = new SplinePoint();
+
+        if (Points.Length == 0)
+        {
+            return interpolatedPoint;
+        }
+
+        if (Points.Length == 1)
+        {
+            return Points[0];
+        }
+
+        var length = Points.Length;
+
+        if (Mode == SplineMode.Linear)
+        {
+            // find closest point 
+            var closestDistance = float.MaxValue;
+            var closestIndex = -1;
+
+            for (var i = 0; i < length; ++i)
+            {
+                var point = Points[i];
+
+                var screenPointPosition = camera.WorldToScreenPoint(point.position);
+                var toPoint = screenPointPosition - screenPosition;
+                var toPointDistance = toPoint.magnitude;
+                if (toPointDistance < closestDistance)
+                {
+                    closestDistance = toPointDistance;
+                    closestIndex = i;
+                }
+            }
+
+            SplinePoint point0;
+            SplinePoint point1;
+
+            if (closestIndex <= 0)
+            {
+                var index_a = closestIndex;
+                var index_b = closestIndex + 1;
+
+                point0 = Points[index_a];
+                point1 = Points[index_b];
+            }
+
+            else if (closestIndex == Points.Length - 1)
+            {
+                var index_a = closestIndex;
+                var index_b = closestIndex - 1;
+
+                point0 = Points[index_a];
+                point1 = Points[index_b];
+            }
+
+            else
+            {
+                var index_a = closestIndex;
+                var index_b = closestIndex - 1;
+                var index_c = closestIndex + 1;
+
+                var point_a = Points[index_a];
+                var point_b = Points[index_b];
+                var point_c = Points[index_c];
+
+                // convert from world to screen 
+                point_a.position = camera.WorldToScreenPoint(point_a.position);
+                point_b.position = camera.WorldToScreenPoint(point_b.position);
+                point_c.position = camera.WorldToScreenPoint(point_c.position);
+
+                var projected_ab = ProjectLinear(point_a, point_b, screenPosition);
+                var projected_ac = ProjectLinear(point_a, point_c, screenPosition);
+
+                var distance_ab = Vector3.Distance(screenPosition, projected_ab);
+                var distance_ac = Vector3.Distance(screenPosition, projected_ac);
+
+                if (distance_ab < distance_ac)
+                {
+                    point0 = point_a;
+                    point1 = point_b;
+                }
+                else
+                {
+                    point0 = point_a;
+                    point1 = point_c;
+                }
+            }
+
+            var projectedPosition = ProjectLinear(point0, point1, screenPosition);
+            var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
+            var projectedUp = InterpolateRotation(point0, point1, Mode, percentageBetweenPoints);
+
+            // converts back from screen to world coordinates 
+            interpolatedPoint.position = camera.ScreenToWorldPoint(projectedPosition);
+            interpolatedPoint.rotation = projectedUp;
+
+            return interpolatedPoint;
+        }
+        else if(Mode == SplineMode.Bezier)
+        {
+            // find closest point 
+            var closestDistance = float.MaxValue;
+            var closestProjectedPosition = Vector3.zero;
+
+            for (var i = 0; i < length - 3; i += 3)
+            {
+                var p0 = Points[i + 0];
+                var p1 = Points[i + 1];
+                var p2 = Points[i + 2];
+                var p3 = Points[i + 3];
+
+                // convert to screen coords 
+                p0.position = camera.WorldToScreenPoint(p0.position);
+                p1.position = camera.WorldToScreenPoint(p1.position);
+                p2.position = camera.WorldToScreenPoint(p2.position);
+                p3.position = camera.WorldToScreenPoint(p3.position);
+
+                var t = QuadraticProject(p0.position, p1.position, p2.position, p3.position, screenPosition);
+                var projected = QuadraticInterpolate(p0.position, p1.position, p2.position, p3.position, t);
+                var distance = Vector3.Distance(projected, screenPosition);
+
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestProjectedPosition = projected;
+                }
+            }
+
+            // converts back to world coords 
+            interpolatedPoint.position = camera.ScreenToWorldPoint(closestProjectedPosition);
+            return interpolatedPoint;
+        }
+        else
+        {
+            return interpolatedPoint;
+        }
+    }
 
     public SplinePoint ProjectOnSpline(Vector3 position)
     {
