@@ -6,6 +6,7 @@ using UnityEditorInternal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.SceneManagement;
 
 [CustomEditor(typeof(Spline))]
 [DefaultExecutionOrder(-10000)]
@@ -17,6 +18,7 @@ public class SplineEditor : Editor
         Plane,
         MeshSurface,
         CollisionSurface,
+        InsertBetweenPoints,
     }
 
     [SerializeField] private List<int> SelectedPoints = new List<int>();
@@ -299,6 +301,7 @@ public class SplineEditor : Editor
             return;
         }
 
+        // try consuming the delete key (delete points) 
         if((Event.current.type == EventType.KeyDown) && Event.current.keyCode == KeyCode.Delete)
         {
             if(SelectedPoints.Count == 0)
@@ -494,6 +497,12 @@ public class SplineEditor : Editor
                     point = new SplinePoint(); 
                     return false; 
                 }
+
+            case SplinePlacePointMode.InsertBetweenPoints:
+
+                var sceneCam = SceneView.currentDrawingSceneView.camera;
+                point = instance.ProjectOnSpline(sceneCam, sceneCam.WorldToScreenPoint(worldRay.origin));
+                return true;
         }
 
         point = new SplinePoint(); 
@@ -534,7 +543,51 @@ public class SplineEditor : Editor
         // try placing it 
         if (IsLeftMouseClicked())
         {
-            AppendPoint(instance, placingPoint.position, placingPoint.rotation, placingPoint.scale); 
+            if(PlaceMode == SplinePlacePointMode.InsertBetweenPoints)
+            {
+                var t          = instance.ProjectOnSpline_t(placingPoint.position);
+                var pointIndex = instance.GetPointIndexFromTime(t);
+                var newPoint   = instance.GetPoint(t);
+                var forward    = instance.GetForward(t);
+
+                // don't insert point before or after the spline (MUST be a true insert) 
+                if(t > 0f && t < 1f)
+                {
+
+                    var pointList = instance.Points.ToList();
+                    if(instance.Mode == SplineMode.Linear)
+                    {
+                        pointList.Insert(pointIndex, newPoint);
+                    }
+                    else if(instance.Mode == SplineMode.Bezier)
+                    {
+
+                        var handle0 = newPoint;
+                        var handle1 = newPoint;
+
+                        handle0.position -= forward * 0.1f;
+                        handle1.position += forward * 0.1f;
+
+                        // insert + handles? todo 
+                        pointList.Insert(pointIndex + 0, newPoint);
+                        pointList.Insert(pointIndex + 1, newPoint);
+                        pointList.Insert(pointIndex + 2, newPoint);
+
+                    }
+                    else
+                    {
+                        // not implemented? 
+                    }
+
+                    // update original array with list 
+                    instance.Points = pointList.ToArray(); 
+                }
+            }
+            else
+            {
+                AppendPoint(instance, placingPoint.position, placingPoint.rotation, placingPoint.scale); 
+            }
+
             Event.current.Use();
         }
     }

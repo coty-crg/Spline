@@ -6,6 +6,7 @@ using System.Runtime.InteropServices.ComTypes;
 using System;
 using System.Text.RegularExpressions;
 using System.Drawing;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 [System.Serializable]
 public struct SplinePoint
@@ -440,6 +441,36 @@ public class Spline : MonoBehaviour
 
         var forward = (p1.position - p0.position).normalized;
         return forward;
+    }
+
+    /// <summary>
+    /// Returns the lower index of the pair surrounding wherever t ends up on the spline. Returns -1 if no points exist.
+    /// </summary>
+    /// <param name="t"></param>
+    /// <returns></returns>
+    public int GetPointIndexFromTime(float t)
+    {
+        if (Points.Length == 0)
+        {
+            return -1; 
+        }
+
+        t = Mathf.Clamp01(t);
+
+        if (Mode == SplineMode.Linear)
+        {
+            return Mathf.FloorToInt(t * Points.Length) + 1;
+        }
+        else if (Mode == SplineMode.Bezier)
+        {
+            return Mathf.FloorToInt(t * Points.Length) + 1;
+        }
+
+        // not implemented 
+        else
+        {
+            return -1; 
+        }
     }
 
     // helpers 
