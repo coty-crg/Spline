@@ -459,11 +459,12 @@ public class Spline : MonoBehaviour
 
         if (Mode == SplineMode.Linear)
         {
-            return Mathf.FloorToInt(t * Points.Length) + 1;
+            return Mathf.FloorToInt(t * Points.Length);
         }
         else if (Mode == SplineMode.Bezier)
         {
-            return Mathf.FloorToInt(t * Points.Length) + 1;
+            var index_estimate = Mathf.FloorToInt(t * Points.Length);
+            return index_estimate - index_estimate % 3;
         }
 
         // not implemented 
