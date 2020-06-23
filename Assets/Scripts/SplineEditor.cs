@@ -21,10 +21,17 @@ public class SplineEditor : Editor
         InsertBetweenPoints,
     }
 
+    public enum SplinePlacePosition
+    {
+        Beginning,
+        End,
+    }
+
     [SerializeField] private List<int> SelectedPoints = new List<int>();
     [SerializeField] private bool MirrorAnchors = true;
     [SerializeField] private bool PlacingPoint;
-    [SerializeField] private SplinePlacePointMode PlaceMode;
+    [SerializeField] private SplinePlacePointMode PlaceMode = SplinePlacePointMode.MeshSurface;
+    [SerializeField] private SplinePlacePosition PlacePosition = SplinePlacePosition.End;
     [SerializeField] private LayerMask PlaceLayerMask;
     [SerializeField] private Vector3 PlacePlaneOffset;
     [SerializeField] private Quaternion PlacePlaneNormalRotation;
@@ -163,7 +170,8 @@ public class SplineEditor : Editor
 
         if (PlacingPoint)
         {
-            PlaceMode = (SplinePlacePointMode)EditorGUILayout.EnumPopup("Place Point Mode", PlaceMode);
+            PlaceMode = (SplinePlacePointMode) EditorGUILayout.EnumPopup("Place Point Mode", PlaceMode);
+            PlacePosition = (SplinePlacePosition) EditorGUILayout.EnumPopup("Append To Side", PlacePosition);
 
             if (PlaceMode == SplinePlacePointMode.CollisionSurface)
             {
@@ -222,12 +230,21 @@ public class SplineEditor : Editor
     
     private void AppendPoint(Spline instance, Vector3 position, Quaternion rotation, Vector3 scale)
     {
-        Undo.RegisterCompleteObjectUndo(instance, "Append Point");
+        Undo.RegisterCompleteObjectUndo(instance, "AppendPoint");
+
+        // if we want to place the point at the beginning, 
+        // just reverse the array, place, then reverse again 
+        if(PlacePosition == SplinePlacePosition.Beginning)
+        {
+            instance.ReversePoints();
+        }
 
         if (instance.Mode == SplineMode.Linear)
         {
             ExpandPointArray(instance, instance.Points.Length + 1);
-            instance.Points[instance.Points.Length - 1] = new SplinePoint(position, rotation, scale);
+
+            var last_index = instance.Points.Length - 1;
+            instance.Points[last_index] = new SplinePoint(position, rotation, scale);
         }
         else if (instance.Mode == SplineMode.Bezier)
         {
@@ -235,7 +252,6 @@ public class SplineEditor : Editor
             {
                 ExpandPointArray(instance, instance.Points.Length + 1);
                 instance.Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale);                 // point 1
-                return;
             }
             else if(instance.Points.Length == 1)
             {
@@ -248,7 +264,6 @@ public class SplineEditor : Editor
                 instance.Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos * distanceScale, rotation, scale);    // handle 1
                 instance.Points[2] = new SplinePoint(position - fromFirstPointPos * distanceScale, rotation, scale);         // handle 2
                 instance.Points[3] = new SplinePoint(position, rotation, scale);                             // point  2
-                return;
             }
             else
             {
@@ -273,6 +288,12 @@ public class SplineEditor : Editor
                 instance.Points[instance.Points.Length - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale);                  // handle 2 
                 instance.Points[instance.Points.Length - 1] = new SplinePoint(position, rotation, scale);                                // point 
             }
+        }
+
+        // un-reverses the previous reverse
+        if (PlacePosition == SplinePlacePosition.Beginning)
+        {
+            instance.ReversePoints();
         }
 
         EditorUtility.SetDirty(instance);

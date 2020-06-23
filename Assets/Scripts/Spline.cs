@@ -694,6 +694,24 @@ public class Spline : MonoBehaviour
         return percentage;
     }
 
+    public void ReversePoints()
+    {
+        var point_count = Points.Length;
+        var point_count_half = point_count / 2;
+
+        for(var i = 0; i < point_count_half; ++i)
+        {
+            var index_first = i;
+            var index_last = point_count - 1 - i;
+
+            var point_first = Points[index_first];
+            var point_last = Points[index_last];
+
+            Points[index_first] = point_last;
+            Points[index_last] = point_first;
+        }
+    }
+
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
