@@ -239,56 +239,7 @@ public class SplineEditor : Editor
             instance.ReversePoints();
         }
 
-        if (instance.Mode == SplineMode.Linear)
-        {
-            ExpandPointArray(instance, instance.Points.Length + 1);
-
-            var last_index = instance.Points.Length - 1;
-            instance.Points[last_index] = new SplinePoint(position, rotation, scale);
-        }
-        else if (instance.Mode == SplineMode.Bezier)
-        {
-            if(instance.Points.Length == 0)
-            {
-                ExpandPointArray(instance, instance.Points.Length + 1);
-                instance.Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale);                 // point 1
-            }
-            else if(instance.Points.Length == 1)
-            {
-                ExpandPointArray(instance, instance.Points.Length + 3);
-
-                var firstPointPos = instance.Points[0].position;
-                var fromFirstPointPos = position - firstPointPos;
-                var distanceScale = 0.25f;
-
-                instance.Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos * distanceScale, rotation, scale);    // handle 1
-                instance.Points[2] = new SplinePoint(position - fromFirstPointPos * distanceScale, rotation, scale);         // handle 2
-                instance.Points[3] = new SplinePoint(position, rotation, scale);                             // point  2
-            }
-            else
-            {
-                ExpandPointArray(instance, instance.Points.Length + 3);
-
-                var index_prev_handle = instance.Points.Length - 5;
-                var index_prev_point  = instance.Points.Length - 4;
-
-                var prev_handle = instance.Points[index_prev_handle];
-                var prev_point  = instance.Points[index_prev_point];
-
-                // update previous handle to mirror new handle
-                var new_to_prev = position - prev_point.position;
-                var distanceScale = 0.25f;
-
-                //    new_to_prev = new_to_prev.normalized;
-
-                prev_handle.position = prev_point.position - new_to_prev * distanceScale;
-                instance.Points[index_prev_handle] = prev_handle;
-            
-                instance.Points[instance.Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev * distanceScale, rotation, scale);       // handle 1
-                instance.Points[instance.Points.Length - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale);                  // handle 2 
-                instance.Points[instance.Points.Length - 1] = new SplinePoint(position, rotation, scale);                                // point 
-            }
-        }
+        instance.AppendPoint(position, rotation, scale);
 
         // un-reverses the previous reverse
         if (PlacePosition == SplinePlacePosition.Beginning)
@@ -297,17 +248,6 @@ public class SplineEditor : Editor
         }
 
         EditorUtility.SetDirty(instance);
-    }
-
-    private void ExpandPointArray(Spline spline, int newLength)
-    {
-        var newArray = new SplinePoint[newLength];
-        for (var i = 0; i < spline.Points.Length; ++i)
-        {
-            newArray[i] = spline.Points[i];
-        }
-
-        spline.Points = newArray;
     }
 
     private void OnSceneGUI()

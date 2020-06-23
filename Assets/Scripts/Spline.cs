@@ -712,6 +712,69 @@ public class Spline : MonoBehaviour
         }
     }
 
+    public void AppendPoint(Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        if (Mode == SplineMode.Linear)
+        {
+            ExpandPointArray(Points.Length + 1);
+
+            var last_index = Points.Length - 1;
+            Points[last_index] = new SplinePoint(position, rotation, scale);
+        }
+        else if (Mode == SplineMode.Bezier)
+        {
+            if (Points.Length == 0)
+            {
+                ExpandPointArray(Points.Length + 1);
+                Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale);
+            }
+            else if (Points.Length == 1)
+            {
+                ExpandPointArray(Points.Length + 3);
+
+                var firstPointPos = Points[0].position;
+                var fromFirstPointPos = position - firstPointPos;
+                var distanceScale = 0.25f;
+
+                Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos * distanceScale, rotation, scale);    // handle 1
+                Points[2] = new SplinePoint(position - fromFirstPointPos * distanceScale, rotation, scale);         // handle 2
+                Points[3] = new SplinePoint(position, rotation, scale);                                             // point  2
+            }
+            else
+            {
+                ExpandPointArray(Points.Length + 3);
+
+                var index_prev_handle = Points.Length - 5;
+                var index_prev_point = Points.Length - 4;
+
+                var prev_handle = Points[index_prev_handle];
+                var prev_point = Points[index_prev_point];
+
+                // update previous handle to mirror new handle
+                var new_to_prev = position - prev_point.position;
+                var distanceScale = 0.25f;
+                
+                prev_handle.position = prev_point.position - new_to_prev * distanceScale;
+                Points[index_prev_handle] = prev_handle;
+
+                Points[Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev * distanceScale, rotation, scale);    // handle 1
+                Points[Points.Length - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale);               // handle 2 
+                Points[Points.Length - 1] = new SplinePoint(position, rotation, scale);                                             // point 
+            }
+        }
+    }
+
+    public void ExpandPointArray(int newLength)
+    {
+        var newArray = new SplinePoint[newLength];
+        for (var i = 0; i < Points.Length; ++i)
+        {
+            newArray[i] = Points[i];
+        }
+
+        Points = newArray;
+    }
+
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
