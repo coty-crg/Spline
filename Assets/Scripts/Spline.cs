@@ -85,6 +85,7 @@ public class Spline : MonoBehaviour
     public SplinePoint[] Points;
     public SplineMode Mode;
 
+    public bool EditorDrawThickness;
     public bool EditorAlwaysDraw;
 
     // api 
@@ -388,6 +389,7 @@ public class Spline : MonoBehaviour
             var result = new SplinePoint();
             result.position = Vector3.Lerp(point0.position, point1.position, inner_t);
             result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, inner_t);
+            result.scale = Vector3.Lerp(point0.scale, point1.scale, inner_t);
 
             return result;
         }
@@ -525,6 +527,10 @@ public class Spline : MonoBehaviour
     {
         var result = new SplinePoint();
 
+        result.position = QuadraticInterpolate(point0.position, point1.position, point2.position, point3.position, t);
+        result.rotation = QuadraticInterpolate(point0.rotation, point1.rotation, point2.rotation, point3.rotation, t).normalized;
+        result.scale = QuadraticInterpolate(point0.scale, point1.scale, point2.scale, point3.scale, t);
+
         // var pos_ab = Vector3.Lerp(point0.position, point1.position, t);
         // var pos_bc = Vector3.Lerp(point1.position, point2.position, t);
         // var pos_cd = Vector3.Lerp(point2.position, point3.position, t);
@@ -532,7 +538,6 @@ public class Spline : MonoBehaviour
         // var pos_bd = Vector3.Lerp(pos_bc, pos_cd, t);
         // var pos_ad = Vector3.Lerp(pos_ac, pos_bd, t);
 
-        result.position = QuadraticInterpolate(point0.position, point1.position, point2.position, point3.position, t);
 
         // var up_ab = Vector3.Slerp(point0.up, point1.up, t);
         // var up_bc = Vector3.Slerp(point1.up, point2.up, t);
@@ -541,7 +546,6 @@ public class Spline : MonoBehaviour
         // var up_bd = Vector3.Slerp(up_bc, up_cd, t);
         // var up_ad = Vector3.Slerp(up_ac, up_bd, t);
 
-        result.rotation = QuadraticInterpolate(point0.rotation, point1.rotation, point2.rotation, point3.rotation, t).normalized;
 
         return result;
     }
@@ -797,7 +801,27 @@ public class Spline : MonoBehaviour
                 var previous = Points[i - 1];
                 var current = Points[i];
 
-                Gizmos.DrawLine(previous.position, current.position);
+                if(EditorDrawThickness)
+                {
+                    var up = previous.rotation * Vector3.up;
+                    var forward = (current.position - previous.position).normalized;
+                    var right = Vector3.Cross(forward, up);
+
+                    var previous_offset = right * previous.scale.x;
+                    var current_offset = right * current.scale.x;
+
+                    // between thickness bars 
+                    Gizmos.DrawLine(previous.position - previous_offset, previous.position + previous_offset);
+                    Gizmos.DrawLine(current.position - current_offset, current.position + current_offset);
+
+                    // between points 
+                    Gizmos.DrawLine(previous.position - previous_offset, current.position - current_offset);
+                    Gizmos.DrawLine(previous.position + previous_offset, current.position + current_offset);
+                }
+                else
+                {
+                    Gizmos.DrawLine(previous.position, current.position);
+                }
             }
         }
         else
@@ -813,7 +837,29 @@ public class Spline : MonoBehaviour
                 var p0 = GetPoint(t0);
                 var p1 = GetPoint(t1);
 
-                Gizmos.DrawLine(p0.position, p1.position);
+                if(EditorDrawThickness)
+                {
+
+                    var up = p0.rotation * Vector3.forward;
+                    var forward = (p1.position - p0.position).normalized;
+                    var right = Vector3.Cross(forward, up);
+
+                    var previous_offset = right * p0.scale.x;
+                    var current_offset = right * p1.scale.x;
+
+                    // between thickness
+                    Gizmos.DrawLine(p0.position - previous_offset, p0.position + previous_offset);
+                    Gizmos.DrawLine(p1.position - current_offset, p1.position + current_offset);
+
+                    // between points
+                    Gizmos.DrawLine(p0.position - previous_offset, p1.position - current_offset);
+                    Gizmos.DrawLine(p0.position + previous_offset, p1.position + current_offset);
+
+                }
+                else
+                {
+                    Gizmos.DrawLine(p0.position, p1.position);
+                }
             }
         }
     }
