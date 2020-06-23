@@ -29,6 +29,8 @@ public class SplineEditor : Editor
 
     [SerializeField] private List<int> SelectedPoints = new List<int>();
     [SerializeField] private bool MirrorAnchors = true;
+    [SerializeField] private bool LockHandleLength = true;
+    [SerializeField] private float LockedHandleLength = 1.0f; 
     [SerializeField] private bool PlacingPoint;
     [SerializeField] private SplinePlacePointMode PlaceMode = SplinePlacePointMode.MeshSurface;
     [SerializeField] private SplinePlacePosition PlacePosition = SplinePlacePosition.End;
@@ -194,6 +196,13 @@ public class SplineEditor : Editor
             GUILayout.Label("Point Editor", UnityEditor.EditorStyles.largeLabel);
 
             MirrorAnchors = EditorGUILayout.Toggle("Mirror Anchors", MirrorAnchors);
+
+            LockHandleLength = EditorGUILayout.Toggle("Lock Handles Length", LockHandleLength);
+
+            if(LockHandleLength)
+            {
+                LockedHandleLength = EditorGUILayout.FloatField("Locked Handles Length", LockedHandleLength);
+            }
 
             DrawPointSelectorInspector(instance);
 
@@ -622,6 +631,22 @@ public class SplineEditor : Editor
 
             var original_point = instance.Points[point_index];
             instance.Points[point_index] = splinePoint;
+
+            if(LockHandleLength)
+            {
+                var pointIsHandle = SplinePoint.IsHandle(instance.Mode, point_index);
+                if(pointIsHandle)
+                {
+                    var anchor_index = SplinePoint.GetAnchorIndex(instance.Mode, point_index);
+                    var anchor_point = instance.Points[anchor_index];
+
+                    var to_anchor = splinePoint.position - anchor_point.position;
+                    var dir_anchor = to_anchor.normalized;
+
+                    splinePoint.position = anchor_point.position + dir_anchor * LockedHandleLength;
+                    instance.Points[point_index] = splinePoint;
+                }
+            }
 
             UpdateHandlesWhenPointMoved(instance, point_index, splinePointDelta); 
 
