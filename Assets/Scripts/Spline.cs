@@ -82,8 +82,9 @@ public enum SplineMode
 
 public class Spline : MonoBehaviour
 {
-    public SplinePoint[] Points;
-    public SplineMode Mode;
+    public SplinePoint[] Points = new SplinePoint[0];
+    public SplineMode Mode = SplineMode.Linear;
+    public Space SplineSpace = Space.World;
 
     public bool EditorDrawThickness;
     public bool EditorAlwaysDraw;
@@ -103,6 +104,11 @@ public class Spline : MonoBehaviour
 
     public float ProjectOnSpline_t(Vector3 position)
     {
+        if(SplineSpace == Space.Self)
+        {
+            position = transform.InverseTransformPoint(position);
+        }
+
         if (Points.Length == 0)
         {
             return 0f;
@@ -243,6 +249,11 @@ public class Spline : MonoBehaviour
             for (var i = 0; i < length; ++i)
             {
                 var point = Points[i];
+                
+                if(SplineSpace == Space.Self)
+                {
+                    point = TransformSplinePoint(point);
+                }
 
                 var screenPointPosition = camera.WorldToScreenPoint(point.position);
                 var toPoint = screenPointPosition - screenPosition;
@@ -284,6 +295,13 @@ public class Spline : MonoBehaviour
                 var point_a = Points[index_a];
                 var point_b = Points[index_b];
                 var point_c = Points[index_c];
+
+                if (SplineSpace == Space.Self)
+                {
+                    point_a = TransformSplinePoint(point_a);
+                    point_b = TransformSplinePoint(point_b);
+                    point_c = TransformSplinePoint(point_c);
+                }
 
                 // convert from world to screen 
                 point_a.position = camera.WorldToScreenPoint(point_a.position);
@@ -330,6 +348,14 @@ public class Spline : MonoBehaviour
                 var p2 = Points[i + 2];
                 var p3 = Points[i + 3];
 
+                if (SplineSpace == Space.Self)
+                {
+                    p0 = TransformSplinePoint(p0);
+                    p1 = TransformSplinePoint(p1);
+                    p2 = TransformSplinePoint(p2);
+                    p3 = TransformSplinePoint(p3);
+                }
+
                 // convert to screen coords 
                 p0.position = camera.WorldToScreenPoint(p0.position);
                 p1.position = camera.WorldToScreenPoint(p1.position);
@@ -355,6 +381,38 @@ public class Spline : MonoBehaviour
         {
             return 0f; 
         }
+    }
+
+    /// <summary>
+    /// Transforms a SplinePoint from local space to world space.
+    /// </summary>
+    /// <param name="point"></param>
+    /// <returns></returns>
+    public SplinePoint TransformSplinePoint(SplinePoint point)
+    {
+        var matrix = transform.localToWorldMatrix;
+
+        point.position = matrix.MultiplyPoint(point.position);
+        point.rotation = matrix.rotation * point.rotation;
+        point.scale = matrix.MultiplyVector(point.scale);
+
+        return point;
+    }
+
+    /// <summary>
+    /// Transforms a SplinePoint from world space to local space.
+    /// </summary>
+    /// <param name="point"></param>
+    /// <returns></returns>
+    public SplinePoint InverseTransformSplinePoint(SplinePoint point)
+    {
+        var matrix = transform.worldToLocalMatrix;
+
+        point.position = matrix.MultiplyPoint(point.position);
+        point.rotation = matrix.rotation * point.rotation;
+        point.scale = matrix.MultiplyVector(point.scale);
+
+        return point;
     }
 
     public SplinePoint GetPoint(float t)
@@ -391,7 +449,15 @@ public class Spline : MonoBehaviour
             result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, inner_t);
             result.scale = Vector3.Lerp(point0.scale, point1.scale, inner_t);
 
-            return result;
+
+            if(SplineSpace == Space.Self)
+            {
+                return TransformSplinePoint(result);
+            }
+            else
+            {
+                return result;
+            }
         }
         else if (Mode == SplineMode.Bezier)
         {
@@ -424,7 +490,15 @@ public class Spline : MonoBehaviour
             var point3 = Points[index3];
 
             var result = CalculateBezierPoint(point0, point1, point2, point3, inner_t);
-            return result;
+
+            if(SplineSpace == Space.Self)
+            {
+                return TransformSplinePoint(result);
+            }
+            else
+            {
+                return result;
+            }
         }
 
         // not implemented 
@@ -442,7 +516,15 @@ public class Spline : MonoBehaviour
         var p1 = GetPoint(t + delta_t * 1);
 
         var forward = (p1.position - p0.position).normalized;
-        return forward;
+
+        if(SplineSpace == Space.Self)
+        {
+            return transform.TransformDirection(forward);
+        }
+        else
+        {
+            return forward;
+        }
     }
 
     /// <summary>

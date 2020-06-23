@@ -611,8 +611,14 @@ public class SplineEditor : Editor
         var anyScaled = false;
         var splinePointDelta = Vector3.zero;
 
+        if(instance.SplineSpace == Space.Self)
+        {
+            splinePoint = instance.TransformSplinePoint(splinePoint);
+        }
+
         switch (Tools.current)
         {
+
             case Tool.Move:
                 anyMoved = DrawHandle(Vector3.zero, ref splinePoint.position, out splinePointDelta);
                 break;
@@ -624,6 +630,10 @@ public class SplineEditor : Editor
                 break; 
         }
 
+        if (instance.SplineSpace == Space.Self)
+        {
+            splinePoint = instance.InverseTransformSplinePoint(splinePoint);
+        }
 
         if (anyMoved || anyRotated || anyScaled)
         {
@@ -771,6 +781,12 @@ public class SplineEditor : Editor
             }
 
             var point = instance.Points[p];
+
+            if(instance.SplineSpace == Space.Self)
+            {
+                point = instance.TransformSplinePoint(point); 
+            }
+
             var position = point.position;
             var isHandle = instance.Mode == SplineMode.Bezier && p % 3 != 0;
 
