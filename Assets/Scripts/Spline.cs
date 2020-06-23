@@ -794,6 +794,10 @@ public class Spline : MonoBehaviour
 
     public void DrawGizmos()
     {
+
+
+
+
         if (Mode == SplineMode.Linear)
         {
             for (var i = 1; i < Points.Length; ++i)
@@ -828,6 +832,9 @@ public class Spline : MonoBehaviour
         {
             int quality = 512;
 
+            var previous_p0 = new SplinePoint();
+            var previous_p1 = new SplinePoint();
+            
             for (var r = 0; r <= quality; ++r)
             {
 
@@ -839,13 +846,20 @@ public class Spline : MonoBehaviour
 
                 if(EditorDrawThickness)
                 {
-
-                    var up = p0.rotation * Vector3.forward;
                     var forward = (p1.position - p0.position).normalized;
-                    var right = Vector3.Cross(forward, up);
 
-                    var previous_offset = right * p0.scale.x;
-                    var current_offset = right * p1.scale.x;
+                    var up0 = p0.rotation * Vector3.forward;
+                    var up1 = p1.rotation * Vector3.forward;
+
+                    var right0 = Vector3.Cross(forward, up0);
+                    var right1 = Vector3.Cross(forward, up1);
+
+                    var previous_offset = right0 * p0.scale.x;
+                    var current_offset = right1 * p1.scale.x;
+
+                    
+
+
 
                     // between thickness
                     Gizmos.DrawLine(p0.position - previous_offset, p0.position + previous_offset);
@@ -860,6 +874,10 @@ public class Spline : MonoBehaviour
                 {
                     Gizmos.DrawLine(p0.position, p1.position);
                 }
+
+
+                previous_p0 = p0;
+                previous_p1 = p1;
             }
         }
     }
