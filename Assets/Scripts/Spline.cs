@@ -725,7 +725,7 @@ public class Spline : MonoBehaviour
         DrawGizmos();
     }
 
-    private void DrawGizmos()
+    public void DrawGizmos()
     {
         if (Mode == SplineMode.Linear)
         {
@@ -751,6 +751,36 @@ public class Spline : MonoBehaviour
                 var p1 = GetPoint(t1);
 
                 Gizmos.DrawLine(p0.position, p1.position);
+            }
+        }
+    }
+
+    public void DrawAsHandles()
+    {
+        if (Mode == SplineMode.Linear)
+        {
+            for (var i = 1; i < Points.Length; ++i)
+            {
+                var previous = Points[i - 1];
+                var current = Points[i];
+                
+                UnityEditor.Handles.DrawLine(previous.position, current.position);
+            }
+        }
+        else
+        {
+            int quality = 512;
+
+            for (var r = 0; r <= quality; ++r)
+            {
+
+                var t0 = (float)r / quality - (1f / quality);
+                var t1 = (float)r / quality;
+
+                var p0 = GetPoint(t0);
+                var p1 = GetPoint(t1);
+
+                UnityEditor.Handles.DrawLine(p0.position, p1.position);
             }
         }
     }

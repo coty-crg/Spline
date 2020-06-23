@@ -558,7 +558,25 @@ public class SplineEditor : Editor
         // try finding point 
         var validPoint = TryGetPointFromMouse(instance, out SplinePoint placingPoint);
         if (!validPoint) return;
+        
+        // draw preview spline
+        if(PlaceMode != SplinePlacePointMode.InsertBetweenPoints)
+        {
+            // keep a copy so we can revert the operation 
+            var points_clone = (SplinePoint[]) instance.Points.Clone();
+            
+            // perform the operation
+            AppendPoint(instance, placingPoint.position, placingPoint.rotation, placingPoint.scale);
 
+            // draw 
+            Handles.color = Color.white * 0.9f;
+            instance.DrawAsHandles(); 
+
+            // then undo it 
+            instance.Points = points_clone;
+        }
+        
+        // show button 
         DrawSquareGUI(placingPoint.position, Color.white); 
 
         // try placing it 
