@@ -438,7 +438,14 @@ public class Spline : MonoBehaviour
 
             if (index0 == Points.Length - 1)
             {
-                return Points[index0];
+                var firstPoint = Points[index0];
+
+                if(SplineSpace == Space.Self)
+                {
+                    firstPoint  = TransformSplinePoint(firstPoint);
+                }
+
+                return firstPoint;
             }
 
             var point0 = Points[index0];
@@ -481,7 +488,14 @@ public class Spline : MonoBehaviour
 
             if (index0 > Points.Length - 4)
             {
-                return Points[Points.Length - 1];
+                var lastPoint = Points[Points.Length - 1]; ;
+
+                if(SplineSpace == Space.Self)
+                {
+                    lastPoint = TransformSplinePoint(lastPoint); 
+                }
+
+                return lastPoint;
             }
 
             var point0 = Points[index0];
@@ -515,7 +529,8 @@ public class Spline : MonoBehaviour
         var p0 = GetPoint(t - delta_t * 1);
         var p1 = GetPoint(t + delta_t * 1);
 
-        var forward = (p1.position - p0.position).normalized;
+        var vec = (p1.position - p0.position);
+        var forward = vec.sqrMagnitude > 0 ? vec.normalized : Vector3.forward;
 
         if(SplineSpace == Space.Self)
         {
@@ -800,6 +815,14 @@ public class Spline : MonoBehaviour
 
     public void AppendPoint(Vector3 position, Quaternion rotation, Vector3 scale)
     {
+        if(SplineSpace == Space.Self)
+        {
+            var worldToLocalMatrix = transform.worldToLocalMatrix;
+            position = worldToLocalMatrix.MultiplyPoint(position);
+            rotation = worldToLocalMatrix.rotation * rotation;
+            scale = worldToLocalMatrix.MultiplyVector(scale);
+        }
+
         if (Mode == SplineMode.Linear)
         {
             ExpandPointArray(Points.Length + 1);
@@ -850,6 +873,63 @@ public class Spline : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Inserts a new point into the spline, between the two points found from projecting the world positon on the sl
+    /// </summary>
+    /// <param name="placingPoint"></param>
+    public void InsertPoint(SplinePoint placingPoint)
+    {
+        var t = ProjectOnSpline_t(placingPoint.position); // resolves space internally 
+        var pointIndex = GetPointIndexFromTime(t);
+        var newPoint = GetPoint(t);
+        var forward = GetForward(t);
+
+        if(SplineSpace == Space.Self)
+        {
+            newPoint = InverseTransformSplinePoint(newPoint);
+            forward = transform.InverseTransformDirection(forward); 
+        }
+
+        // don't insert point before or after the spline (MUST be a true insert) 
+        if (t > 0f && t < 1f)
+        {
+
+            var pointList = Points.ToList();
+            if (Mode == SplineMode.Linear)
+            {
+                pointList.Insert(pointIndex + 1, newPoint);
+            }
+            else if (Mode == SplineMode.Bezier)
+            {
+                var point_start = pointList[pointIndex + 0];
+                var point_end = pointList[pointIndex + 3];
+
+                var distance0 = Vector3.Distance(point_start.position, newPoint.position);
+                var distance1 = Vector3.Distance(point_end.position, newPoint.position);
+                var point_distance = Mathf.Min(distance0, distance1);
+
+                var handle0 = newPoint;
+                var handle1 = newPoint;
+
+                handle0.position -= forward * point_distance * 0.25f;
+                handle1.position += forward * point_distance * 0.25f;
+
+                // inserts after a single handle, so we can slot a point with two surrounding handles 
+                pointList.Insert(pointIndex + 2 + 0, handle0);
+                pointList.Insert(pointIndex + 2 + 1, newPoint);
+                pointList.Insert(pointIndex + 2 + 2, handle1);
+
+            }
+            else
+            {
+                // not implemented? 
+            }
+
+            // update original array with list 
+            Points = pointList.ToArray();
+        }
+    }
+
     public void ExpandPointArray(int newLength)
     {
         var newArray = new SplinePoint[newLength];
@@ -886,6 +966,12 @@ public class Spline : MonoBehaviour
             {
                 var previous = Points[i - 1];
                 var current = Points[i];
+
+                if(SplineSpace == Space.Self)
+                {
+                    previous = TransformSplinePoint(previous);
+                    current = TransformSplinePoint(current);
+                }
 
                 if(EditorDrawThickness)
                 {
@@ -972,7 +1058,13 @@ public class Spline : MonoBehaviour
             {
                 var previous = Points[i - 1];
                 var current = Points[i];
-                
+
+                if (SplineSpace == Space.Self)
+                {
+                    previous = TransformSplinePoint(previous);
+                    current = TransformSplinePoint(current);
+                }
+
                 UnityEditor.Handles.DrawLine(previous.position, current.position);
             }
         }

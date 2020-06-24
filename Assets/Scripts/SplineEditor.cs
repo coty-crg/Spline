@@ -546,51 +546,8 @@ public class SplineEditor : Editor
 
     private void InsertPoint(Spline instance, SplinePoint placingPoint)
     {
-        Undo.RecordObject(instance, "Inserting point."); 
-
-        var t = instance.ProjectOnSpline_t(placingPoint.position);
-        var pointIndex = instance.GetPointIndexFromTime(t);
-        var newPoint = instance.GetPoint(t);
-        var forward = instance.GetForward(t);
-
-        // don't insert point before or after the spline (MUST be a true insert) 
-        if (t > 0f && t < 1f)
-        {
-
-            var pointList = instance.Points.ToList();
-            if (instance.Mode == SplineMode.Linear)
-            {
-                pointList.Insert(pointIndex + 1, newPoint);
-            }
-            else if (instance.Mode == SplineMode.Bezier)
-            {
-                var point_start = pointList[pointIndex + 0];
-                var point_end = pointList[pointIndex + 3];
-
-                var distance0 = Vector3.Distance(point_start.position, newPoint.position);
-                var distance1 = Vector3.Distance(point_end.position, newPoint.position);
-                var point_distance = Mathf.Min(distance0, distance1);
-
-                var handle0 = newPoint;
-                var handle1 = newPoint;
-
-                handle0.position -= forward * point_distance * 0.25f;
-                handle1.position += forward * point_distance * 0.25f;
-
-                // inserts after a single handle, so we can slot a point with two surrounding handles 
-                pointList.Insert(pointIndex + 2 + 0, handle0);
-                pointList.Insert(pointIndex + 2 + 1, newPoint);
-                pointList.Insert(pointIndex + 2 + 2, handle1);
-
-            }
-            else
-            {
-                // not implemented? 
-            }
-
-            // update original array with list 
-            instance.Points = pointList.ToArray();
-        }
+        Undo.RecordObject(instance, "Inserting point.");
+        instance.InsertPoint(placingPoint);
     }
 
     private bool IsLeftMouseClicked()
