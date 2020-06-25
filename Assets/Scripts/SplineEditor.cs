@@ -29,7 +29,7 @@ public class SplineEditor : Editor
 
     [SerializeField] private List<int> SelectedPoints = new List<int>();
     [SerializeField] private bool MirrorAnchors = true;
-    [SerializeField] private bool LockHandleLength = true;
+    [SerializeField] private bool LockHandleLength = false;
     [SerializeField] private float LockedHandleLength = 1.0f; 
     [SerializeField] private bool PlacingPoint;
     [SerializeField] private SplinePlacePointMode PlaceMode = SplinePlacePointMode.MeshSurface;
@@ -130,7 +130,7 @@ public class SplineEditor : Editor
     {
         var name = $"point {i:N0}";
 
-        if (spline.Mode == SplineMode.Bezier)
+        if (spline.GetSplineMode() == SplineMode.Bezier)
         {
             if (i % 3 == 0)
             {
@@ -147,10 +147,19 @@ public class SplineEditor : Editor
 
     public override void OnInspectorGUI()
     {
-        base.OnInspectorGUI();
+        // base.OnInspectorGUI();
 
 
         var instance = (Spline)target;
+
+
+        GUILayout.BeginVertical("GroupBox");
+        instance.SetSplineMode((SplineMode) EditorGUILayout.EnumPopup("Curve Type", instance.GetSplineMode()));
+        instance.SetSplineSpace((Space) EditorGUILayout.EnumPopup("Spline Space", instance.GetSplineSpace()), true);
+
+        instance.EditorAlwaysDraw = EditorGUILayout.Toggle("EditorAlwaysDraw", instance.EditorAlwaysDraw);
+        instance.EditorDrawThickness = EditorGUILayout.Toggle("EditorDrawThickness", instance.EditorDrawThickness);
+        GUILayout.EndVertical();
 
         GUILayout.BeginVertical("GroupBox");
         
@@ -293,19 +302,19 @@ public class SplineEditor : Editor
                     var point_index = SelectedPoints[i];
 
                     // don't allow deleting handles directly? 
-                    var isHandle = SplinePoint.IsHandle(instance.Mode, point_index);
+                    var isHandle = SplinePoint.IsHandle(instance.GetSplineMode(), point_index);
                     if (isHandle) continue; 
 
                     // if we have neighbor handles, find them and delete them too.. 
-                    if(instance.Mode == SplineMode.Bezier)
+                    if(instance.GetSplineMode() == SplineMode.Bezier)
                     {
-                        SplinePoint.GetHandleIndexes(instance.Mode, point_index, out int handleIndex0, out int handleIndex1);
+                        SplinePoint.GetHandleIndexes(instance.GetSplineMode(), point_index, out int handleIndex0, out int handleIndex1);
 
                         if (pointList.Count > 0 && pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
                         if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
                         if (pointList.Count > 0 && pointList.Count > handleIndex0) pointList.RemoveAt(handleIndex0);
                     }
-                    else if(instance.Mode == SplineMode.Linear)
+                    else if(instance.GetSplineMode() == SplineMode.Linear)
                     {
                         if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
                     }
@@ -568,7 +577,7 @@ public class SplineEditor : Editor
         var anyScaled = false;
         var splinePointDelta = Vector3.zero;
 
-        if(instance.SplineSpace == Space.Self)
+        if(instance.GetSplineSpace() == Space.Self)
         {
             splinePoint = instance.TransformSplinePoint(splinePoint);
         }
@@ -587,7 +596,7 @@ public class SplineEditor : Editor
                 break; 
         }
 
-        if (instance.SplineSpace == Space.Self)
+        if (instance.GetSplineSpace() == Space.Self)
         {
             splinePoint = instance.InverseTransformSplinePoint(splinePoint);
         }
@@ -601,10 +610,10 @@ public class SplineEditor : Editor
 
             if(LockHandleLength)
             {
-                var pointIsHandle = SplinePoint.IsHandle(instance.Mode, point_index);
+                var pointIsHandle = SplinePoint.IsHandle(instance.GetSplineMode(), point_index);
                 if(pointIsHandle)
                 {
-                    var anchor_index = SplinePoint.GetAnchorIndex(instance.Mode, point_index);
+                    var anchor_index = SplinePoint.GetAnchorIndex(instance.GetSplineMode(), point_index);
                     var anchor_point = instance.Points[anchor_index];
 
                     var to_anchor = splinePoint.position - anchor_point.position;
@@ -663,7 +672,7 @@ public class SplineEditor : Editor
     {
         var splinePoint = instance.Points[point_index];
 
-        if (instance.Mode == SplineMode.Bezier)
+        if (instance.GetSplineMode() == SplineMode.Bezier)
         {
             var pointIsHandle = point_index % 3 != 0;
             if (pointIsHandle)
@@ -739,13 +748,13 @@ public class SplineEditor : Editor
 
             var point = instance.Points[p];
 
-            if(instance.SplineSpace == Space.Self)
+            if(instance.GetSplineSpace() == Space.Self)
             {
                 point = instance.TransformSplinePoint(point); 
             }
 
             var position = point.position;
-            var isHandle = instance.Mode == SplineMode.Bezier && p % 3 != 0;
+            var isHandle = instance.GetSplineMode() == SplineMode.Bezier && p % 3 != 0;
 
             if (isHandle)
             {

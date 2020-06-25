@@ -54,7 +54,12 @@ public struct SplinePoint
         }
         else
         {
-            return index - index % 3;
+            var index_mod = index % 3;
+
+            if (index_mod == 1) return index - 1;
+            else if (index_mod == 2) return index + 1;
+
+            return index;
         }
     }
 
@@ -83,25 +88,127 @@ public enum SplineMode
 public class Spline : MonoBehaviour
 {
     public SplinePoint[] Points = new SplinePoint[0];
-    public SplineMode Mode = SplineMode.Linear;
-    public Space SplineSpace = Space.World;
+    [SerializeField, HideInInspector] private SplineMode Mode = SplineMode.Linear;
+    [SerializeField, HideInInspector] private Space SplineSpace = Space.World;
 
     public bool EditorDrawThickness;
     public bool EditorAlwaysDraw;
 
     // api 
+    public SplineMode GetSplineMode()
+    {
+        return Mode;
+    }
+
+    /// <summary>
+    /// Sets the Spline's Curve Type. 
+    /// If there are not a valid number of Points when turning a Linear spline into a Bezier spline, 
+    /// this function will append some more points, so be careful.
+    /// </summary>
+    /// <param name="newMode"></param>
+    public void SetSplineMode(SplineMode newMode)
+    {
+        if(Mode != newMode)
+        {
+            // need to
+            Mode = newMode;
+
+            if (newMode == SplineMode.Bezier)
+            {
+                var create_count = 0;
+                var point_mod = (Points.Length - 1) % 3;
+                if (point_mod == 0) create_count = 0;
+                else if (point_mod == 1) create_count = 2;
+                else if (point_mod == 2) create_count = 1;
+                
+                if(create_count > 0)
+                {
+                    var final_point = GetPoint(1f);
+                    var final_forward = GetForward(1f);
+
+                    var final_index = Points.Length;
+                    ExpandPointArray(Points.Length + create_count);
+                    for(var i = final_index; i < Points.Length; ++i)
+                    {
+                        final_point.position += final_forward;
+                        Points[i] = final_point;
+                    }
+
+#if UNITY_EDITOR
+                    Debug.LogWarning($"Created {create_count} new points to ensure valid Bezier spline.");
+#endif
+                }
+            }
+        }
+    }
+
+    public Space GetSplineSpace()
+    {
+        return SplineSpace;
+    }
+
+    /// <summary>
+    /// Updates the Space of this Spline. 
+    /// Optionally automatically recalculates the stored Points to keep their relative world position stable when swapping spaces.
+    /// </summary>
+    /// <param name="space"></param>
+    public void SetSplineSpace(Space space, bool updatePoints)
+    {
+        var previous = SplineSpace;
+        if (previous != space)
+        {
+            if(updatePoints)
+            {
+                for (var i = 0; i < Points.Length; ++i)
+                {
+                    var point = Points[i];
+
+                    switch (space)
+                    {
+                        case Space.Self:
+                            point = InverseTransformSplinePoint(point);
+                            break;
+                        case Space.World:
+                            point = TransformSplinePoint(point);
+                            break;
+                    }
+
+                    Points[i] = point;
+                }
+            }
+            
+            SplineSpace = space;
+        }
+    }
+
+    /// <summary>
+    /// Gets an interpolated SplinePoint along the spline at a given screenPosition, relative to the given camera. 
+    /// </summary>
+    /// <param name="camera"></param>
+    /// <param name="screenPosition"></param>
+    /// <returns></returns>
     public SplinePoint ProjectOnSpline(Camera camera, Vector3 screenPosition)
     {
         var t = ProjectOnSpline_t(camera, screenPosition);
         return GetPoint(t);
     }
 
+    /// <summary>
+    /// Gets an interpolated SplinePoint along the spline at the given world position.
+    /// </summary>
+    /// <param name="position"></param>
+    /// <returns></returns>
     public SplinePoint ProjectOnSpline(Vector3 position)
     {
         var t = ProjectOnSpline_t(position);
         return GetPoint(t);
     }
 
+    /// <summary>
+    /// Projects a world position onto this Spline, which can be used for fetching an interpolated SplinePoint with GetPoint(t); 
+    /// </summary>
+    /// <param name="position"></param>
+    /// <returns></returns>
     public float ProjectOnSpline_t(Vector3 position)
     {
         if(SplineSpace == Space.Self)
@@ -226,6 +333,12 @@ public class Spline : MonoBehaviour
         return 0f; 
     }
 
+    /// <summary>
+    /// Projects a screen position onto this Spline, which can be used for fetching an interpolated SplinePoint with GetPoint(t);
+    /// </summary>
+    /// <param name="camera"></param>
+    /// <param name="screenPosition"></param>
+    /// <returns></returns>
     public float ProjectOnSpline_t(Camera camera, Vector3 screenPosition)
     {
         if (Points.Length == 0)
@@ -415,6 +528,11 @@ public class Spline : MonoBehaviour
         return point;
     }
 
+    /// <summary>
+    /// Returns a world space SplinePoint, given an input t. t is valid from 0 to 1. 
+    /// </summary>
+    /// <param name="t"></param>
+    /// <returns></returns>
     public SplinePoint GetPoint(float t)
     {
         if (Points.Length == 0)
@@ -522,6 +640,11 @@ public class Spline : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Returns a world space forward, given an input t. t is valid from 0 to 1.
+    /// </summary>
+    /// <param name="t"></param>
+    /// <returns></returns>
     public Vector3 GetForward(float t)
     {
         var delta_t = 1f / 256f;
@@ -543,7 +666,7 @@ public class Spline : MonoBehaviour
     }
 
     /// <summary>
-    /// Returns the lower index of the pair surrounding wherever t ends up on the spline. Returns -1 if no points exist.
+    /// Returns the lower index of the pair surrounding wherever t ends up on the spline. Returns -1 if no points exist. t is valid from 0 to 1.
     /// </summary>
     /// <param name="t"></param>
     /// <returns></returns>
@@ -571,6 +694,166 @@ public class Spline : MonoBehaviour
         {
             return -1; 
         }
+    }
+
+    /// <summary>
+    /// Reverses the ordering of the internal Points array.
+    /// </summary>
+    public void ReversePoints()
+    {
+        var point_count = Points.Length;
+        var point_count_half = point_count / 2;
+
+        for (var i = 0; i < point_count_half; ++i)
+        {
+            var index_first = i;
+            var index_last = point_count - 1 - i;
+
+            var point_first = Points[index_first];
+            var point_last = Points[index_last];
+
+            Points[index_first] = point_last;
+            Points[index_last] = point_first;
+        }
+    }
+
+    /// <summary>
+    /// Adds a point to the Points array given this information. Input data is expected to be world space.
+    /// If the spline is a Bezier type, it will actually add 4 points internally, and handle the Handles placement for you.
+    /// </summary>
+    /// <param name="position"></param>
+    /// <param name="rotation"></param>
+    /// <param name="scale"></param>
+    public void AppendPoint(Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        if (SplineSpace == Space.Self)
+        {
+            var worldToLocalMatrix = transform.worldToLocalMatrix;
+            position = worldToLocalMatrix.MultiplyPoint(position);
+            rotation = worldToLocalMatrix.rotation * rotation;
+            scale = worldToLocalMatrix.MultiplyVector(scale);
+        }
+
+        if (Mode == SplineMode.Linear)
+        {
+            ExpandPointArray(Points.Length + 1);
+
+            var last_index = Points.Length - 1;
+            Points[last_index] = new SplinePoint(position, rotation, scale);
+        }
+        else if (Mode == SplineMode.Bezier)
+        {
+            if (Points.Length == 0)
+            {
+                ExpandPointArray(Points.Length + 1);
+                Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale);
+            }
+            else if (Points.Length == 1)
+            {
+                ExpandPointArray(Points.Length + 3);
+
+                var firstPointPos = Points[0].position;
+                var fromFirstPointPos = position - firstPointPos;
+                var distanceScale = 0.25f;
+
+                Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos * distanceScale, rotation, scale);    // handle 1
+                Points[2] = new SplinePoint(position - fromFirstPointPos * distanceScale, rotation, scale);         // handle 2
+                Points[3] = new SplinePoint(position, rotation, scale);                                             // point  2
+            }
+            else
+            {
+                ExpandPointArray(Points.Length + 3);
+
+                var index_prev_handle = Points.Length - 5;
+                var index_prev_point = Points.Length - 4;
+
+                var prev_handle = Points[index_prev_handle];
+                var prev_point = Points[index_prev_point];
+
+                // update previous handle to mirror new handle
+                var new_to_prev = position - prev_point.position;
+                var distanceScale = 0.25f;
+
+                prev_handle.position = prev_point.position - new_to_prev * distanceScale;
+                Points[index_prev_handle] = prev_handle;
+
+                Points[Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev * distanceScale, rotation, scale);    // handle 1
+                Points[Points.Length - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale);               // handle 2 
+                Points[Points.Length - 1] = new SplinePoint(position, rotation, scale);                                             // point 
+            }
+        }
+    }
+
+    /// <summary>
+    /// Inserts a new point into the spline, between the two points found from projecting the world positon on the sl
+    /// </summary>
+    /// <param name="placingPoint"></param>
+    public void InsertPoint(SplinePoint placingPoint)
+    {
+        var t = ProjectOnSpline_t(placingPoint.position); // resolves space internally 
+        var pointIndex = GetPointIndexFromTime(t);
+        var newPoint = GetPoint(t);
+        var forward = GetForward(t);
+
+        if (SplineSpace == Space.Self)
+        {
+            newPoint = InverseTransformSplinePoint(newPoint);
+            forward = transform.InverseTransformDirection(forward);
+        }
+
+        // don't insert point before or after the spline (MUST be a true insert) 
+        if (t > 0f && t < 1f)
+        {
+
+            var pointList = Points.ToList();
+            if (Mode == SplineMode.Linear)
+            {
+                pointList.Insert(pointIndex + 1, newPoint);
+            }
+            else if (Mode == SplineMode.Bezier)
+            {
+                var point_start = pointList[pointIndex + 0];
+                var point_end = pointList[pointIndex + 3];
+
+                var distance0 = Vector3.Distance(point_start.position, newPoint.position);
+                var distance1 = Vector3.Distance(point_end.position, newPoint.position);
+                var point_distance = Mathf.Min(distance0, distance1);
+
+                var handle0 = newPoint;
+                var handle1 = newPoint;
+
+                handle0.position -= forward * point_distance * 0.25f;
+                handle1.position += forward * point_distance * 0.25f;
+
+                // inserts after a single handle, so we can slot a point with two surrounding handles 
+                pointList.Insert(pointIndex + 2 + 0, handle0);
+                pointList.Insert(pointIndex + 2 + 1, newPoint);
+                pointList.Insert(pointIndex + 2 + 2, handle1);
+
+            }
+            else
+            {
+                // not implemented? 
+            }
+
+            // update original array with list 
+            Points = pointList.ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Increases the internal Point array length. Does not automatically add valid points.
+    /// </summary>
+    /// <param name="newLength"></param>
+    public void ExpandPointArray(int newLength)
+    {
+        var newArray = new SplinePoint[newLength];
+        for (var i = 0; i < Points.Length; ++i)
+        {
+            newArray[i] = Points[i];
+        }
+
+        Points = newArray;
     }
 
     // helpers 
@@ -793,152 +1076,6 @@ public class Spline : MonoBehaviour
 
         var percentage = distanceToPoint / distanceAB;
         return percentage;
-    }
-
-    public void ReversePoints()
-    {
-        var point_count = Points.Length;
-        var point_count_half = point_count / 2;
-
-        for(var i = 0; i < point_count_half; ++i)
-        {
-            var index_first = i;
-            var index_last = point_count - 1 - i;
-
-            var point_first = Points[index_first];
-            var point_last = Points[index_last];
-
-            Points[index_first] = point_last;
-            Points[index_last] = point_first;
-        }
-    }
-
-    public void AppendPoint(Vector3 position, Quaternion rotation, Vector3 scale)
-    {
-        if(SplineSpace == Space.Self)
-        {
-            var worldToLocalMatrix = transform.worldToLocalMatrix;
-            position = worldToLocalMatrix.MultiplyPoint(position);
-            rotation = worldToLocalMatrix.rotation * rotation;
-            scale = worldToLocalMatrix.MultiplyVector(scale);
-        }
-
-        if (Mode == SplineMode.Linear)
-        {
-            ExpandPointArray(Points.Length + 1);
-
-            var last_index = Points.Length - 1;
-            Points[last_index] = new SplinePoint(position, rotation, scale);
-        }
-        else if (Mode == SplineMode.Bezier)
-        {
-            if (Points.Length == 0)
-            {
-                ExpandPointArray(Points.Length + 1);
-                Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale);
-            }
-            else if (Points.Length == 1)
-            {
-                ExpandPointArray(Points.Length + 3);
-
-                var firstPointPos = Points[0].position;
-                var fromFirstPointPos = position - firstPointPos;
-                var distanceScale = 0.25f;
-
-                Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos * distanceScale, rotation, scale);    // handle 1
-                Points[2] = new SplinePoint(position - fromFirstPointPos * distanceScale, rotation, scale);         // handle 2
-                Points[3] = new SplinePoint(position, rotation, scale);                                             // point  2
-            }
-            else
-            {
-                ExpandPointArray(Points.Length + 3);
-
-                var index_prev_handle = Points.Length - 5;
-                var index_prev_point = Points.Length - 4;
-
-                var prev_handle = Points[index_prev_handle];
-                var prev_point = Points[index_prev_point];
-
-                // update previous handle to mirror new handle
-                var new_to_prev = position - prev_point.position;
-                var distanceScale = 0.25f;
-                
-                prev_handle.position = prev_point.position - new_to_prev * distanceScale;
-                Points[index_prev_handle] = prev_handle;
-
-                Points[Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev * distanceScale, rotation, scale);    // handle 1
-                Points[Points.Length - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale);               // handle 2 
-                Points[Points.Length - 1] = new SplinePoint(position, rotation, scale);                                             // point 
-            }
-        }
-    }
-
-    /// <summary>
-    /// Inserts a new point into the spline, between the two points found from projecting the world positon on the sl
-    /// </summary>
-    /// <param name="placingPoint"></param>
-    public void InsertPoint(SplinePoint placingPoint)
-    {
-        var t = ProjectOnSpline_t(placingPoint.position); // resolves space internally 
-        var pointIndex = GetPointIndexFromTime(t);
-        var newPoint = GetPoint(t);
-        var forward = GetForward(t);
-
-        if(SplineSpace == Space.Self)
-        {
-            newPoint = InverseTransformSplinePoint(newPoint);
-            forward = transform.InverseTransformDirection(forward); 
-        }
-
-        // don't insert point before or after the spline (MUST be a true insert) 
-        if (t > 0f && t < 1f)
-        {
-
-            var pointList = Points.ToList();
-            if (Mode == SplineMode.Linear)
-            {
-                pointList.Insert(pointIndex + 1, newPoint);
-            }
-            else if (Mode == SplineMode.Bezier)
-            {
-                var point_start = pointList[pointIndex + 0];
-                var point_end = pointList[pointIndex + 3];
-
-                var distance0 = Vector3.Distance(point_start.position, newPoint.position);
-                var distance1 = Vector3.Distance(point_end.position, newPoint.position);
-                var point_distance = Mathf.Min(distance0, distance1);
-
-                var handle0 = newPoint;
-                var handle1 = newPoint;
-
-                handle0.position -= forward * point_distance * 0.25f;
-                handle1.position += forward * point_distance * 0.25f;
-
-                // inserts after a single handle, so we can slot a point with two surrounding handles 
-                pointList.Insert(pointIndex + 2 + 0, handle0);
-                pointList.Insert(pointIndex + 2 + 1, newPoint);
-                pointList.Insert(pointIndex + 2 + 2, handle1);
-
-            }
-            else
-            {
-                // not implemented? 
-            }
-
-            // update original array with list 
-            Points = pointList.ToArray();
-        }
-    }
-
-    public void ExpandPointArray(int newLength)
-    {
-        var newArray = new SplinePoint[newLength];
-        for (var i = 0; i < Points.Length; ++i)
-        {
-            newArray[i] = Points[i];
-        }
-
-        Points = newArray;
     }
 
 #if UNITY_EDITOR
