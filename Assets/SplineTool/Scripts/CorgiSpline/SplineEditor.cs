@@ -173,8 +173,12 @@ public class SplineEditor : Editor
         {
             if (GUILayout.Button("Open Spline"))
             {
-                Undo.RecordObject(instance, "Open Spline");
+                Undo.RecordObjects(new UnityEngine.Object[] { instance, this }, "Open Spline");
+
                 instance.ClosedSpline = false;
+
+                PlacingPoint = false;
+                SelectedPoints.Clear();
 
                 switch(instance.GetSplineMode())
                 {
@@ -201,8 +205,12 @@ public class SplineEditor : Editor
                 }
                 else if(GUILayout.Button("Close Spline"))
                 {
-                    Undo.RecordObject(instance, "Close Spline");
+                    Undo.RecordObjects(new UnityEngine.Object[] { instance, this }, "Close Spline");
+
                     instance.ClosedSpline = true;
+
+                    PlacingPoint = false;
+                    SelectedPoints.Clear();
 
                     switch (instance.GetSplineMode())
                     {
