@@ -93,6 +93,7 @@ public class Spline : MonoBehaviour
 
     public bool EditorDrawThickness;
     public bool EditorAlwaysDraw;
+    public bool ClosedSpline;
 
     // api 
     public SplineMode GetSplineMode()
@@ -127,7 +128,7 @@ public class Spline : MonoBehaviour
                     var final_forward = GetForward(1f);
 
                     var final_index = Points.Length;
-                    ExpandPointArray(Points.Length + create_count);
+                    ResizePointArray(Points.Length + create_count);
                     for(var i = final_index; i < Points.Length; ++i)
                     {
                         final_point.position += final_forward;
@@ -736,7 +737,7 @@ public class Spline : MonoBehaviour
 
         if (Mode == SplineMode.Linear)
         {
-            ExpandPointArray(Points.Length + 1);
+            ResizePointArray(Points.Length + 1);
 
             var last_index = Points.Length - 1;
             Points[last_index] = new SplinePoint(position, rotation, scale);
@@ -745,12 +746,12 @@ public class Spline : MonoBehaviour
         {
             if (Points.Length == 0)
             {
-                ExpandPointArray(Points.Length + 1);
+                ResizePointArray(Points.Length + 1);
                 Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale);
             }
             else if (Points.Length == 1)
             {
-                ExpandPointArray(Points.Length + 3);
+                ResizePointArray(Points.Length + 3);
 
                 var firstPointPos = Points[0].position;
                 var fromFirstPointPos = position - firstPointPos;
@@ -762,7 +763,7 @@ public class Spline : MonoBehaviour
             }
             else
             {
-                ExpandPointArray(Points.Length + 3);
+                ResizePointArray(Points.Length + 3);
 
                 var index_prev_handle = Points.Length - 5;
                 var index_prev_point = Points.Length - 4;
@@ -845,10 +846,11 @@ public class Spline : MonoBehaviour
     /// Increases the internal Point array length. Does not automatically add valid points.
     /// </summary>
     /// <param name="newLength"></param>
-    public void ExpandPointArray(int newLength)
+    public void ResizePointArray(int newLength)
     {
         var newArray = new SplinePoint[newLength];
-        for (var i = 0; i < Points.Length; ++i)
+        var copyLength = Mathf.Min(Points.Length, newLength);
+        for (var i = 0; i < copyLength; ++i)
         {
             newArray[i] = Points[i];
         }

@@ -169,14 +169,93 @@ public class SplineEditor : Editor
         //     AppendPoint(instance, lastPos.position, lastPos.up);
         // }
         
-        if (!PlacingPoint && GUILayout.Button("Start Placing Points"))
+        if(instance.ClosedSpline)
         {
-            SelectedPoints.Clear();
-            PlacingPoint = !PlacingPoint;
+            if (GUILayout.Button("Open Spline"))
+            {
+                Undo.RecordObject(instance, "Open Spline");
+                instance.ClosedSpline = false;
+
+                switch(instance.GetSplineMode())
+                {
+                    case SplineMode.Linear:
+                        instance.ResizePointArray(instance.Points.Length - 1); // remove extra point 
+                        break;
+                    case SplineMode.Bezier:
+                        instance.ResizePointArray(instance.Points.Length - 3); // remove extra points
+                        break;
+                    default:
+                        // not implemented 
+                        break;
+                }
+            }
         }
-        else if (PlacingPoint && GUILayout.Button("Stop Placing Points"))
+        else
         {
-            PlacingPoint = !PlacingPoint;
+            if(!PlacingPoint)
+            {
+                if (GUILayout.Button("Start Placing Points"))
+                {
+                    SelectedPoints.Clear();
+                    PlacingPoint = !PlacingPoint;
+                }
+                else if(GUILayout.Button("Close Spline"))
+                {
+                    Undo.RecordObject(instance, "Close Spline");
+                    instance.ClosedSpline = true;
+
+                    switch (instance.GetSplineMode())
+                    {
+                        case SplineMode.Linear:
+
+                            {
+                                instance.ResizePointArray(instance.Points.Length + 1);
+                                var newLength = instance.Points.Length;
+                                instance.Points[newLength - 1] = instance.Points[0];
+                            }
+
+                            break;
+                        case SplineMode.Bezier:
+
+                            {
+                                instance.ResizePointArray(instance.Points.Length + 3);
+                                var newLength = instance.Points.Length;
+
+
+                                var previous_handle0 = instance.Points[newLength - 5];
+                                var previous_anchor0 = instance.Points[newLength - 4];
+
+                                var to_anchor = previous_anchor0.position - previous_handle0.position;
+
+                                var new_handle0 = previous_anchor0;
+                                new_handle0.position += to_anchor;
+
+
+                                var next_anchor = instance.Points[0];
+                                var next_handle = instance.Points[1];
+
+                                var to_next_anchor = next_anchor.position - next_handle.position;
+
+                                var new_handle1 = next_anchor;
+                                new_handle1.position += to_next_anchor;
+
+                                instance.Points[newLength - 3] = new_handle0;
+                                instance.Points[newLength - 2] = new_handle1;
+                                instance.Points[newLength - 1] = next_anchor;
+                            }
+
+                            break;
+                        default:
+                            // not implemented 
+                            break;
+                    }
+                }
+            }
+            else if (PlacingPoint && GUILayout.Button("Stop Placing Points"))
+            {
+                PlacingPoint = !PlacingPoint;
+            }
+
         }
 
         if (PlacingPoint)
