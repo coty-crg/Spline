@@ -121,7 +121,7 @@ public class SplineEditor : Editor
                         length -= 1;
                         break;
                     case SplineMode.Bezier:
-                        length -= 2;
+                        length -= 3;
                         break;
                 }
             }
@@ -823,7 +823,7 @@ public class SplineEditor : Editor
                     length -= 1;
                     break;
                 case SplineMode.Bezier:
-                    length -= 2;
+                    length -= 3;
                     break;
             }
         }
