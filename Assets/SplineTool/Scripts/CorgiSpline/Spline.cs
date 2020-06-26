@@ -63,7 +63,7 @@ public struct SplinePoint
         }
     }
 
-    public static void GetHandleIndexes(SplineMode mode, int index, out int handleIndex0, out int handleIndex1)
+    public static void GetHandleIndexes(SplineMode mode, bool isClosed, int pointCount, int index, out int handleIndex0, out int handleIndex1)
     {
         if (mode == SplineMode.Linear)
         {
@@ -75,6 +75,12 @@ public struct SplinePoint
             var anchorIndex = GetAnchorIndex(mode, index);
             handleIndex0 = anchorIndex - 1;
             handleIndex1 = anchorIndex + 1;
+
+            if(isClosed)
+            {
+                if (handleIndex0 == -1) handleIndex0 = pointCount - 1;
+                if (handleIndex1 == pointCount) handleIndex1 = 1;
+            }
         }
     }
 }
@@ -856,6 +862,47 @@ public class Spline : MonoBehaviour
         }
 
         Points = newArray;
+    }
+
+    /// <summary>
+    /// Call this after moving the first or last Points in the internal array, to ensure the spline stays closed.
+    /// </summary>
+    public void EnsureSplineStaysClosed()
+    {
+        if (!ClosedSpline) return;
+
+        var length = Points.Length;
+
+        switch (Mode)
+        {
+            case SplineMode.Linear:
+                Points[length - 1] = Points[0];
+                break;
+            case SplineMode.Bezier:
+                var previous_handle0 = Points[length - 5];
+                var previous_anchor0 = Points[length - 4];
+
+                var to_anchor = previous_anchor0.position - previous_handle0.position;
+
+                var new_handle0 = previous_anchor0;
+                new_handle0.position += to_anchor;
+
+                var next_anchor = Points[0];
+                var next_handle = Points[1];
+
+                var to_next_anchor = next_anchor.position - next_handle.position;
+
+                var new_handle1 = next_anchor;
+                new_handle1.position += to_next_anchor;
+
+                Points[length - 3] = new_handle0;
+                Points[length - 2] = new_handle1;
+                Points[length - 1] = next_anchor;
+                break;
+            default:
+                // not implemented 
+                break;
+        }
     }
 
     // helpers 

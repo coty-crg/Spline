@@ -42,9 +42,9 @@ public class SplineEditor : Editor
 
     private void OnPointSelected(object index)
     {
-        var intIndex = (int) index; 
+        var intIndex = (int) index;
 
-        if(SelectedPoints.Contains(intIndex))
+        if (SelectedPoints.Contains(intIndex))
         {
             SelectedPoints.Remove(intIndex);
         }
@@ -112,7 +112,21 @@ public class SplineEditor : Editor
             selectedMenu.AddItem(new GUIContent("Select All"), selected_all, OnAllPointsSelected, spline);
             selectedMenu.AddItem(new GUIContent("Select None"), selected_none, OnNoPointsSelected);
 
-            for (var i = 0; i < spline.Points.Length; ++i)
+            var length = spline.Points.Length;
+            if (spline.ClosedSpline)
+            {
+                switch (spline.GetSplineMode())
+                {
+                    case SplineMode.Linear:
+                        length -= 1;
+                        break;
+                    case SplineMode.Bezier:
+                        length -= 2;
+                        break;
+                }
+            }
+
+            for (var i = 0; i < length; ++i)
             {
                 var splinePoint = spline.Points[i];
 
@@ -123,6 +137,9 @@ public class SplineEditor : Editor
             }
 
             selectedMenu.ShowAsContext();
+
+
+            
         }
     }
 
@@ -215,48 +232,17 @@ public class SplineEditor : Editor
                     switch (instance.GetSplineMode())
                     {
                         case SplineMode.Linear:
-
-                            {
-                                instance.ResizePointArray(instance.Points.Length + 1);
-                                var newLength = instance.Points.Length;
-                                instance.Points[newLength - 1] = instance.Points[0];
-                            }
-
+                            instance.ResizePointArray(instance.Points.Length + 1);
                             break;
                         case SplineMode.Bezier:
-
-                            {
-                                instance.ResizePointArray(instance.Points.Length + 3);
-                                var newLength = instance.Points.Length;
-
-
-                                var previous_handle0 = instance.Points[newLength - 5];
-                                var previous_anchor0 = instance.Points[newLength - 4];
-
-                                var to_anchor = previous_anchor0.position - previous_handle0.position;
-
-                                var new_handle0 = previous_anchor0;
-                                new_handle0.position += to_anchor;
-
-
-                                var next_anchor = instance.Points[0];
-                                var next_handle = instance.Points[1];
-
-                                var to_next_anchor = next_anchor.position - next_handle.position;
-
-                                var new_handle1 = next_anchor;
-                                new_handle1.position += to_next_anchor;
-
-                                instance.Points[newLength - 3] = new_handle0;
-                                instance.Points[newLength - 2] = new_handle1;
-                                instance.Points[newLength - 1] = next_anchor;
-                            }
-
+                            instance.ResizePointArray(instance.Points.Length + 3);
                             break;
                         default:
                             // not implemented 
                             break;
                     }
+
+                    instance.EnsureSplineStaysClosed(); 
                 }
             }
             else if (PlacingPoint && GUILayout.Button("Stop Placing Points"))
@@ -395,7 +381,8 @@ public class SplineEditor : Editor
                     // if we have neighbor handles, find them and delete them too.. 
                     if(instance.GetSplineMode() == SplineMode.Bezier)
                     {
-                        SplinePoint.GetHandleIndexes(instance.GetSplineMode(), point_index, out int handleIndex0, out int handleIndex1);
+                        SplinePoint.GetHandleIndexes(instance.GetSplineMode(), instance.ClosedSpline, instance.Points.Length, 
+                            point_index, out int handleIndex0, out int handleIndex1);
 
                         if (pointList.Count > 0 && pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
                         if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
@@ -694,8 +681,9 @@ public class SplineEditor : Editor
 
             var original_point = instance.Points[point_index];
             instance.Points[point_index] = splinePoint;
+            instance.EnsureSplineStaysClosed();
 
-            if(LockHandleLength)
+            if (LockHandleLength)
             {
                 var pointIsHandle = SplinePoint.IsHandle(instance.GetSplineMode(), point_index);
                 if(pointIsHandle)
@@ -826,7 +814,21 @@ public class SplineEditor : Editor
 
         var first_selected_point = SelectedPoints.Count > 0 ? SelectedPoints[0] : -1;
 
-        for (var p = 0; p < instance.Points.Length; ++p)
+        var length = instance.Points.Length;
+        if(instance.ClosedSpline)
+        {
+            switch(instance.GetSplineMode())
+            {
+                case SplineMode.Linear:
+                    length -= 1;
+                    break;
+                case SplineMode.Bezier:
+                    length -= 2;
+                    break;
+            }
+        }
+
+        for (var p = 0; p < length; ++p)
         {
             if (p == first_selected_point)
             {
