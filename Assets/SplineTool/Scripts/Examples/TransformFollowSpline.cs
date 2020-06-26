@@ -25,7 +25,8 @@ public class TransformFollowSpline : MonoBehaviour
 
         if(FollowRotation)
         {
-            transform.rotation = projectedPoint.rotation;
+            var up = projectedPoint.rotation * Vector3.forward;
+            transform.rotation = Quaternion.LookRotation(projectedForward, up);
         }
     }
 
