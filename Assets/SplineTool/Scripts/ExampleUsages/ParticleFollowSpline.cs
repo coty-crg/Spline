@@ -107,6 +107,7 @@ public class ParticleFollowSpline : MonoBehaviour
 
             var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, particle.position);
             var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, 0);
+            var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, t);
 
             if (FollowPosition)
             {
@@ -115,13 +116,14 @@ public class ParticleFollowSpline : MonoBehaviour
             
             if (FollowVelocity)
             {
-                var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, t);
                 particle.velocity = Spline.VectorProject(particle.velocity, forward);
             }
             
             if (FollowRotation)
             {
-                particle.rotation3D = splinePoint.rotation.eulerAngles;
+                var up = splinePoint.rotation * Vector3.forward;
+                var rotation = Quaternion.LookRotation(forward, up);
+                particle.rotation3D = rotation.eulerAngles;
             }
 
             Particles[index] = particle;
