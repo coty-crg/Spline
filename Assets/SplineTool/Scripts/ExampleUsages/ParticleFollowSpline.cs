@@ -91,8 +91,7 @@ public class ParticleFollowSpline : MonoBehaviour
         public NativeArray<ParticleSystem.Particle> Particles;
             
         // Spline data
-        [NativeDisableParallelForRestriction] 
-        public NativeArray<SplinePoint> Points;
+        [ReadOnly] public NativeArray<SplinePoint> Points;
         public SplineMode Mode;
         public Space SplineSpace;
         public Matrix4x4 localToWorldMatrix;
