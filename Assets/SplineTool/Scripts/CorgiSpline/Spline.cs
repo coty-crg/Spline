@@ -121,7 +121,10 @@ public class Spline : MonoBehaviour
 
     private void OnDisable()
     {
-        NativePoints.Dispose(); 
+        if(NativePoints.IsCreated)
+        {
+            NativePoints.Dispose(); 
+        }
     }
 
     public void UpdateNative()
