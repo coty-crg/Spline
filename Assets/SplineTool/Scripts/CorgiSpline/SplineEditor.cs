@@ -350,7 +350,8 @@ public class SplineEditor : Editor
     {
         var instance = (Spline)target;
 
-        DrawToolbar();
+        // pointless for now 
+        // DrawToolbar();
 
         // if moving camera with mouse, dont draw all our gizmos.. (they would block trying to click the handles) 
         if ((Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseDrag) && Event.current.button != 0)
