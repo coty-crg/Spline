@@ -210,10 +210,7 @@ public class SplineEditor : Editor
                         break;
                 }
 
-                if (Application.isPlaying)
-                {
-                    instance.UpdateNative();
-                }
+                instance.UpdateNative();
             }
         }
         else
@@ -248,11 +245,7 @@ public class SplineEditor : Editor
                     }
 
                     instance.EnsureSplineStaysClosed();
-
-                    if (Application.isPlaying)
-                    {
-                        instance.UpdateNative();
-                    }
+                    instance.UpdateNative();
                 }
             }
             else if (PlacingPoint && GUILayout.Button("Stop Placing Points"))
@@ -318,10 +311,7 @@ public class SplineEditor : Editor
                     // update handles if necessary 
                     UpdateHandlesWhenPointMoved(instance, first_point_index, editPoint.position - point.position);
 
-                    if (Application.isPlaying)
-                    {
-                        instance.UpdateNative();
-                    }
+                    instance.UpdateNative();
                 }
 
                 GUILayout.EndVertical();
@@ -755,10 +745,7 @@ public class SplineEditor : Editor
                 }
             }
 
-            if(Application.isPlaying)
-            {
-                instance.UpdateNative();
-            }
+            instance.UpdateNative();
         }
     }
 

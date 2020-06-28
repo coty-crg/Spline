@@ -93,6 +93,7 @@ public enum SplineMode
     Bezier,
 }
 
+[ExecuteInEditMode]
 public class Spline : MonoBehaviour
 {
     /// <summary>
