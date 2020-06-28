@@ -176,6 +176,12 @@ public class SplineEditor : Editor
 
         instance.EditorAlwaysDraw = EditorGUILayout.Toggle("EditorAlwaysDraw", instance.EditorAlwaysDraw);
         instance.EditorDrawThickness = EditorGUILayout.Toggle("EditorDrawThickness", instance.EditorDrawThickness);
+
+        EditorGUILayout.Space(); 
+
+        var propertyOnSplineModified = serializedObject.FindProperty("OnSplineModified");
+        EditorGUILayout.PropertyField(propertyOnSplineModified, true);
+        
         GUILayout.EndVertical();
 
         GUILayout.BeginVertical("GroupBox");
@@ -322,6 +328,11 @@ public class SplineEditor : Editor
 
 
         GUILayout.EndVertical();
+
+        if (GUI.changed)
+        {
+            serializedObject.ApplyModifiedProperties();
+        }
     }
     
     private void AppendPoint(Spline instance, Vector3 position, Quaternion rotation, Vector3 scale)

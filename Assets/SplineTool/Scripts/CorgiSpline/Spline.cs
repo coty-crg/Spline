@@ -9,6 +9,7 @@ using System.Drawing;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Collections;
 using Unity.Mathematics;
+using UnityEngine.Events;
 
 [System.Serializable]
 public struct SplinePoint
@@ -110,11 +111,11 @@ public class Spline : MonoBehaviour
     [SerializeField, HideInInspector] private SplineMode Mode = SplineMode.Linear;
     [SerializeField, HideInInspector] private Space SplineSpace = Space.World;
     [SerializeField, HideInInspector] public bool ClosedSpline;
-
+    
     // editor only settings 
     public bool EditorDrawThickness;
     public bool EditorAlwaysDraw;
-
+    
     private void OnEnable()
     {
         UpdateNative();
