@@ -64,8 +64,6 @@ public class ParticleFollowSpline : MonoBehaviour
         var mainModule = TargetParticleSystem.main;
         mainModule.simulationSpace = ParticleSystemSimulationSpace.World;
 
-        TargetSpline.UpdateNative(); 
-
         var job = new ParticlesSplineFollow()
         {
             Particles = _particleCache,
