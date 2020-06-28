@@ -179,8 +179,8 @@ public class SplineEditor : Editor
 
         EditorGUILayout.Space(); 
 
-        var propertyOnSplineModified = serializedObject.FindProperty("OnSplineModified");
-        EditorGUILayout.PropertyField(propertyOnSplineModified, true);
+        // var propertyOnSplineModified = serializedObject.FindProperty("OnSplineModified");
+        // EditorGUILayout.PropertyField(propertyOnSplineModified, true);
         
         GUILayout.EndVertical();
 

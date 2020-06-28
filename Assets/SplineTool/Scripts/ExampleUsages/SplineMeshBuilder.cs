@@ -16,6 +16,7 @@ public class SplineMeshBuilder : MonoBehaviour
 
     // settings
     public bool RebuildEveryFrame;
+    public bool AllowAsyncRebuild;
 
     [Range(32, 1024)] public int quality = 256;
     [Range(0.001f, 10f)] public float width = 1f;
@@ -43,6 +44,8 @@ public class SplineMeshBuilder : MonoBehaviour
 
     private void OnDisable()
     {
+        CompleteJob();
+
         verts.Dispose();
         normals.Dispose();
         uvs.Dispose();
@@ -63,11 +66,21 @@ public class SplineMeshBuilder : MonoBehaviour
 
     private void Update()
     {
-        if(RebuildEveryFrame)
+        if (RebuildEveryFrame)
         {
             Rebuild_Jobified(); 
         }
     }
+
+    private void LateUpdate()
+    {
+        if (RebuildEveryFrame && AllowAsyncRebuild)
+        {
+            CompleteJob();
+        }
+    }
+
+    private JobHandle previousHandle;
 
     public void Rebuild_Jobified()
     {   
@@ -100,15 +113,24 @@ public class SplineMeshBuilder : MonoBehaviour
 
         };
 
-        var handle = job.Schedule();
-        handle.Complete();
+        previousHandle = job.Schedule();
 
-        mesh.Clear(); 
+        if(!AllowAsyncRebuild)
+        {
+            CompleteJob();
+        }
+    }
+
+    private void CompleteJob()
+    {
+        previousHandle.Complete();
+
+        mesh.Clear();
         mesh.SetVertices(verts.AsArray());
         mesh.SetNormals(normals.AsArray());
         mesh.SetUVs(0, uvs.AsArray());
         mesh.SetIndices(tris.AsArray(), MeshTopology.Triangles, 0);
-        
+
         mesh.RecalculateBounds();
         mesh.RecalculateTangents();
 
@@ -132,7 +154,7 @@ public class SplineMeshBuilder : MonoBehaviour
         public NativeList<int> tris;
         
         // Spline data
-        [NativeDisableParallelForRestriction]
+        [ReadOnly]
         public NativeArray<SplinePoint> Points;
         public SplineMode Mode;
         public Space SplineSpace;
