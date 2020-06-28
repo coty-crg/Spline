@@ -7,6 +7,8 @@ using System;
 using System.Text.RegularExpressions;
 using System.Drawing;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Unity.Collections;
+using Unity.Mathematics;
 
 [System.Serializable]
 public struct SplinePoint
@@ -93,13 +95,54 @@ public enum SplineMode
 
 public class Spline : MonoBehaviour
 {
-    public SplinePoint[] Points = new SplinePoint[0];
+    /// <summary>
+    /// Serialized Points. Used in-editor for serialization.
+    /// </summary>
+    public SplinePoint[] Points;
+
+    /// <summary>
+    /// Used at runtime for burstable jobs. Does not automatically update, aside from on OnEnable. 
+    /// </summary>
+    public NativeArray<SplinePoint> NativePoints; 
+
+    // settings
     [SerializeField, HideInInspector] private SplineMode Mode = SplineMode.Linear;
     [SerializeField, HideInInspector] private Space SplineSpace = Space.World;
+    [SerializeField, HideInInspector] public bool ClosedSpline;
 
+    // editor only settings 
     public bool EditorDrawThickness;
     public bool EditorAlwaysDraw;
-    public bool ClosedSpline;
+
+    private void OnEnable()
+    {
+        UpdateNative();
+    }
+
+    private void OnDisable()
+    {
+        NativePoints.Dispose(); 
+    }
+
+    public void UpdateNative()
+    {
+        var point_count = Points.Length;
+
+        if(NativePoints.Length != point_count || !NativePoints.IsCreated)
+        {
+            if(NativePoints.IsCreated)
+            {
+                NativePoints.Dispose();
+            }
+
+            NativePoints = new NativeArray<SplinePoint>(point_count, Allocator.Persistent);
+        }
+
+        for(var i = 0; i < point_count; ++i)
+        {
+            NativePoints[i] = Points[i];
+        }
+    }
 
     // api 
     public SplineMode GetSplineMode()
@@ -218,7 +261,7 @@ public class Spline : MonoBehaviour
     /// <returns></returns>
     public float ProjectOnSpline_t(Vector3 position)
     {
-        if(SplineSpace == Space.Self)
+        if (SplineSpace == Space.Self)
         {
             position = transform.InverseTransformPoint(position);
         }
@@ -305,9 +348,9 @@ public class Spline : MonoBehaviour
 
             var projectedPosition = ProjectLinear(point0, point1, position);
             var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-            return (float) closestIndex / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+            return (float)closestIndex / Points.Length + percentageBetweenPoints * (1f / Points.Length);
         }
-        else if(Mode == SplineMode.Bezier)
+        else if (Mode == SplineMode.Bezier)
         {
             // find closest point 
             var closestDistance = float.MaxValue;
@@ -334,10 +377,10 @@ public class Spline : MonoBehaviour
                 }
             }
 
-            return (float) best_i / Points.Length + best_t * (3f / Points.Length);
+            return (float)best_i / Points.Length + best_t * (3f / Points.Length);
         }
 
-        return 0f; 
+        return 0f;
     }
 
     /// <summary>
@@ -968,24 +1011,8 @@ public class Spline : MonoBehaviour
         var result = new SplinePoint();
 
         result.position = QuadraticInterpolate(point0.position, point1.position, point2.position, point3.position, t);
-        result.rotation = QuadraticInterpolate(point0.rotation, point1.rotation, point2.rotation, point3.rotation, t).normalized;
+        result.rotation = QuadraticInterpolate(point0.rotation, point1.rotation, point2.rotation, point3.rotation, t);
         result.scale = QuadraticInterpolate(point0.scale, point1.scale, point2.scale, point3.scale, t);
-
-        // var pos_ab = Vector3.Lerp(point0.position, point1.position, t);
-        // var pos_bc = Vector3.Lerp(point1.position, point2.position, t);
-        // var pos_cd = Vector3.Lerp(point2.position, point3.position, t);
-        // var pos_ac = Vector3.Lerp(pos_ab, pos_bc, t);
-        // var pos_bd = Vector3.Lerp(pos_bc, pos_cd, t);
-        // var pos_ad = Vector3.Lerp(pos_ac, pos_bd, t);
-
-
-        // var up_ab = Vector3.Slerp(point0.up, point1.up, t);
-        // var up_bc = Vector3.Slerp(point1.up, point2.up, t);
-        // var up_cd = Vector3.Slerp(point2.up, point3.up, t);
-        // var up_ac = Vector3.Slerp(up_ab, up_bc, t);
-        // var up_bd = Vector3.Slerp(up_bc, up_cd, t);
-        // var up_ad = Vector3.Slerp(up_ac, up_bd, t);
-
 
         return result;
     }
@@ -1114,6 +1141,17 @@ public class Spline : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Equiv to Vector3.Project, but Burst compatible. 
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <returns></returns>
+    public static Vector3 VectorProject(Vector3 a, Vector3 b)
+    {
+        return (math.dot(a, b) / math.length(b)) * b;
+    }
+
     private static Vector3 ProjectLinear(SplinePoint a, SplinePoint b, Vector3 point)
     {
         var direction = b.position - a.position;
@@ -1122,7 +1160,8 @@ public class Spline : MonoBehaviour
         var dot = Vector3.Dot(direction, toPoint);
         if (dot < 0) return a.position;
 
-        var projected = Vector3.Project(point - a.position, direction) + a.position; 
+        
+        var projected = VectorProject(point - a.position, direction) + a.position; 
         return projected;
     }
 
@@ -1136,6 +1175,278 @@ public class Spline : MonoBehaviour
 
         var percentage = distanceToPoint / distanceAB;
         return percentage;
+    }
+
+    // job helpers 
+    public static SplinePoint JobSafe_TransformSplinePoint(SplinePoint point, Matrix4x4 localToWorldMatrix)
+    {
+        var matrix = localToWorldMatrix;
+
+        point.position = matrix.MultiplyPoint(point.position);
+        point.rotation = matrix.rotation * point.rotation;
+        point.scale = matrix.MultiplyVector(point.scale);
+
+        return point;
+    }
+
+    public static SplinePoint JobSafe_InverseTransformSplinePoint(SplinePoint point, Matrix4x4 worldToLocalMatrix)
+    {
+        var matrix = worldToLocalMatrix;
+
+        point.position = matrix.MultiplyPoint(point.position);
+        point.rotation = matrix.rotation * point.rotation;
+        point.scale = matrix.MultiplyVector(point.scale);
+
+        return point;
+    }
+
+    public static float JobSafe_ProjectOnSpline_t(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 worldToLocalMatrix, Vector3 position)
+    {
+        if (SplineSpace == Space.Self)
+        {
+            position = worldToLocalMatrix.MultiplyPoint(position);
+        }
+
+        if (Points.Length == 0)
+        {
+            return 0f;
+        }
+
+        if (Points.Length == 1)
+        {
+            return 0f;
+        }
+
+        var length = Points.Length;
+
+        if (Mode == SplineMode.Linear)
+        {
+            // find closest point 
+            var closestDistance = float.MaxValue;
+            var closestIndex = -1;
+
+            for (var i = 0; i < length; ++i)
+            {
+                var point = Points[i];
+
+                var toPoint = point.position - position;
+                var toPointDistance = toPoint.magnitude;
+                if (toPointDistance < closestDistance)
+                {
+                    closestDistance = toPointDistance;
+                    closestIndex = i;
+                }
+            }
+
+            SplinePoint point0 = default;
+            SplinePoint point1 = default;
+
+            if (closestIndex <= 0)
+            {
+                var index_a = closestIndex;
+                var index_b = closestIndex + 1;
+
+                point0 = Points[index_a];
+                point1 = Points[index_b];
+            }
+
+            else if (closestIndex == Points.Length - 1)
+            {
+                var index_a = closestIndex;
+                var index_b = closestIndex - 1;
+
+                point0 = Points[index_a];
+                point1 = Points[index_b];
+            }
+            else
+            {
+                var index_a = closestIndex;
+                var index_b = closestIndex - 1;
+                var index_c = closestIndex + 1;
+
+                var point_a = Points[index_a];
+                var point_b = Points[index_b];
+                var point_c = Points[index_c];
+
+                var projected_ab = ProjectLinear(point_a, point_b, position);
+                var projected_ac = ProjectLinear(point_a, point_c, position);
+
+                var distance_ab = Vector3.Distance(position, projected_ab);
+                var distance_ac = Vector3.Distance(position, projected_ac);
+
+                if (distance_ab < distance_ac)
+                {
+                    point0 = point_b;
+                    point1 = point_a;
+                }
+                else
+                {
+                    point0 = point_a;
+                    point1 = point_c;
+                }
+            }
+
+            var projectedPosition = ProjectLinear(point0, point1, position);
+            var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
+            return (float)closestIndex / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+            
+        }
+        else if (Mode == SplineMode.Bezier)
+        {
+            // find closest point 
+            var closestDistance = float.MaxValue;
+            var best_t = 0f;
+            var best_i = -1;
+
+            for (var i = 0; i < length - 3; i += 3)
+            {
+                var p0 = Points[i + 0];
+                var p1 = Points[i + 1];
+                var p2 = Points[i + 2];
+                var p3 = Points[i + 3];
+
+                var t = QuadraticProject(p0.position, p1.position, p2.position, p3.position, position);
+                var projected = QuadraticInterpolate(p0.position, p1.position, p2.position, p3.position, t);
+                var distance = Vector3.Distance(projected, position);
+
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+
+                    best_i = i;
+                    best_t = t;
+                }
+            }
+
+            return (float)best_i / Points.Length + best_t * (3f / Points.Length);
+            
+        }
+
+        return 0f;
+    }
+
+    public static SplinePoint JobSafe_GetPoint(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, float t)
+    {
+        if (Points.Length == 0)
+        {
+            return new SplinePoint();
+        }
+
+        t = Mathf.Clamp01(t);
+
+        if (Mode == SplineMode.Linear)
+        {
+            var delta_t = 1f / Points.Length;
+            var mod_t = Mathf.Repeat(t, delta_t);
+            var inner_t = mod_t / delta_t;
+            
+            var index0 = Mathf.FloorToInt(t * Points.Length);
+            var index1 = index0 + 1;
+            
+            index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+            index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+            
+            if (index0 == Points.Length - 1)
+            {
+                var firstPoint = Points[index0];
+            
+                if (SplineSpace == Space.Self)
+                {
+                    firstPoint = JobSafe_TransformSplinePoint(firstPoint, localToWorldMatrix);
+                }
+            
+                return firstPoint;
+            }
+            
+            var point0 = Points[index0];
+            var point1 = Points[index1];
+            
+            var result = new SplinePoint();
+            result.position = Vector3.Lerp(point0.position, point1.position, inner_t);
+            result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, inner_t);
+            result.scale = Vector3.Lerp(point0.scale, point1.scale, inner_t);
+            
+            
+            if (SplineSpace == Space.Self)
+            {
+                return JobSafe_TransformSplinePoint(result, localToWorldMatrix);
+            }
+            else
+            {
+                return result;
+            }
+        }
+        else if (Mode == SplineMode.Bezier)
+        {
+
+            var delta_t = 3f / Points.Length;
+            var mod_t = Mathf.Repeat(t, delta_t);
+            var inner_t = mod_t / delta_t;
+            
+            
+            var index0 = Mathf.FloorToInt(t * Points.Length);
+            index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+            index0 = index0 - index0 % 3;
+            
+            var index1 = index0 + 1;
+            var index2 = index0 + 2;
+            var index3 = index0 + 3;
+            
+            // index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+            // index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
+            // index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+            
+            if (index0 > Points.Length - 4)
+            {
+                var lastPoint = Points[Points.Length - 1]; ;
+            
+                if (SplineSpace == Space.Self)
+                {
+                    lastPoint = JobSafe_TransformSplinePoint(lastPoint, localToWorldMatrix);
+                }
+            
+                return lastPoint;
+            }
+            
+            var point0 = Points[index0];
+            var point1 = Points[index1];
+            var point2 = Points[index2];
+            var point3 = Points[index3];
+            
+            var result = CalculateBezierPoint(point0, point1, point2, point3, inner_t);
+
+            if (SplineSpace == Space.Self)
+            {
+                return JobSafe_TransformSplinePoint(result, localToWorldMatrix);
+            }
+            else
+            {
+                return result;
+            }
+        }
+
+        // not implemented 
+        return new SplinePoint();
+    }
+
+    public static Vector3 JobSafe_GetForward(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, float t)
+    {
+        var delta_t = 1f / 256f;
+
+        var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, t - delta_t * 1);
+        var p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, t + delta_t * 1);
+
+        var vec = (p1.position - p0.position);
+        var forward = vec.sqrMagnitude > 0 ? vec.normalized : Vector3.forward;
+
+        if (SplineSpace == Space.Self)
+        {
+            return localToWorldMatrix.MultiplyVector(forward);
+        }
+        else
+        {
+            return forward;
+        }
     }
 
 #if UNITY_EDITOR
