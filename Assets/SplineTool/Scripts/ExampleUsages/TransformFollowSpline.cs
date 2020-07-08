@@ -2,32 +2,34 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TransformFollowSpline : MonoBehaviour
+namespace CorgiSpline
 {
-    public Spline FollowSpline;
-    public float FollowSpeed = 1f;
-    public bool FollowRotation;
-
-    private void Update()
+    public class TransformFollowSpline : MonoBehaviour
     {
-        if(FollowSpline == null)
+        public Spline FollowSpline;
+        public float FollowSpeed = 1f;
+        public bool FollowRotation;
+
+        private void Update()
         {
-            return;
-        }
+            if (FollowSpline == null)
+            {
+                return;
+            }
 
-        var t = FollowSpline.ProjectOnSpline_t(transform.position);
+            var t = FollowSpline.ProjectOnSpline_t(transform.position);
 
-        var projectedForward = FollowSpline.GetForward(t);
-        var projectedPoint = FollowSpline.GetPoint(t);
-        projectedPoint.position += projectedForward * (FollowSpeed * Time.deltaTime);
+            var projectedForward = FollowSpline.GetForward(t);
+            var projectedPoint = FollowSpline.GetPoint(t);
+            projectedPoint.position += projectedForward * (FollowSpeed * Time.deltaTime);
 
-        transform.position = projectedPoint.position;
+            transform.position = projectedPoint.position;
 
-        if(FollowRotation)
-        {
-            var up = projectedPoint.rotation * Vector3.forward;
-            transform.rotation = Quaternion.LookRotation(projectedForward, up);
+            if (FollowRotation)
+            {
+                var up = projectedPoint.rotation * Vector3.forward;
+                transform.rotation = Quaternion.LookRotation(projectedForward, up);
+            }
         }
     }
-
 }

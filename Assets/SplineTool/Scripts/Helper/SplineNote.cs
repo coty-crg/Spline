@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SplineNote : MonoBehaviour
+namespace CorgiSpline
 {
-    [TextArea(10, 100)] 
-    public string Comment;
+    public class SplineNote : MonoBehaviour
+    {
+        [TextArea(10, 100)] 
+        public string Comment;
+    }
 }

@@ -2,14 +2,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[DefaultExecutionOrder(-10000)] // we usually want this to happen before anything else.. 
-public class AutomaticallyUnparentChildren : MonoBehaviour
+namespace CorgiSpline
 {
-    private void OnEnable()
+    [DefaultExecutionOrder(-10000)] // we usually want this to happen before anything else.. 
+    public class AutomaticallyUnparentChildren : MonoBehaviour
     {
-        transform.DetachChildren();
+        private void OnEnable()
+        {
+            transform.DetachChildren();
 
-        // destroy this component, its no longer needed. 
-        Destroy(this);
+            // destroy this component, its no longer needed. 
+            Destroy(this);
+        }
     }
 }
