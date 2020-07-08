@@ -213,6 +213,10 @@ namespace CorgiSpline
                         case SplineMode.Bezier:
                             instance.ResizePointArray(instance.Points.Length - 3); // remove extra points
                             break;
+                        case SplineMode.BSpline:
+                            // todo, remove/duplicate data here? 
+                            // b-spline can stay the same (its handled at projection time)
+                            break;
                         default:
                             // not implemented 
                             break;
@@ -246,6 +250,10 @@ namespace CorgiSpline
                                 break;
                             case SplineMode.Bezier:
                                 instance.ResizePointArray(instance.Points.Length + 3);
+                                break;
+                            case SplineMode.BSpline:
+                                // todo, duplicate data here? 
+                                // b-spline can stay the same (its handled at projection time)
                                 break;
                             default:
                                 // not implemented 
@@ -397,19 +405,23 @@ namespace CorgiSpline
                         var isHandle = SplinePoint.IsHandle(instance.GetSplineMode(), point_index);
                         if (isHandle) continue;
 
-                        // if we have neighbor handles, find them and delete them too.. 
-                        if (instance.GetSplineMode() == SplineMode.Bezier)
+                        switch (instance.GetSplineMode())
                         {
-                            SplinePoint.GetHandleIndexes(instance.GetSplineMode(), instance.ClosedSpline, instance.Points.Length,
-                                point_index, out int handleIndex0, out int handleIndex1);
+                            // if we have neighbor handles, find them and delete them too.. 
+                            case SplineMode.Bezier:
+                                SplinePoint.GetHandleIndexes(instance.GetSplineMode(), instance.ClosedSpline, instance.Points.Length,
+                                    point_index, out int handleIndex0, out int handleIndex1);
 
-                            if (pointList.Count > 0 && pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
-                            if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
-                            if (pointList.Count > 0 && pointList.Count > handleIndex0) pointList.RemoveAt(handleIndex0);
-                        }
-                        else if (instance.GetSplineMode() == SplineMode.Linear)
-                        {
-                            if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
+                                if (pointList.Count > 0 && pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
+                                if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
+                                if (pointList.Count > 0 && pointList.Count > handleIndex0) pointList.RemoveAt(handleIndex0);
+                                break;
+
+                            // otherwise, just the point 
+                            case SplineMode.Linear:
+                            case SplineMode.BSpline:
+                                if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
+                                break;
                         }
                     }
 
@@ -424,8 +436,6 @@ namespace CorgiSpline
                     return;
                 }
             }
-
-
 
             if (PlacingPoint)
             {
