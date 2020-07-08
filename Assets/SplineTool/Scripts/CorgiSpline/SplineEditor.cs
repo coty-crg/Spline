@@ -503,8 +503,13 @@ namespace CorgiSpline
                     point = new SplinePoint(position, Quaternion.LookRotation(worldRay.direction, Vector3.up), Vector3.one);
                     return true;
                 case SplinePlacePointMode.Plane:
-                    var placePlaneNormal = PlacePlaneNormalRotation * Vector3.forward;
-                    var projectedOnPlane = Vector3.ProjectOnPlane(worldRay.origin - PlacePlaneOffset, placePlaneNormal) + PlacePlaneOffset;
+                    var placePlaneNormal = PlacePlaneNormalRotation * Vector3.up;
+                        placePlaneNormal = placePlaneNormal.normalized;
+
+                    var distance = Vector3.Distance(worldRay.origin, PlacePlaneOffset);
+                    var mousePoint = worldRay.origin + worldRay.direction * distance;
+
+                    var projectedOnPlane = Vector3.ProjectOnPlane(mousePoint - PlacePlaneOffset, placePlaneNormal) + PlacePlaneOffset;
                     point = new SplinePoint(projectedOnPlane, PlacePlaneNormalRotation, Vector3.one);
 
                     return true;
