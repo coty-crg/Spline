@@ -504,13 +504,26 @@ namespace CorgiSpline
                     return true;
                 case SplinePlacePointMode.Plane:
                     var placePlaneNormal = PlacePlaneNormalRotation * Vector3.up;
-                        placePlaneNormal = placePlaneNormal.normalized;
+                    
+                    var offsetOnNormal = Vector3.ProjectOnPlane(PlacePlaneOffset, placePlaneNormal);
+                    var offsetDistance = offsetOnNormal.magnitude;
 
-                    var distance = Vector3.Distance(worldRay.origin, PlacePlaneOffset);
-                    var mousePoint = worldRay.origin + worldRay.direction * distance;
-
-                    var projectedOnPlane = Vector3.ProjectOnPlane(mousePoint - PlacePlaneOffset, placePlaneNormal) + PlacePlaneOffset;
-                    point = new SplinePoint(projectedOnPlane, PlacePlaneNormalRotation, Vector3.one);
+                    var denom = Vector3.Dot(placePlaneNormal, worldRay.direction);
+                    if (Mathf.Abs(denom) <= 0.0001f)
+                    {
+                        point = new SplinePoint(); 
+                        return false;
+                    }
+                    
+                    var rayDistanceToPlane = -(Vector3.Dot(placePlaneNormal, worldRay.origin) + offsetDistance) / denom;
+                    if (rayDistanceToPlane <= 0.0001f)
+                    {
+                        point = new SplinePoint();
+                        return false; 
+                    }
+                    
+                    var pointPos = worldRay.origin + rayDistanceToPlane * worldRay.direction;
+                    point = new SplinePoint(pointPos, PlacePlaneNormalRotation, Vector3.one);
 
                     return true;
                 case SplinePlacePointMode.MeshSurface:
