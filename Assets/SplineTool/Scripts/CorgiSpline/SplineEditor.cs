@@ -429,11 +429,7 @@ namespace CorgiSpline
 
             if (PlacingPoint)
             {
-                // block scene input 
-                if (Event.current.type == EventType.Layout)
-                {
-                    HandleUtility.AddDefaultControl(GUIUtility.GetControlID(GetHashCode(), FocusType.Passive));
-                }
+                
 
                 if (Event.current.isKey && Event.current.keyCode == KeyCode.Escape)
                 {
@@ -454,6 +450,40 @@ namespace CorgiSpline
                 // todo, draw these in PlacingPoint too, but non selectable 
                 DrawSelectablePoints(instance);
             }
+
+        }
+
+        private void DrawPlacePlane()
+        {
+
+            var center = PlacePlaneOffset;
+            var rotation = PlacePlaneNormalRotation;
+
+            var up = rotation * Vector3.up;
+            var forward = rotation * Vector3.forward;
+            var right = rotation * Vector3.right;
+
+            var corner00 = center - right - forward;
+            var corner01 = center - right + forward;
+            var corner10 = center + right - forward;
+            var corner11 = center + right + forward;
+
+
+            Handles.color = Color.green;
+
+            // [ ] 
+
+            Handles.DrawLine(corner00, corner01);
+            Handles.DrawLine(corner01, corner11);
+            Handles.DrawLine(corner11, corner10);
+            Handles.DrawLine(corner10, corner00);
+
+            // [ ] 
+            // Handles.DrawLine(corner00, corner01);
+            // Handles.DrawLine(corner01, corner10);
+            // Handles.DrawLine(corner10, corner11);
+            // Handles.DrawLine(corner11, corner00);
+
 
         }
 
@@ -584,17 +614,23 @@ namespace CorgiSpline
         private void DrawPlacePointView(Spline instance)
         {
             Handles.color = Color.red;
-
+            
             // per place type handles? 
             if (PlaceMode == SplinePlacePointMode.Plane)
             {
+                DrawPlacePlane();
+
                 switch (Tools.current)
                 {
                     case Tool.Move:
-                        DrawHandle(Vector3.zero, ref PlacePlaneOffset, out Vector3 offsetDelta);
-                        PlacePlaneOffset += offsetDelta;
+                        Undo.RecordObject(this, "Moving Place Plane");
+                        var moved = DrawHandle(Vector3.zero, ref PlacePlaneOffset, out Vector3 offsetDelta);
+
+
+                        // PlacePlaneOffset += offsetDelta;
                         break;
                     case Tool.Rotate:
+                        Undo.RecordObject(this, "Rotating Place Plane");
                         DrawHandleRotation(PlacePlaneOffset, ref PlacePlaneNormalRotation);
 
                         var normal = PlacePlaneNormalRotation * Vector3.forward;
@@ -604,6 +640,12 @@ namespace CorgiSpline
 
                         break;
                 }
+            }
+
+            // block scene input 
+            if (Event.current.type == EventType.Layout)
+            {
+                HandleUtility.AddDefaultControl(GUIUtility.GetControlID(GetHashCode(), FocusType.Passive));
             }
 
             // try finding point 
