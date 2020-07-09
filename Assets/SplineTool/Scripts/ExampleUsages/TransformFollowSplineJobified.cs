@@ -44,7 +44,7 @@ namespace CorgiSpline
                     Mode = FollowSpline.GetSplineMode(),
                     SplineSpace = FollowSpline.GetSplineSpace(),
                     localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
-                    ClosedSpline = FollowSpline.ClosedSpline,
+                    ClosedSpline = FollowSpline.GetSplineClosed(),
                 };
 
                 var handle = job.Schedule(_TransformsAccess);
@@ -74,7 +74,7 @@ namespace CorgiSpline
                 Mode = FollowSpline.GetSplineMode(),
                 SplineSpace = FollowSpline.GetSplineSpace(),
                 localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
-                ClosedSpline = FollowSpline.ClosedSpline,
+                ClosedSpline = FollowSpline.GetSplineClosed(),
             };
 
             var handle = job.Schedule(_TransformsAccess);

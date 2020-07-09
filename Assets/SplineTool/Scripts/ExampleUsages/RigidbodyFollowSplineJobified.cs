@@ -57,7 +57,7 @@ namespace CorgiSpline
                     Mode = FollowSpline.GetSplineMode(),
                     SplineSpace = FollowSpline.GetSplineSpace(),
                     localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
-                    ClosedSpline = FollowSpline.ClosedSpline,
+                    ClosedSpline = FollowSpline.GetSplineClosed(),
                 };
 
                 var count = Rigidbodies.Length;
@@ -124,7 +124,7 @@ namespace CorgiSpline
                 Mode = FollowSpline.GetSplineMode(),
                 SplineSpace = FollowSpline.GetSplineSpace(),
                 localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
-                ClosedSpline = FollowSpline.ClosedSpline,
+                ClosedSpline = FollowSpline.GetSplineClosed(),
             };
 
             var count = Rigidbodies.Length;

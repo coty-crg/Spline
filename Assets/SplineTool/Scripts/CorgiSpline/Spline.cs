@@ -114,7 +114,7 @@ namespace CorgiSpline
         // settings
         [SerializeField, HideInInspector] private SplineMode Mode = SplineMode.Linear;
         [SerializeField, HideInInspector] private Space SplineSpace = Space.World;
-        [SerializeField, HideInInspector] public bool ClosedSpline;
+        [SerializeField, HideInInspector] private bool ClosedSpline;
 
         // editor only settings 
         public bool EditorDrawThickness;
@@ -1122,6 +1122,67 @@ namespace CorgiSpline
                     // not implemented 
                     break;
             }
+        }
+
+        /// <summary>
+        /// Opens or closes the spline, handling any internal changes necessary based on the spline's Mode.
+        /// </summary>
+        /// <param name="closed"></param>
+        public void SetSplineClosed(bool closed)
+        {
+            if(ClosedSpline != closed)
+            {
+                // closing 
+                if(closed)
+                {
+                    switch (GetSplineMode())
+                    {
+                        case SplineMode.Linear:
+                            ResizePointArray(Points.Length + 1);
+                            break;
+                        case SplineMode.Bezier:
+                            ResizePointArray(Points.Length + 3);
+                            break;
+                        case SplineMode.BSpline:
+                            // todo, duplicate data here? 
+                            // b-spline can stay the same (its handled at projection time)
+                            break;
+                        default:
+                            // not implemented 
+                            break;
+                    }
+
+                    EnsureSplineStaysClosed();
+                }
+
+                // opening 
+                else
+                {
+                    switch (GetSplineMode())
+                    {
+                        case SplineMode.Linear:
+                            ResizePointArray(Points.Length - 1); // remove extra point 
+                            break;
+                        case SplineMode.Bezier:
+                            ResizePointArray(Points.Length - 3); // remove extra points
+                            break;
+                        case SplineMode.BSpline:
+                            // todo, remove/duplicate data here? 
+                            // b-spline can stay the same (its handled at projection time)
+                            break;
+                        default:
+                            // not implemented 
+                            break;
+                    }
+                }
+            }
+
+            ClosedSpline = closed;
+        }
+
+        public bool GetSplineClosed()
+        {
+            return ClosedSpline;
         }
 
         // helpers 

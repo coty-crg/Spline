@@ -112,7 +112,7 @@ namespace CorgiSpline
                 Mode = SplineReference.GetSplineMode(),
                 SplineSpace = SplineReference.GetSplineSpace(),
                 localToWorldMatrix = SplineReference.transform.localToWorldMatrix,
-                ClosedSpline = SplineReference.ClosedSpline,
+                ClosedSpline = SplineReference.GetSplineClosed(),
 
             };
 

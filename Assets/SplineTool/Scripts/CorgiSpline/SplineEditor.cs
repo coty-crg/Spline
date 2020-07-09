@@ -39,138 +39,11 @@ namespace CorgiSpline
         [SerializeField] private LayerMask PlaceLayerMask;
         [SerializeField] private Vector3 PlacePlaneOffset;
         [SerializeField] private Quaternion PlacePlaneNormalRotation;
-
-        public bool SnapToNearestVert;
-
-        private void OnPointSelected(object index)
-        {
-            var intIndex = (int)index;
-
-            if (SelectedPoints.Contains(intIndex))
-            {
-                SelectedPoints.Remove(intIndex);
-            }
-            else
-            {
-                SelectedPoints.Add(intIndex);
-            }
-        }
-
-        private void OnAllPointsSelected(object splineObj)
-        {
-            var spline = (Spline)splineObj;
-
-            SelectedPoints.Clear();
-
-            for (var i = 0; i < spline.Points.Length; ++i)
-            {
-                SelectedPoints.Add(i);
-            }
-        }
-
-        private void OnNoPointsSelected()
-        {
-            SelectedPoints.Clear();
-        }
-
-        private void DrawPointSelectorInspector(Spline spline)
-        {
-            var selectedPointButtonSb = new System.Text.StringBuilder();
-
-            var selected_none = SelectedPoints.Count == 0;
-            var selected_all = SelectedPoints.Count == spline.Points.Length;
-
-            if (selected_none)
-            {
-                selectedPointButtonSb.Append("No points selected.");
-            }
-            else if (selected_all)
-            {
-                selectedPointButtonSb.Append("All points selected.");
-            }
-            else
-            {
-                selectedPointButtonSb.Append("Selected: ");
-
-                for (var i = 0; i < SelectedPoints.Count; ++i)
-                {
-                    var pointIndex = SelectedPoints[i];
-                    var pointName = GetPointName(spline, pointIndex);
-                    selectedPointButtonSb.Append($"{pointName}");
-
-                    if (i < SelectedPoints.Count - 1)
-                    {
-                        selectedPointButtonSb.Append($", ");
-                    }
-                }
-            }
-
-            if (GUILayout.Button(selectedPointButtonSb.ToString()))
-            {
-                Undo.RecordObject(this, "Point Selection");
-
-                var selectedMenu = new GenericMenu();
-
-                selectedMenu.AddItem(new GUIContent("Select All"), selected_all, OnAllPointsSelected, spline);
-                selectedMenu.AddItem(new GUIContent("Select None"), selected_none, OnNoPointsSelected);
-
-                var length = spline.Points.Length;
-                if (spline.ClosedSpline)
-                {
-                    switch (spline.GetSplineMode())
-                    {
-                        case SplineMode.Linear:
-                            length -= 1;
-                            break;
-                        case SplineMode.Bezier:
-                            length -= 3;
-                            break;
-                    }
-                }
-
-                for (var i = 0; i < length; ++i)
-                {
-                    var splinePoint = spline.Points[i];
-
-                    var menuString = GetPointName(spline, i);
-                    var pointSelected = SelectedPoints.Contains(i);
-
-                    selectedMenu.AddItem(new GUIContent(menuString), pointSelected, OnPointSelected, i);
-                }
-
-                selectedMenu.ShowAsContext();
-
-
-
-            }
-        }
-
-        private static string GetPointName(Spline spline, int i)
-        {
-            var name = $"point {i:N0}";
-
-            if (spline.GetSplineMode() == SplineMode.Bezier)
-            {
-                if (i % 3 == 0)
-                {
-                    name = $"[point] {i:N0}";
-                }
-                else
-                {
-                    name = $"[handle] {i:N0}";
-                }
-            }
-
-            return name;
-        }
+        [SerializeField] public bool SnapToNearestVert;
 
         public override void OnInspectorGUI()
         {
-            // base.OnInspectorGUI();
-
-
             var instance = (Spline)target;
-
 
             GUILayout.BeginVertical("GroupBox");
             instance.SetSplineMode((SplineMode)EditorGUILayout.EnumPopup("Curve Type", instance.GetSplineMode()));
@@ -180,48 +53,19 @@ namespace CorgiSpline
             instance.EditorDrawThickness = EditorGUILayout.Toggle("EditorDrawThickness", instance.EditorDrawThickness);
 
             EditorGUILayout.Space();
-
-            // var propertyOnSplineModified = serializedObject.FindProperty("OnSplineModified");
-            // EditorGUILayout.PropertyField(propertyOnSplineModified, true);
-
             GUILayout.EndVertical();
-
             GUILayout.BeginVertical("GroupBox");
 
-            // if (GUILayout.Button("Append Point"))
-            // {
-            //     var lastPos = instance.GetPoint(1f);
-            //     AppendPoint(instance, lastPos.position, lastPos.up);
-            // }
-
-            if (instance.ClosedSpline)
+            if (instance.GetSplineClosed())
             {
                 if (GUILayout.Button("Open Spline"))
                 {
                     Undo.RecordObjects(new UnityEngine.Object[] { instance, this }, "Open Spline");
 
-                    instance.ClosedSpline = false;
-
                     PlacingPoint = false;
                     SelectedPoints.Clear();
 
-                    switch (instance.GetSplineMode())
-                    {
-                        case SplineMode.Linear:
-                            instance.ResizePointArray(instance.Points.Length - 1); // remove extra point 
-                            break;
-                        case SplineMode.Bezier:
-                            instance.ResizePointArray(instance.Points.Length - 3); // remove extra points
-                            break;
-                        case SplineMode.BSpline:
-                            // todo, remove/duplicate data here? 
-                            // b-spline can stay the same (its handled at projection time)
-                            break;
-                        default:
-                            // not implemented 
-                            break;
-                    }
-
+                    instance.SetSplineClosed(false);
                     instance.UpdateNative();
                 }
             }
@@ -229,39 +73,21 @@ namespace CorgiSpline
             {
                 if (!PlacingPoint)
                 {
-                    if (GUILayout.Button("Start Placing Points"))
-                    {
-                        SelectedPoints.Clear();
-                        PlacingPoint = !PlacingPoint;
-                    }
-                    else if (GUILayout.Button("Close Spline"))
+                    if (GUILayout.Button("Close Spline"))
                     {
                         Undo.RecordObjects(new UnityEngine.Object[] { instance, this }, "Close Spline");
-
-                        instance.ClosedSpline = true;
 
                         PlacingPoint = false;
                         SelectedPoints.Clear();
 
-                        switch (instance.GetSplineMode())
-                        {
-                            case SplineMode.Linear:
-                                instance.ResizePointArray(instance.Points.Length + 1);
-                                break;
-                            case SplineMode.Bezier:
-                                instance.ResizePointArray(instance.Points.Length + 3);
-                                break;
-                            case SplineMode.BSpline:
-                                // todo, duplicate data here? 
-                                // b-spline can stay the same (its handled at projection time)
-                                break;
-                            default:
-                                // not implemented 
-                                break;
-                        }
-
-                        instance.EnsureSplineStaysClosed();
+                        instance.SetSplineClosed(true);
                         instance.UpdateNative();
+                    }
+
+                    if (GUILayout.Button("Start Placing Points"))
+                    {
+                        SelectedPoints.Clear();
+                        PlacingPoint = !PlacingPoint;
                     }
                 }
                 else if (PlacingPoint && GUILayout.Button("Stop Placing Points"))
@@ -345,28 +171,6 @@ namespace CorgiSpline
             }
         }
 
-        private void AppendPoint(Spline instance, Vector3 position, Quaternion rotation, Vector3 scale)
-        {
-            Undo.RegisterCompleteObjectUndo(instance, "AppendPoint");
-
-            // if we want to place the point at the beginning, 
-            // just reverse the array, place, then reverse again 
-            if (PlacePosition == SplinePlacePosition.Beginning)
-            {
-                instance.ReversePoints();
-            }
-
-            instance.AppendPoint(position, rotation, scale);
-
-            // un-reverses the previous reverse
-            if (PlacePosition == SplinePlacePosition.Beginning)
-            {
-                instance.ReversePoints();
-            }
-
-            EditorUtility.SetDirty(instance);
-        }
-
         private void OnSceneGUI()
         {
             var instance = (Spline)target;
@@ -409,7 +213,7 @@ namespace CorgiSpline
                         {
                             // if we have neighbor handles, find them and delete them too.. 
                             case SplineMode.Bezier:
-                                SplinePoint.GetHandleIndexes(instance.GetSplineMode(), instance.ClosedSpline, instance.Points.Length,
+                                SplinePoint.GetHandleIndexes(instance.GetSplineMode(), instance.GetSplineClosed(), instance.Points.Length,
                                     point_index, out int handleIndex0, out int handleIndex1);
 
                                 if (pointList.Count > 0 && pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
@@ -439,7 +243,7 @@ namespace CorgiSpline
 
             if (PlacingPoint)
             {
-                
+
 
                 if (Event.current.isKey && Event.current.keyCode == KeyCode.Escape)
                 {
@@ -461,6 +265,150 @@ namespace CorgiSpline
                 DrawSelectablePoints(instance);
             }
 
+        }
+
+        private void OnPointSelected(object index)
+        {
+            var intIndex = (int)index;
+
+            if (SelectedPoints.Contains(intIndex))
+            {
+                SelectedPoints.Remove(intIndex);
+            }
+            else
+            {
+                SelectedPoints.Add(intIndex);
+            }
+        }
+
+        private void OnAllPointsSelected(object splineObj)
+        {
+            var spline = (Spline)splineObj;
+
+            SelectedPoints.Clear();
+
+            for (var i = 0; i < spline.Points.Length; ++i)
+            {
+                SelectedPoints.Add(i);
+            }
+        }
+
+        private void OnNoPointsSelected()
+        {
+            SelectedPoints.Clear();
+        }
+
+        private void DrawPointSelectorInspector(Spline spline)
+        {
+            var selectedPointButtonSb = new System.Text.StringBuilder();
+
+            var selected_none = SelectedPoints.Count == 0;
+            var selected_all = SelectedPoints.Count == spline.Points.Length;
+
+            if (selected_none)
+            {
+                selectedPointButtonSb.Append("No points selected.");
+            }
+            else if (selected_all)
+            {
+                selectedPointButtonSb.Append("All points selected.");
+            }
+            else
+            {
+                selectedPointButtonSb.Append("Selected: ");
+
+                for (var i = 0; i < SelectedPoints.Count; ++i)
+                {
+                    var pointIndex = SelectedPoints[i];
+                    var pointName = GetPointName(spline, pointIndex);
+                    selectedPointButtonSb.Append($"{pointName}");
+
+                    if (i < SelectedPoints.Count - 1)
+                    {
+                        selectedPointButtonSb.Append($", ");
+                    }
+                }
+            }
+
+            if (GUILayout.Button(selectedPointButtonSb.ToString()))
+            {
+                Undo.RecordObject(this, "Point Selection");
+
+                var selectedMenu = new GenericMenu();
+
+                selectedMenu.AddItem(new GUIContent("Select All"), selected_all, OnAllPointsSelected, spline);
+                selectedMenu.AddItem(new GUIContent("Select None"), selected_none, OnNoPointsSelected);
+
+                var length = spline.Points.Length;
+                if (spline.GetSplineClosed())
+                {
+                    switch (spline.GetSplineMode())
+                    {
+                        case SplineMode.Linear:
+                            length -= 1;
+                            break;
+                        case SplineMode.Bezier:
+                            length -= 3;
+                            break;
+                    }
+                }
+
+                for (var i = 0; i < length; ++i)
+                {
+                    var splinePoint = spline.Points[i];
+
+                    var menuString = GetPointName(spline, i);
+                    var pointSelected = SelectedPoints.Contains(i);
+
+                    selectedMenu.AddItem(new GUIContent(menuString), pointSelected, OnPointSelected, i);
+                }
+
+                selectedMenu.ShowAsContext();
+
+
+
+            }
+        }
+
+        private static string GetPointName(Spline spline, int i)
+        {
+            var name = $"point {i:N0}";
+
+            if (spline.GetSplineMode() == SplineMode.Bezier)
+            {
+                if (i % 3 == 0)
+                {
+                    name = $"[point] {i:N0}";
+                }
+                else
+                {
+                    name = $"[handle] {i:N0}";
+                }
+            }
+
+            return name;
+        }
+
+        private void AppendPoint(Spline instance, Vector3 position, Quaternion rotation, Vector3 scale)
+        {
+            Undo.RegisterCompleteObjectUndo(instance, "AppendPoint");
+
+            // if we want to place the point at the beginning, 
+            // just reverse the array, place, then reverse again 
+            if (PlacePosition == SplinePlacePosition.Beginning)
+            {
+                instance.ReversePoints();
+            }
+
+            instance.AppendPoint(position, rotation, scale);
+
+            // un-reverses the previous reverse
+            if (PlacePosition == SplinePlacePosition.Beginning)
+            {
+                instance.ReversePoints();
+            }
+
+            EditorUtility.SetDirty(instance);
         }
 
         private void DrawPlacePlane()
@@ -905,7 +853,7 @@ namespace CorgiSpline
             var first_selected_point = SelectedPoints.Count > 0 ? SelectedPoints[0] : -1;
 
             var length = instance.Points.Length;
-            if (instance.ClosedSpline)
+            if (instance.GetSplineClosed())
             {
                 switch (instance.GetSplineMode())
                 {
