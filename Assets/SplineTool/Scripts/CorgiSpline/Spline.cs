@@ -1270,8 +1270,22 @@ namespace CorgiSpline
             var result = new SplinePoint();
 
             result.position = BSplineInterpolate(point0.position, point1.position, point2.position, point3.position, t);
-            // result.rotation = BSplineInterpolate(point0.rotation, point1.rotation, point2.rotation, point3.rotation, t);
             result.scale = BSplineInterpolate(point0.scale, point1.scale, point2.scale, point3.scale, t);
+
+            // getting rotation is really dumb here, find a faster way 
+            var forward0 = point0.rotation * Vector3.forward;
+            var forward1 = point1.rotation * Vector3.forward;
+            var forward2 = point2.rotation * Vector3.forward;
+            var forward3 = point3.rotation * Vector3.forward;
+
+            var up0 = point0.rotation * Vector3.up;
+            var up1 = point1.rotation * Vector3.up;
+            var up2 = point2.rotation * Vector3.up;
+            var up3 = point3.rotation * Vector3.up;
+
+            var result_forward = BSplineInterpolate(forward0, forward1, forward2, forward3, t);
+            var result_up = BSplineInterpolate(up0, up1, up2, up3, t);
+            result.rotation = Quaternion.LookRotation(result_forward, result_up); 
 
             return result;
         }
