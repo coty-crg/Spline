@@ -395,12 +395,42 @@ namespace CorgiSpline
                 var best_t = 0f;
                 var best_i = -1;
 
-                for (var i = 0; i < length - 3; i += 1)
+                for (var i = 0; i < length; i += 1)
                 {
-                    var p0 = Points[i + 0];
-                    var p1 = Points[i + 1];
-                    var p2 = Points[i + 2];
-                    var p3 = Points[i + 3];
+                    var index = i;
+                    index = Mathf.Clamp(index, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
+
+                    int index0;
+                    int index1;
+                    int index2;
+                    int index3;
+
+                    if (ClosedSpline)
+                    {
+                        int mod_count = Points.Length - 1;
+
+                        index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
+                        index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
+                        index2 = ((index + 2) % (mod_count) + mod_count) % mod_count;
+                        index3 = ((index + 3) % (mod_count) + mod_count) % mod_count;
+                    }
+                    else
+                    {
+                        index0 = index + 0;
+                        index1 = index + 1;
+                        index2 = index + 2;
+                        index3 = index + 3;
+
+                        index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+                        index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+                        index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
+                        index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+                    }
+
+                    var p0 = Points[index0];
+                    var p1 = Points[index1];
+                    var p2 = Points[index2];
+                    var p3 = Points[index3];
 
                     var t = BSplineProject(p0.position, p1.position, p2.position, p3.position, position);
                     var projected = BSplineInterpolate(p0.position, p1.position, p2.position, p3.position, t);
@@ -1413,7 +1443,7 @@ namespace CorgiSpline
             return point;
         }
 
-        public static float JobSafe_ProjectOnSpline_t(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 worldToLocalMatrix, Vector3 position)
+        public static float JobSafe_ProjectOnSpline_t(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 worldToLocalMatrix, bool ClosedSpline, Vector3 position)
         {
             if (SplineSpace == Space.Self)
             {
@@ -1542,12 +1572,42 @@ namespace CorgiSpline
                 var best_t = 0f;
                 var best_i = -1;
 
-                for (var i = 0; i < length - 3; i += 3)
+                for (var i = 0; i < length; i += 1)
                 {
-                    var p0 = Points[i + 0];
-                    var p1 = Points[i + 1];
-                    var p2 = Points[i + 2];
-                    var p3 = Points[i + 3];
+                    var index = i;
+                    index = Mathf.Clamp(index, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
+
+                    int index0;
+                    int index1;
+                    int index2;
+                    int index3;
+
+                    if (ClosedSpline)
+                    {
+                        int mod_count = Points.Length - 1;
+
+                        index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
+                        index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
+                        index2 = ((index + 2) % (mod_count) + mod_count) % mod_count;
+                        index3 = ((index + 3) % (mod_count) + mod_count) % mod_count;
+                    }
+                    else
+                    {
+                        index0 = index + 0;
+                        index1 = index + 1;
+                        index2 = index + 2;
+                        index3 = index + 3;
+
+                        index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+                        index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+                        index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
+                        index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+                    }
+
+                    var p0 = Points[index0];
+                    var p1 = Points[index1];
+                    var p2 = Points[index2];
+                    var p3 = Points[index3];
 
                     var t = BSplineProject(p0.position, p1.position, p2.position, p3.position, position);
                     var projected = BSplineInterpolate(p0.position, p1.position, p2.position, p3.position, t);
@@ -1568,7 +1628,7 @@ namespace CorgiSpline
             return 0f;
         }
 
-        public static SplinePoint JobSafe_GetPoint(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, float t)
+        public static SplinePoint JobSafe_GetPoint(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
         {
             if (Points.Length == 0)
             {
@@ -1670,34 +1730,38 @@ namespace CorgiSpline
 
             else if (Mode == SplineMode.BSpline)
             {
-
-                var delta_t = 3f / Points.Length;
+                var delta_t = 1f / Points.Length;
                 var mod_t = Mathf.Repeat(t, delta_t);
                 var inner_t = mod_t / delta_t;
 
+                var index = Mathf.FloorToInt(t * Points.Length);
+                index = Mathf.Clamp(index, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
 
-                var index0 = Mathf.FloorToInt(t * Points.Length);
-                index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
-                index0 = index0 - index0 % 3;
+                int index0;
+                int index1;
+                int index2;
+                int index3;
 
-                var index1 = index0 + 1;
-                var index2 = index0 + 2;
-                var index3 = index0 + 3;
-
-                // index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
-                // index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
-                // index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
-
-                if (index0 > Points.Length - 4)
+                if (ClosedSpline)
                 {
-                    var lastPoint = Points[Points.Length - 1]; ;
+                    int mod_count = Points.Length - 1;
 
-                    if (SplineSpace == Space.Self)
-                    {
-                        lastPoint = JobSafe_TransformSplinePoint(lastPoint, localToWorldMatrix);
-                    }
+                    index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
+                    index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
+                    index2 = ((index + 2) % (mod_count) + mod_count) % mod_count;
+                    index3 = ((index + 3) % (mod_count) + mod_count) % mod_count;
+                }
+                else
+                {
+                    index0 = index + 0;
+                    index1 = index + 1;
+                    index2 = index + 2;
+                    index3 = index + 3;
 
-                    return lastPoint;
+                    index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+                    index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+                    index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
+                    index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
                 }
 
                 var point0 = Points[index0];
@@ -1721,12 +1785,12 @@ namespace CorgiSpline
             return new SplinePoint();
         }
 
-        public static Vector3 JobSafe_GetForward(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, float t)
+        public static Vector3 JobSafe_GetForward(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
         {
             var delta_t = 1f / 256f;
 
-            var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, t - delta_t * 1);
-            var p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, t + delta_t * 1);
+            var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t * 1);
+            var p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t * 1);
 
             var vec = (p1.position - p0.position);
             var forward = vec.sqrMagnitude > 0 ? vec.normalized : Vector3.forward;

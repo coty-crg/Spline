@@ -44,6 +44,7 @@ namespace CorgiSpline
                     Mode = FollowSpline.GetSplineMode(),
                     SplineSpace = FollowSpline.GetSplineSpace(),
                     localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
+                    ClosedSpline = FollowSpline.ClosedSpline,
                 };
 
                 var handle = job.Schedule(_TransformsAccess);
@@ -73,6 +74,7 @@ namespace CorgiSpline
                 Mode = FollowSpline.GetSplineMode(),
                 SplineSpace = FollowSpline.GetSplineSpace(),
                 localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
+                ClosedSpline = FollowSpline.ClosedSpline,
             };
 
             var handle = job.Schedule(_TransformsAccess);
@@ -92,13 +94,14 @@ namespace CorgiSpline
             public SplineMode Mode;
             public Space SplineSpace;
             public Matrix4x4 localToWorldMatrix;
+            public bool ClosedSpline;
 
             public void Execute(int index, TransformAccess transform)
             {
-                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, transform.position);
+                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, transform.position);
 
-                var projectedForward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, t);
-                var projectedPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, t);
+                var projectedForward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+                var projectedPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
                 projectedPoint.position += projectedForward * (FollowSpeed * deltaTime);
 
@@ -120,6 +123,7 @@ namespace CorgiSpline
             public SplineMode Mode;
             public Space SplineSpace;
             public Matrix4x4 localToWorldMatrix;
+            public bool ClosedSpline;
 
             public void Execute(int index, TransformAccess transform)
             {
@@ -127,7 +131,7 @@ namespace CorgiSpline
                 var random = new Unity.Mathematics.Random(seed);
                 var t = random.NextFloat();
 
-                var point = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, t);
+                var point = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
                 transform.position = point.position;
             }
         }

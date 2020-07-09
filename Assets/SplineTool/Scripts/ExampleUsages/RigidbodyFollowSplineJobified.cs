@@ -57,6 +57,7 @@ namespace CorgiSpline
                     Mode = FollowSpline.GetSplineMode(),
                     SplineSpace = FollowSpline.GetSplineSpace(),
                     localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
+                    ClosedSpline = FollowSpline.ClosedSpline,
                 };
 
                 var count = Rigidbodies.Length;
@@ -123,6 +124,7 @@ namespace CorgiSpline
                 Mode = FollowSpline.GetSplineMode(),
                 SplineSpace = FollowSpline.GetSplineSpace(),
                 localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
+                ClosedSpline = FollowSpline.ClosedSpline,
             };
 
             var count = Rigidbodies.Length;
@@ -148,14 +150,15 @@ namespace CorgiSpline
             public SplineMode Mode;
             public Space SplineSpace;
             public Matrix4x4 localToWorldMatrix;
+            public bool ClosedSpline;
 
             public void Execute(int index)
             {
                 var rb = RigidBodies[index];
 
-                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, rb.position);
-                var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, 0);
-                var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, t);
+                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, rb.position);
+                var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0);
+                var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
                 if (FollowPosition)
                 {
@@ -193,6 +196,7 @@ namespace CorgiSpline
             public SplineMode Mode;
             public Space SplineSpace;
             public Matrix4x4 localToWorldMatrix;
+            public bool ClosedSpline; 
 
             public void Execute(int index)
             {
@@ -202,7 +206,7 @@ namespace CorgiSpline
                 var random = new Unity.Mathematics.Random(seed);
                 var t = random.NextFloat();
 
-                var point = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, t);
+                var point = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
 
                 var offset_x = random.NextFloat(RandomMinSpeed, RandomMaxSpeed);

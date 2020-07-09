@@ -97,6 +97,7 @@ namespace CorgiSpline
             public SplineMode Mode;
             public Space SplineSpace;
             public Matrix4x4 localToWorldMatrix;
+            public bool ClosedSpline;
 
             // Component data
             public bool FollowPosition;
@@ -107,9 +108,9 @@ namespace CorgiSpline
             {
                 var particle = Particles[index];
 
-                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, particle.position);
-                var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, 0);
-                var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, t);
+                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, particle.position);
+                var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0);
+                var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
                 if (FollowPosition)
                 {

@@ -112,6 +112,7 @@ namespace CorgiSpline
                 Mode = SplineReference.GetSplineMode(),
                 SplineSpace = SplineReference.GetSplineSpace(),
                 localToWorldMatrix = SplineReference.transform.localToWorldMatrix,
+                ClosedSpline = SplineReference.ClosedSpline,
 
             };
 
@@ -161,6 +162,7 @@ namespace CorgiSpline
             public SplineMode Mode;
             public Space SplineSpace;
             public Matrix4x4 localToWorldMatrix;
+            public bool ClosedSpline;
 
             public void Execute()
             {
@@ -174,11 +176,11 @@ namespace CorgiSpline
                 var current_uv_step = 0f;
 
                 // setup 
-                var start_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, 0f);
-                var end_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, 0.9f);
+                var start_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
+                var end_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0.9f);
 
-                var firstPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, 0f);
-                var lastPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, 1f);
+                var firstPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
+                var lastPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 1f);
                 var previousPosition = firstPoint.position;
 
                 // ensure even quality 
@@ -190,8 +192,8 @@ namespace CorgiSpline
                     var t0 = (float)(step - 1) / quality;
                     var t1 = (float)(step - 0) / quality;
 
-                    var splinePoint0 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, t0);
-                    var splinePoint1 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, t1);
+                    var splinePoint0 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t0);
+                    var splinePoint1 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t1);
 
                     var position0 = splinePoint0.position;
                     var position1 = splinePoint1.position;
