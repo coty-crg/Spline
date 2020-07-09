@@ -19,9 +19,9 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">CorgiSpline
-   &#160;<span id="projectnumber">1.1</span>
+   &#160;<span id="projectnumber">1.2</span>
    </div>
-   <div id="projectbrief">Simple and fast splines.</div>
+   <div id="projectbrief">A simple and fast spline tool.</div>
   </td>
  </tr>
  </tbody>
@@ -112,6 +112,11 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a387652c758c8172b31e1286b453e839d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a387652c758c8172b31e1286b453e839d">EnsureSplineStaysClosed</a> ()</td></tr>
 <tr class="memdesc:a387652c758c8172b31e1286b453e839d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call this after moving the first or last Points in the internal array, to ensure the spline stays closed.  <a href="class_corgi_spline_1_1_spline.html#a387652c758c8172b31e1286b453e839d">More...</a><br /></td></tr>
 <tr class="separator:a387652c758c8172b31e1286b453e839d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a062143009bfef953cfc0c83fa5fefbcb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a062143009bfef953cfc0c83fa5fefbcb">SetSplineClosed</a> (bool closed)</td></tr>
+<tr class="memdesc:a062143009bfef953cfc0c83fa5fefbcb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Opens or closes the spline, handling any internal changes necessary based on the spline's Mode.  <a href="class_corgi_spline_1_1_spline.html#a062143009bfef953cfc0c83fa5fefbcb">More...</a><br /></td></tr>
+<tr class="separator:a062143009bfef953cfc0c83fa5fefbcb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e8f05fe8c14f96c4eb9d13bbd9ff6c8"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a4e8f05fe8c14f96c4eb9d13bbd9ff6c8">GetSplineClosed</a> ()</td></tr>
+<tr class="separator:a4e8f05fe8c14f96c4eb9d13bbd9ff6c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -122,12 +127,12 @@ Static Public Member Functions</h2></td></tr>
 <tr class="separator:acf152374d354c86c394914583ba25e8e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a139a8849b91c8f38df0b2641013df745"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a139a8849b91c8f38df0b2641013df745">JobSafe_InverseTransformSplinePoint</a> (<a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a> point, Matrix4x4 worldToLocalMatrix)</td></tr>
 <tr class="separator:a139a8849b91c8f38df0b2641013df745"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a55b51baa0171465ddf0a705db70b25f0"><td class="memItemLeft" align="right" valign="top">static float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a55b51baa0171465ddf0a705db70b25f0">JobSafe_ProjectOnSpline_t</a> (NativeArray&lt; <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a> &gt; <a class="el" href="class_corgi_spline_1_1_spline.html#ae5e1125bdab29bbc696643e11497407e">Points</a>, <a class="el" href="namespace_corgi_spline.html#a57e9e3ce3de53655d040f7bbc4912286">SplineMode</a> Mode, Space SplineSpace, Matrix4x4 worldToLocalMatrix, Vector3 position)</td></tr>
-<tr class="separator:a55b51baa0171465ddf0a705db70b25f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac5fa37460e1c698062e22e5505aee0ff"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#ac5fa37460e1c698062e22e5505aee0ff">JobSafe_GetPoint</a> (NativeArray&lt; <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a> &gt; <a class="el" href="class_corgi_spline_1_1_spline.html#ae5e1125bdab29bbc696643e11497407e">Points</a>, <a class="el" href="namespace_corgi_spline.html#a57e9e3ce3de53655d040f7bbc4912286">SplineMode</a> Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, float t)</td></tr>
-<tr class="separator:ac5fa37460e1c698062e22e5505aee0ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a93d56526aaa335351303eda32dbfa2be"><td class="memItemLeft" align="right" valign="top">static Vector3&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a93d56526aaa335351303eda32dbfa2be">JobSafe_GetForward</a> (NativeArray&lt; <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a> &gt; <a class="el" href="class_corgi_spline_1_1_spline.html#ae5e1125bdab29bbc696643e11497407e">Points</a>, <a class="el" href="namespace_corgi_spline.html#a57e9e3ce3de53655d040f7bbc4912286">SplineMode</a> Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, float t)</td></tr>
-<tr class="separator:a93d56526aaa335351303eda32dbfa2be"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac39ac6cb67c0923c943dc9772c612b41"><td class="memItemLeft" align="right" valign="top">static float&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#ac39ac6cb67c0923c943dc9772c612b41">JobSafe_ProjectOnSpline_t</a> (NativeArray&lt; <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a> &gt; <a class="el" href="class_corgi_spline_1_1_spline.html#ae5e1125bdab29bbc696643e11497407e">Points</a>, <a class="el" href="namespace_corgi_spline.html#a57e9e3ce3de53655d040f7bbc4912286">SplineMode</a> Mode, Space SplineSpace, Matrix4x4 worldToLocalMatrix, bool ClosedSpline, Vector3 position)</td></tr>
+<tr class="separator:ac39ac6cb67c0923c943dc9772c612b41"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2ae01a5f9d35487fd1c0dcbc11917307"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a2ae01a5f9d35487fd1c0dcbc11917307">JobSafe_GetPoint</a> (NativeArray&lt; <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a> &gt; <a class="el" href="class_corgi_spline_1_1_spline.html#ae5e1125bdab29bbc696643e11497407e">Points</a>, <a class="el" href="namespace_corgi_spline.html#a57e9e3ce3de53655d040f7bbc4912286">SplineMode</a> Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)</td></tr>
+<tr class="separator:a2ae01a5f9d35487fd1c0dcbc11917307"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a49e04ff804316d682804e0b6b4568b9f"><td class="memItemLeft" align="right" valign="top">static Vector3&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a49e04ff804316d682804e0b6b4568b9f">JobSafe_GetForward</a> (NativeArray&lt; <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a> &gt; <a class="el" href="class_corgi_spline_1_1_spline.html#ae5e1125bdab29bbc696643e11497407e">Points</a>, <a class="el" href="namespace_corgi_spline.html#a57e9e3ce3de53655d040f7bbc4912286">SplineMode</a> Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)</td></tr>
+<tr class="separator:a49e04ff804316d682804e0b6b4568b9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -137,8 +142,6 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a220714bdcc4e8907949d804bbbff7fd0"><td class="memItemLeft" align="right" valign="top">NativeArray&lt; <a class="el" href="struct_corgi_spline_1_1_spline_point.html">SplinePoint</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a220714bdcc4e8907949d804bbbff7fd0">NativePoints</a></td></tr>
 <tr class="memdesc:a220714bdcc4e8907949d804bbbff7fd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used at runtime for burstable jobs.  <a href="class_corgi_spline_1_1_spline.html#a220714bdcc4e8907949d804bbbff7fd0">More...</a><br /></td></tr>
 <tr class="separator:a220714bdcc4e8907949d804bbbff7fd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afe4a1893b2d1fba3169a4877fe5c8039"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#afe4a1893b2d1fba3169a4877fe5c8039">ClosedSpline</a></td></tr>
-<tr class="separator:afe4a1893b2d1fba3169a4877fe5c8039"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab1d40da6c5c6fcf4a08b873f8e9ce7cd"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#ab1d40da6c5c6fcf4a08b873f8e9ce7cd">EditorDrawThickness</a></td></tr>
 <tr class="separator:ab1d40da6c5c6fcf4a08b873f8e9ce7cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a033bd3d74c48cf03576a69962b0d2bae"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_corgi_spline_1_1_spline.html#a033bd3d74c48cf03576a69962b0d2bae">EditorAlwaysDraw</a></td></tr>
@@ -293,6 +296,23 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a4e8f05fe8c14f96c4eb9d13bbd9ff6c8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4e8f05fe8c14f96c4eb9d13bbd9ff6c8">&#9670;&nbsp;</a></span>GetSplineClosed()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool CorgiSpline.Spline.GetSplineClosed </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a563a5beb038dd3b645015106de810ea6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a563a5beb038dd3b645015106de810ea6">&#9670;&nbsp;</a></span>GetSplineMode()</h2>
 
@@ -380,8 +400,8 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a93d56526aaa335351303eda32dbfa2be"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a93d56526aaa335351303eda32dbfa2be">&#9670;&nbsp;</a></span>JobSafe_GetForward()</h2>
+<a id="a49e04ff804316d682804e0b6b4568b9f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a49e04ff804316d682804e0b6b4568b9f">&#9670;&nbsp;</a></span>JobSafe_GetForward()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -416,6 +436,12 @@ Public Attributes</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>ClosedSpline</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">float&#160;</td>
           <td class="paramname"><em>t</em>&#160;</td>
         </tr>
@@ -434,8 +460,8 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="ac5fa37460e1c698062e22e5505aee0ff"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac5fa37460e1c698062e22e5505aee0ff">&#9670;&nbsp;</a></span>JobSafe_GetPoint()</h2>
+<a id="a2ae01a5f9d35487fd1c0dcbc11917307"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2ae01a5f9d35487fd1c0dcbc11917307">&#9670;&nbsp;</a></span>JobSafe_GetPoint()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -466,6 +492,12 @@ Public Attributes</h2></td></tr>
           <td></td>
           <td class="paramtype">Matrix4x4&#160;</td>
           <td class="paramname"><em>localToWorldMatrix</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>ClosedSpline</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -524,8 +556,8 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a55b51baa0171465ddf0a705db70b25f0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a55b51baa0171465ddf0a705db70b25f0">&#9670;&nbsp;</a></span>JobSafe_ProjectOnSpline_t()</h2>
+<a id="ac39ac6cb67c0923c943dc9772c612b41"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac39ac6cb67c0923c943dc9772c612b41">&#9670;&nbsp;</a></span>JobSafe_ProjectOnSpline_t()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -556,6 +588,12 @@ Public Attributes</h2></td></tr>
           <td></td>
           <td class="paramtype">Matrix4x4&#160;</td>
           <td class="paramname"><em>worldToLocalMatrix</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>ClosedSpline</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -790,6 +828,32 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a062143009bfef953cfc0c83fa5fefbcb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a062143009bfef953cfc0c83fa5fefbcb">&#9670;&nbsp;</a></span>SetSplineClosed()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void CorgiSpline.Spline.SetSplineClosed </td>
+          <td>(</td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>closed</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Opens or closes the spline, handling any internal changes necessary based on the spline's Mode. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">closed</td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="aa3911dd14dd4a2d7c17e7abfc74e958e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa3911dd14dd4a2d7c17e7abfc74e958e">&#9670;&nbsp;</a></span>SetSplineMode()</h2>
 
@@ -945,20 +1009,6 @@ Public Attributes</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Member Data Documentation</h2>
-<a id="afe4a1893b2d1fba3169a4877fe5c8039"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afe4a1893b2d1fba3169a4877fe5c8039">&#9670;&nbsp;</a></span>ClosedSpline</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool CorgiSpline.Spline.ClosedSpline</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a033bd3d74c48cf03576a69962b0d2bae"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a033bd3d74c48cf03576a69962b0d2bae">&#9670;&nbsp;</a></span>EditorAlwaysDraw</h2>
 
@@ -1027,7 +1077,7 @@ Public Attributes</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Jul 7 2020 21:16:12 for CorgiSpline by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Jul 9 2020 09:53:03 for CorgiSpline by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.18
 </small></address>
