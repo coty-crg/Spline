@@ -10,6 +10,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine.Events;
+using UnityEditor;
 
 namespace CorgiSpline
 {
@@ -1943,54 +1944,54 @@ namespace CorgiSpline
             DrawGizmos();
         }
 
+        private void DrawLinearGizmos()
+        {
+            for (var i = 1; i < Points.Length; ++i)
+            {
+                var previous = Points[i - 1];
+                var current = Points[i];
+
+                if (SplineSpace == Space.Self)
+                {
+                    previous = TransformSplinePoint(previous);
+                    current = TransformSplinePoint(current);
+                }
+
+                if (EditorDrawThickness)
+                {
+                    var up = previous.rotation * Vector3.up;
+                    var forward = (current.position - previous.position).normalized;
+                    var right = Vector3.Cross(forward, up);
+
+                    var previous_offset = right * previous.scale.x;
+                    var current_offset = right * current.scale.x;
+
+                    // between thickness bars 
+                    Gizmos.DrawLine(previous.position - previous_offset, previous.position + previous_offset);
+                    Gizmos.DrawLine(current.position - current_offset, current.position + current_offset);
+
+                    // between points 
+                    Gizmos.DrawLine(previous.position - previous_offset, current.position - current_offset);
+                    Gizmos.DrawLine(previous.position + previous_offset, current.position + current_offset);
+                }
+                else
+                {
+                    Gizmos.DrawLine(previous.position, current.position);
+                }
+            }
+        }
+
         public void DrawGizmos()
         {
-
-
-
+            var selected = Selection.activeObject == gameObject;
 
             if (Mode == SplineMode.Linear)
             {
-                for (var i = 1; i < Points.Length; ++i)
-                {
-                    var previous = Points[i - 1];
-                    var current = Points[i];
-
-                    if (SplineSpace == Space.Self)
-                    {
-                        previous = TransformSplinePoint(previous);
-                        current = TransformSplinePoint(current);
-                    }
-
-                    if (EditorDrawThickness)
-                    {
-                        var up = previous.rotation * Vector3.up;
-                        var forward = (current.position - previous.position).normalized;
-                        var right = Vector3.Cross(forward, up);
-
-                        var previous_offset = right * previous.scale.x;
-                        var current_offset = right * current.scale.x;
-
-                        // between thickness bars 
-                        Gizmos.DrawLine(previous.position - previous_offset, previous.position + previous_offset);
-                        Gizmos.DrawLine(current.position - current_offset, current.position + current_offset);
-
-                        // between points 
-                        Gizmos.DrawLine(previous.position - previous_offset, current.position - current_offset);
-                        Gizmos.DrawLine(previous.position + previous_offset, current.position + current_offset);
-                    }
-                    else
-                    {
-                        Gizmos.DrawLine(previous.position, current.position);
-                    }
-                }
+                DrawLinearGizmos(); 
             }
             else
             {
                 int quality = 512;
-
-                var previous_p0 = new SplinePoint();
-                var previous_p1 = new SplinePoint();
 
                 for (var r = 0; r <= quality; ++r)
                 {
@@ -2014,10 +2015,6 @@ namespace CorgiSpline
                         var previous_offset = right0 * p0.scale.x;
                         var current_offset = right1 * p1.scale.x;
 
-
-
-
-
                         // between thickness
                         Gizmos.DrawLine(p0.position - previous_offset, p0.position + previous_offset);
                         Gizmos.DrawLine(p1.position - current_offset, p1.position + current_offset);
@@ -2031,10 +2028,12 @@ namespace CorgiSpline
                     {
                         Gizmos.DrawLine(p0.position, p1.position);
                     }
+                }
 
-
-                    previous_p0 = p0;
-                    previous_p1 = p1;
+                if(Mode == SplineMode.BSpline && selected)
+                {
+                    Gizmos.color = new Color(0.5f, 0.5f, 0.5f, 1f); 
+                    DrawLinearGizmos(); 
                 }
             }
         }

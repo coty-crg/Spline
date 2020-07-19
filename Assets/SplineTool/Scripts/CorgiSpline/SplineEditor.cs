@@ -925,6 +925,19 @@ namespace CorgiSpline
             }
         }
 
+        private void TryDrawHandleToAnchorLine(Spline instance, int handle_index)
+        {
+            var position = instance.Points[handle_index].position;
+
+            var anchorIndex = SplinePoint.GetAnchorIndex(instance.GetSplineMode(), handle_index);
+            if (anchorIndex < instance.Points.Length)
+            {
+                var anchorPoint = instance.Points[anchorIndex];
+                Handles.color = new Color(0.75f, 0.75f, 0.75f, 1f);
+                Handles.DrawLine(position, anchorPoint.position);
+            }
+        }
+
         private void DrawSelectablePoints(Spline instance)
         {
 
@@ -948,6 +961,12 @@ namespace CorgiSpline
             {
                 if (p == first_selected_point)
                 {
+                    // if the selected point is a handle, we still need to draw its line from the handle to the anchor 
+                    if(p % 3 != 0)
+                    {
+                        TryDrawHandleToAnchorLine(instance, p);
+                    }
+
                     continue;
                 }
 
@@ -969,10 +988,12 @@ namespace CorgiSpline
                         continue;
                     }
 
+
                     // when a handle is selected, we only want to draw the other handle touching our center point 
                     var isSelectedHandle = first_selected_point % 3 != 0;
                     if (isSelectedHandle)
                     {
+
                         var handleIndex = p % 3;
                         if (handleIndex == 1)
                         {
@@ -990,6 +1011,8 @@ namespace CorgiSpline
                                 continue;
                             }
                         }
+
+                        TryDrawHandleToAnchorLine(instance, p);
                     }
 
                     // but if its a point selected, we want to draw both handles 
@@ -999,6 +1022,8 @@ namespace CorgiSpline
                         {
                             continue;
                         }
+
+                        TryDrawHandleToAnchorLine(instance, p);
                     }
                 }
 
