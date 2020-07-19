@@ -112,6 +112,9 @@ namespace CorgiSpline
         public NativeArray<SplinePoint> NativePoints;
 
         // settings
+        [Tooltip("Only necessary if you care about using Splines in the Job System. Some of the example scripts use this.")] 
+        public bool UpdateNativeArrayOnEnable = true;
+
         [SerializeField, HideInInspector] private SplineMode Mode = SplineMode.Linear;
         [SerializeField, HideInInspector] private Space SplineSpace = Space.World;
         [SerializeField, HideInInspector] private bool ClosedSpline;
@@ -122,10 +125,18 @@ namespace CorgiSpline
 
         private void OnEnable()
         {
-            UpdateNative();
+            if(UpdateNativeArrayOnEnable)
+            {
+                UpdateNative();
+            }
         }
 
         private void OnDisable()
+        {
+            DisposeNativePoints();  
+        }
+
+        public void DisposeNativePoints()
         {
             if (NativePoints.IsCreated)
             {
@@ -139,11 +150,7 @@ namespace CorgiSpline
 
             if (NativePoints.Length != point_count || !NativePoints.IsCreated)
             {
-                if (NativePoints.IsCreated)
-                {
-                    NativePoints.Dispose();
-                }
-
+                DisposeNativePoints(); 
                 NativePoints = new NativeArray<SplinePoint>(point_count, Allocator.Persistent);
             }
 
@@ -1220,6 +1227,12 @@ namespace CorgiSpline
         public bool GetSplineClosed()
         {
             return ClosedSpline;
+        }
+
+        public bool GetHasHandles()
+        {
+            var splineMode = GetSplineMode();
+            return splineMode == SplineMode.Bezier;
         }
 
         // helpers 

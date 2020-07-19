@@ -74,6 +74,7 @@ namespace CorgiSpline
                 Mode = TargetSpline.GetSplineMode(),
                 SplineSpace = TargetSpline.GetSplineSpace(),
                 localToWorldMatrix = TargetSpline.transform.localToWorldMatrix,
+                ClosedSpline = TargetSpline.GetSplineClosed(),
 
                 FollowPosition = FollowPosition,
                 FollowVelocity = FollowVelocity,

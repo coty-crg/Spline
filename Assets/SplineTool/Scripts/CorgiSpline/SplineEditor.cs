@@ -46,11 +46,24 @@ namespace CorgiSpline
             var instance = (Spline)target;
 
             GUILayout.BeginVertical("GroupBox");
+            
+
             instance.SetSplineMode((SplineMode)EditorGUILayout.EnumPopup("Curve Type", instance.GetSplineMode()));
             instance.SetSplineSpace((Space)EditorGUILayout.EnumPopup("Spline Space", instance.GetSplineSpace()), true);
 
-            instance.EditorAlwaysDraw = EditorGUILayout.Toggle("EditorAlwaysDraw", instance.EditorAlwaysDraw);
-            instance.EditorDrawThickness = EditorGUILayout.Toggle("EditorDrawThickness", instance.EditorDrawThickness);
+            instance.UpdateNativeArrayOnEnable = EditorGUILayout.Toggle(new GUIContent("Update NativeArray OnEnable",
+                "Only necessary if you care about using Splines in the Job System. Some of the example scripts use this."), instance.UpdateNativeArrayOnEnable);
+
+            GUILayout.BeginVertical("GroupBox");
+            EditorGUILayout.LabelField("Editor Only Settings");
+
+            instance.EditorAlwaysDraw = EditorGUILayout.Toggle(new GUIContent("Always Draw Spline (Editor)", 
+                "If enabled, the gizmos drawing this spline will continue to draw, even when the GameObject is not selected."), instance.EditorAlwaysDraw);
+
+            instance.EditorDrawThickness = EditorGUILayout.Toggle(new GUIContent("Draw Thickness (Editor)", 
+                "If enabled, the gizmos drawing this spline will include scale.x while rendering the spline preview."), instance.EditorDrawThickness);
+
+            GUILayout.EndVertical();
 
             EditorGUILayout.Space();
             GUILayout.EndVertical();
@@ -90,9 +103,15 @@ namespace CorgiSpline
                         PlacingPoint = !PlacingPoint;
                     }
                 }
-                else if (PlacingPoint && GUILayout.Button("Stop Placing Points"))
+                else if (PlacingPoint)
                 {
-                    PlacingPoint = !PlacingPoint;
+                    if(GUILayout.Button("Stop Placing Points"))
+                    {
+                        PlacingPoint = !PlacingPoint;
+                    }
+
+                    EditorGUILayout.HelpBox("You can stop placing points by pressing ESCAPE with the Scene view focused, " +
+                        "or by holding right-click and then pressing left-click on your mouse.", MessageType.Info);
                 }
 
             }
@@ -122,14 +141,26 @@ namespace CorgiSpline
 
                 GUILayout.Label("Point Editor", UnityEditor.EditorStyles.largeLabel);
 
-                MirrorAnchors = EditorGUILayout.Toggle("Mirror Anchors", MirrorAnchors);
-
-                LockHandleLength = EditorGUILayout.Toggle("Lock Handles Length", LockHandleLength);
-
-                if (LockHandleLength)
+                if(instance.GetHasHandles())
                 {
-                    LockedHandleLength = EditorGUILayout.FloatField("Locked Handles Length", LockedHandleLength);
+                    GUILayout.BeginVertical("GroupBox");
+                    EditorGUILayout.LabelField("Handle Settings");
+
+                    MirrorAnchors = EditorGUILayout.Toggle(new GUIContent("Mirror Anchors", 
+                        "If enabled, any handles moved around an anchor point using the spline editor will automatically mirror the DIRECTION of the moved handle to the adjacent handle."), MirrorAnchors);
+
+                    LockHandleLength = EditorGUILayout.Toggle(new GUIContent("Lock Handles Length", 
+                        "If enabled, any handles moved around an anchor point using the spline editor will be locked to a specified distance from their anchor, defined below."), LockHandleLength);
+
+                    if (LockHandleLength)
+                    {
+                        LockedHandleLength = EditorGUILayout.FloatField(new GUIContent("Locked Handles Length", 
+                            "The length to lock handles around anchor points when moving with the spline editor."), LockedHandleLength);
+                    }
+
+                    GUILayout.EndVertical(); 
                 }
+
 
                 DrawPointSelectorInspector(instance);
 
@@ -147,11 +178,32 @@ namespace CorgiSpline
 
                     if (!point.Equals(editPoint))
                     {
-                        Undo.RecordObject(instance, "Point Edited");
-                        instance.Points[first_point_index] = editPoint;
+                        Undo.RecordObject(instance, "Points Edited");
 
-                        // update handles if necessary 
-                        UpdateHandlesWhenPointMoved(instance, first_point_index, editPoint.position - point.position);
+                        for (var i = 0; i < SelectedPoints.Count; ++i)
+                        {
+                            var other_index = SelectedPoints[i];
+                            var other_point = instance.Points[other_index];
+
+                            // find modified components, only match them 
+                            if(point.position.x != editPoint.position.x) other_point.position.x = editPoint.position.x;
+                            if(point.position.y != editPoint.position.y) other_point.position.y = editPoint.position.y;
+                            if(point.position.z != editPoint.position.z) other_point.position.z = editPoint.position.z;
+
+                            if (point.rotation.x != editPoint.rotation.x) other_point.rotation.x = editPoint.rotation.x;
+                            if (point.rotation.y != editPoint.rotation.y) other_point.rotation.y = editPoint.rotation.y;
+                            if (point.rotation.z != editPoint.rotation.z) other_point.rotation.z = editPoint.rotation.z;
+                            if (point.rotation.w != editPoint.rotation.w) other_point.rotation.w = editPoint.rotation.w;
+
+                            if (point.scale.x != editPoint.scale.x) other_point.scale.x = editPoint.scale.x;
+                            if (point.scale.y != editPoint.scale.y) other_point.scale.y = editPoint.scale.y;
+                            if (point.scale.z != editPoint.scale.z) other_point.scale.z = editPoint.scale.z;
+
+                            instance.Points[other_index] = other_point;
+
+                            // update handles if necessary 
+                            UpdateHandlesWhenPointMoved(instance, other_index, other_point.position - point.position);
+                        }
 
                         instance.UpdateNative();
                     }
@@ -162,7 +214,6 @@ namespace CorgiSpline
                 GUILayout.EndVertical();
             }
 
-
             GUILayout.EndVertical();
 
             if (GUI.changed)
@@ -171,9 +222,24 @@ namespace CorgiSpline
             }
         }
 
+        private bool _rightMouseHeld;
+
         private void OnSceneGUI()
         {
             var instance = (Spline)target;
+
+            if(Event.current.button == 1)
+            {
+                if(Event.current.type == EventType.MouseDown)
+                {
+                    _rightMouseHeld = true;
+                }
+
+                if (Event.current.type == EventType.MouseUp)
+                {
+                    _rightMouseHeld = false;
+                }
+            }
 
             // pointless for now 
             // DrawToolbar();
@@ -244,8 +310,14 @@ namespace CorgiSpline
             if (PlacingPoint)
             {
 
-
                 if (Event.current.isKey && Event.current.keyCode == KeyCode.Escape)
+                {
+                    PlacingPoint = false;
+                    return;
+                }
+
+                // hold right click, press left click
+                if (_rightMouseHeld && (Event.current.type == EventType.MouseDown && Event.current.button == 0))
                 {
                     PlacingPoint = false;
                     return;
