@@ -733,6 +733,7 @@ namespace CorgiSpline
                 }
 
                 Event.current.Use();
+                Repaint();
             }
         }
 
@@ -767,7 +768,6 @@ namespace CorgiSpline
 
             switch (Tools.current)
             {
-
                 case Tool.Move:
                     anyMoved = DrawHandle(Vector3.zero, ref splinePoint.position, out splinePointDelta);
                     break;
@@ -823,6 +823,8 @@ namespace CorgiSpline
 
                         instance.Points[other_index].position += delta_move;
                     }
+
+                    Repaint();
                 }
 
                 if (anyRotated)
@@ -835,6 +837,8 @@ namespace CorgiSpline
                         if (other_index == point_index) continue;
                         instance.Points[other_index].rotation *= delta_rotation;
                     }
+
+                    Repaint();
                 }
 
                 if (anyScaled)
@@ -847,6 +851,8 @@ namespace CorgiSpline
                         if (other_index == point_index) continue;
                         instance.Points[other_index].scale += delta_scale;
                     }
+
+                    Repaint();
                 }
 
                 instance.UpdateNative();
@@ -1028,6 +1034,8 @@ namespace CorgiSpline
                         SelectedPoints.Clear();
                         SelectedPoints.Add(p);
                     }
+
+                    Repaint();
                 }
             }
         }
