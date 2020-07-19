@@ -54,7 +54,7 @@ namespace CorgiSpline
 
         public static int GetAnchorIndex(SplineMode mode, int index)
         {
-            if (mode == SplineMode.Linear)
+            if (mode != SplineMode.Bezier)
             {
                 return index;
             }
@@ -71,7 +71,7 @@ namespace CorgiSpline
 
         public static void GetHandleIndexes(SplineMode mode, bool isClosed, int pointCount, int index, out int handleIndex0, out int handleIndex1)
         {
-            if (mode == SplineMode.Linear)
+            if (mode != SplineMode.Bezier)
             {
                 handleIndex0 = index;
                 handleIndex1 = index;
@@ -104,7 +104,7 @@ namespace CorgiSpline
         /// <summary>
         /// Serialized Points. Used in-editor for serialization.
         /// </summary>
-        public SplinePoint[] Points;
+        public SplinePoint[] Points = new SplinePoint[0];
 
         /// <summary>
         /// Used at runtime for burstable jobs. Does not automatically update, aside from on OnEnable. 
@@ -204,6 +204,43 @@ namespace CorgiSpline
         public Space GetSplineSpace()
         {
             return SplineSpace;
+        }
+
+        /// <summary>
+        /// Ignoring handles, returns the "point" count. 
+        /// For Bezier splines, this means returning the number of anchor points in the spline.
+        /// </summary>
+        /// <returns></returns>
+        public int GetPointCountIgnoreHandles()
+        {
+            var isBezier = GetSplineMode() == SplineMode.Bezier;
+            if(isBezier)
+            {
+                return Points.Length / 3; 
+            }
+            else
+            {
+                return Points.Length;
+            }
+        }
+
+        /// <summary>
+        /// Matches the input index to return the anchor point index, given the count of anchor points
+        /// returned by GetPointCountIgnoreHandles().
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="includeHandles"></param>
+        /// <returns></returns>
+        public int GetPointIgnoreHandles(int index)
+        {
+            if(GetSplineMode() == SplineMode.Bezier)
+            {
+                return index * 3; 
+            }
+            else
+            {
+                return index;
+            }
         }
 
         /// <summary>
