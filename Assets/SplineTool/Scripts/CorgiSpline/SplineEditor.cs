@@ -984,6 +984,9 @@ namespace CorgiSpline
                     case SplineMode.Bezier:
                         length -= 3;
                         break;
+                    case SplineMode.BSpline:
+                        length -= 1;
+                        break;
                 }
             }
 

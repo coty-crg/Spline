@@ -854,7 +854,7 @@ namespace CorgiSpline
 
                 if(ClosedSpline)
                 {
-                    int mod_count = Points.Length - 1;
+                    int mod_count = Points.Length - 1; // -1 to ignore duplicate final point 
 
                     index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                     index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
@@ -1113,6 +1113,8 @@ namespace CorgiSpline
         /// <param name="newLength"></param>
         public void ResizePointArray(int newLength)
         {
+            if (newLength < 0) newLength = 0;
+
             var newArray = new SplinePoint[newLength];
             var copyLength = Mathf.Min(Points.Length, newLength);
             for (var i = 0; i < copyLength; ++i)
@@ -1160,8 +1162,7 @@ namespace CorgiSpline
                     break;
 
                 case SplineMode.BSpline:
-                    // Points[length - 1] = Points[0];
-                    // bspline actually just handles it at runtime.. (todo, dont) 
+                    Points[length - 1] = Points[0];
                     break;
                 default:
                     // not implemented 
@@ -1175,7 +1176,10 @@ namespace CorgiSpline
         /// <param name="closed"></param>
         public void SetSplineClosed(bool closed)
         {
-            if(ClosedSpline != closed)
+            var needsUpdate = ClosedSpline != closed;
+            ClosedSpline = closed;
+
+            if (needsUpdate)
             {
                 // closing 
                 if(closed)
@@ -1189,8 +1193,7 @@ namespace CorgiSpline
                             ResizePointArray(Points.Length + 3);
                             break;
                         case SplineMode.BSpline:
-                            // todo, duplicate data here? 
-                            // b-spline can stay the same (its handled at projection time)
+                            ResizePointArray(Points.Length + 1);
                             break;
                         default:
                             // not implemented 
@@ -1212,8 +1215,7 @@ namespace CorgiSpline
                             ResizePointArray(Points.Length - 3); // remove extra points
                             break;
                         case SplineMode.BSpline:
-                            // todo, remove/duplicate data here? 
-                            // b-spline can stay the same (its handled at projection time)
+                            ResizePointArray(Points.Length - 1); // remove extra point 
                             break;
                         default:
                             // not implemented 
@@ -1222,7 +1224,6 @@ namespace CorgiSpline
                 }
             }
 
-            ClosedSpline = closed;
         }
 
         public bool GetSplineClosed()
@@ -1870,7 +1871,7 @@ namespace CorgiSpline
 
                 if (ClosedSpline)
                 {
-                    int mod_count = Points.Length - 1;
+                    int mod_count = Points.Length - 1; // -1 to ignore duplicate final point
 
                     index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                     index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
