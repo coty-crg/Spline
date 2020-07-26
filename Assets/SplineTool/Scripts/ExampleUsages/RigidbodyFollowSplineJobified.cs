@@ -209,8 +209,8 @@ namespace CorgiSpline
                 var point = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
 
-                var offset_x = random.NextFloat(RandomMinSpeed, RandomMaxSpeed);
-                var offset_z = random.NextFloat(RandomMinSpeed, RandomMaxSpeed);
+                var offset_x = random.NextFloat(RandomMinSpeed, RandomMaxSpeed) * 0.1f;
+                var offset_z = random.NextFloat(RandomMinSpeed, RandomMaxSpeed) * 0.1f;
 
                 rb.position = point.position + new Vector3(offset_x, 0f, offset_z);
 
