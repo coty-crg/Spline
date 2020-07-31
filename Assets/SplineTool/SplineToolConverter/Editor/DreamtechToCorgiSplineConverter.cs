@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Text;
 using System.Linq;
+using UnityEditor.SceneManagement;
 
 public class DreamtechToCorgiSplineConverter : EditorWindow
 {
@@ -22,31 +23,44 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
     private List<Dreamteck.Splines.SplineComputer> FoundSplines = new List<Dreamteck.Splines.SplineComputer>();
     private List<Dreamteck.Splines.SplineComputer> SkippedSplines = new List<Dreamteck.Splines.SplineComputer>();
     private bool hasScanned = false;
-
-    public class GuidAndFileIdPair
-    {
-        public string guid;
-        public long fileid;
-    }
-
+    
     // <dreamteck, corgispline>
-    private Dictionary<GuidAndFileIdPair, GuidAndFileIdPair> ReplaceGuids = new Dictionary<GuidAndFileIdPair, GuidAndFileIdPair>(); 
+    private Dictionary<GlobalObjectId, GlobalObjectId> ReplaceGuids = new Dictionary<GlobalObjectId, GlobalObjectId>(); 
 
     private void OnGUI()
     {
      
         if(GUILayout.Button("Begin Scan (Scene)"))
         {
+
+            hasScanned = true;
+
+            FoundSplines.Clear();
+            SkippedSplines.Clear();
+
             ScanSplines_CurrentScene();
         }
 
         if (GUILayout.Button("Begin Scan (Prefabs)"))
         {
+            hasScanned = true;
+
+            FoundSplines.Clear();
+            SkippedSplines.Clear();
+
             ScanSplines_Prefabs();
         }
         
         if (GUILayout.Button("Convert Splines"))
         {
+            hasScanned = true;
+
+            FoundSplines.Clear();
+            SkippedSplines.Clear();
+            
+            ScanSplines_CurrentScene();
+            ScanSplines_Prefabs();
+
             ConvertFoundSplines();
             ConvertReferences();
             ScanScripts(); 
@@ -166,22 +180,19 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
                 if (text_meta_line.Contains("component:"))
                     continue;
 
+                if (text_meta_line.Contains("---"))
+                    continue;
+
                 var original_hash = text_meta_line.GetHashCode(); 
 
                 foreach (var guidPair in ReplaceGuids)
                 {
                     var dreamteckGuidPair = guidPair.Key;
                     var corgisplineGuidPair = guidPair.Value;
-
-                    if (text_meta_line.Contains("guid:"))
-                    {
-                        text_meta_line = text_meta_line.Replace(dreamteckGuidPair.guid, corgisplineGuidPair.guid);
-                    }
-
-                    if (text_meta_line.Contains("fileID:"))
-                    {
-                        text_meta_line = text_meta_line.Replace(dreamteckGuidPair.fileid.ToString(), corgisplineGuidPair.fileid.ToString());
-                    }
+                    
+                    text_meta_line = text_meta_line.Replace(dreamteckGuidPair.assetGUID.ToString(), corgisplineGuidPair.assetGUID.ToString());
+                    text_meta_line = text_meta_line.Replace(dreamteckGuidPair.targetPrefabId.ToString(), corgisplineGuidPair.targetPrefabId.ToString());
+                    text_meta_line = text_meta_line.Replace(dreamteckGuidPair.targetObjectId.ToString(), corgisplineGuidPair.targetObjectId.ToString());
                 }
 
                 var modified_hash = text_meta_line.GetHashCode();
@@ -291,30 +302,24 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
             }
 
             EditorUtility.SetDirty(go);
-            AssetDatabase.SaveAssets(); 
-
-            var dreamteckSplineIdPair = new GuidAndFileIdPair();
-            var corgiSplineIdPair = new GuidAndFileIdPair();
-
-            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(splineComputer, out dreamteckSplineIdPair.guid, out dreamteckSplineIdPair.fileid);
-            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(corgiSpline, out corgiSplineIdPair.guid, out corgiSplineIdPair.fileid);
-
+            AssetDatabase.SaveAssets();
+            EditorSceneManager.SaveOpenScenes(); 
+            
+            var dreamteckSplineIdPair = UnityEditor.GlobalObjectId.GetGlobalObjectIdSlow(splineComputer);
+            var corgiSplineIdPair = UnityEditor.GlobalObjectId.GetGlobalObjectIdSlow(corgiSpline);
+            
             ReplaceGuids.Add(dreamteckSplineIdPair, corgiSplineIdPair);
 
-            Debug.Log($"{dreamteckSplineIdPair.guid} {dreamteckSplineIdPair.fileid} -> {corgiSplineIdPair.guid} {corgiSplineIdPair.fileid} ");
+            Debug.Log($"{dreamteckSplineIdPair.assetGUID} {dreamteckSplineIdPair.identifierType} -> {corgiSplineIdPair.assetGUID} {corgiSplineIdPair.identifierType} ");
             
             // clean up 
-            Debug.Log($"Converted {go.name}'s SplineComputer.", go); 
+            Debug.Log($"Converted {go.name}'s ({go.GetType().Name}) SplineComputer.", go);  
             EditorUtility.SetDirty(go);
         }
     }
 
     private void ScanSplines_CurrentScene()
     {
-        hasScanned = true;
-
-        FoundSplines.Clear();
-        SkippedSplines.Clear();
 
         var splineComputersInScene = FindObjectsOfType<Dreamteck.Splines.SplineComputer>();
         for(var i = 0; i < splineComputersInScene.Length; ++i)
@@ -333,12 +338,6 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
 
     private void ScanSplines_Prefabs()
     {
-
-        hasScanned = true;
-
-        FoundSplines.Clear();
-        SkippedSplines.Clear();
-
         var all_splines = Resources.FindObjectsOfTypeAll<Dreamteck.Splines.SplineComputer>();
 
         for(var i = 0; i < all_splines.Length; ++i)
