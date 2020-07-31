@@ -7,6 +7,7 @@ using UnityEditor;
 using System.Text;
 using System.Linq;
 using UnityEditor.SceneManagement;
+using Dreamteck.Splines;
 
 public class DreamtechToCorgiSplineConverter : EditorWindow
 {
@@ -154,20 +155,12 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
 
     public void ConvertReferences()
     {
-        var all_prefabs = Resources.FindObjectsOfTypeAll<Object>();
+        var all_filenames = System.IO.Directory.GetFiles(Application.dataPath, "*", System.IO.SearchOption.AllDirectories);
 
-        for(var i = 0; i < all_prefabs.Length; ++i)
+        for (var i = 0; i < all_filenames.Length; ++i)
         {
-            var go = all_prefabs[i];
-            
-            var assetPath = AssetDatabase.GetAssetPath(go);
-            if (string.IsNullOrEmpty(assetPath)) continue;
-            if (assetPath == "Library\\unity editor resources") continue;
-            if (assetPath == "Library/unity editor resources") continue;
-
-            var filename = $"{Application.dataPath}/../{assetPath}";
+            var filename = all_filenames[i];
             if (!System.IO.File.Exists(filename)) continue;
-
 
             var text_meta_lines = System.IO.File.ReadAllLines(filename);
 
@@ -303,18 +296,23 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
 
             EditorUtility.SetDirty(go);
             AssetDatabase.SaveAssets();
-            EditorSceneManager.SaveOpenScenes(); 
-            
+            EditorSceneManager.SaveOpenScenes();
+
+            var assetPath = AssetDatabase.GetAssetPath(go);
+            if(!string.IsNullOrEmpty(assetPath))
+            {
+                AssetDatabase.ImportAsset(assetPath);
+                Debug.Log($"Reimported {go.name}");
+            }
+
             var dreamteckSplineIdPair = UnityEditor.GlobalObjectId.GetGlobalObjectIdSlow(splineComputer);
             var corgiSplineIdPair = UnityEditor.GlobalObjectId.GetGlobalObjectIdSlow(corgiSpline);
             
             ReplaceGuids.Add(dreamteckSplineIdPair, corgiSplineIdPair);
 
-            Debug.Log($"{dreamteckSplineIdPair.assetGUID} {dreamteckSplineIdPair.identifierType} -> {corgiSplineIdPair.assetGUID} {corgiSplineIdPair.identifierType} ");
-            
-            // clean up 
-            Debug.Log($"Converted {go.name}'s ({go.GetType().Name}) SplineComputer.", go);  
-            EditorUtility.SetDirty(go);
+            Debug.Log($"{go.name}'s ({go.GetType().Name}): " +
+                $"{dreamteckSplineIdPair.assetGUID} {dreamteckSplineIdPair.targetObjectId} {dreamteckSplineIdPair.targetPrefabId} {dreamteckSplineIdPair.identifierType} " +
+                $"-> {corgiSplineIdPair.assetGUID} {corgiSplineIdPair.targetObjectId} {corgiSplineIdPair.targetPrefabId} {corgiSplineIdPair.identifierType} ");
         }
     }
 
@@ -338,19 +336,24 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
 
     private void ScanSplines_Prefabs()
     {
-        var all_splines = Resources.FindObjectsOfTypeAll<Dreamteck.Splines.SplineComputer>();
+        var all_filenames = System.IO.Directory.GetFiles(Application.dataPath, "*", System.IO.SearchOption.AllDirectories);
 
-        for(var i = 0; i < all_splines.Length; ++i)
+        for(var i = 0; i < all_filenames.Length; ++i)
         {
-            var splineComputer = all_splines[i];
-            var go = splineComputer.gameObject;
-            
-            if (!PrefabUtility.IsPartOfPrefabThatCanBeAppliedTo(go) || !PrefabUtility.IsPartOfPrefabAsset(go))
-            {
-                continue;
-            }
+            var filename = all_filenames[i];
+            var assetPath = filename.Replace($"{Application.dataPath}", "Assets");
 
-            FoundSplines.Add(splineComputer);
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            if (go == null) continue;
+
+            var splineComputers = go.GetComponentsInChildren<SplineComputer>();
+            if (splineComputers == null || splineComputers.Length == 0) continue;
+
+            for(var s = 0; s < splineComputers.Length; ++s)
+            {
+                var splineComputer = splineComputers[s];
+                FoundSplines.Add(splineComputer);
+            }
         }
     }
 }
