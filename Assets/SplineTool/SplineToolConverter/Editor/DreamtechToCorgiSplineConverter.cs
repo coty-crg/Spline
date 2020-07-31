@@ -1,9 +1,11 @@
-﻿
+
 #if UNITY_EDITOR && DREAMTECK_SPLINES
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using System.Text;
+using System.Linq;
 
 public class DreamtechToCorgiSplineConverter : EditorWindow
 {
@@ -16,9 +18,19 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
     }
 
 
+    private List<MonoBehaviour> FoundScripts = new List<MonoBehaviour>();
     private List<Dreamteck.Splines.SplineComputer> FoundSplines = new List<Dreamteck.Splines.SplineComputer>();
     private List<Dreamteck.Splines.SplineComputer> SkippedSplines = new List<Dreamteck.Splines.SplineComputer>();
     private bool hasScanned = false;
+
+    public class GuidAndFileIdPair
+    {
+        public string guid;
+        public long fileid;
+    }
+
+    // <dreamteck, corgispline>
+    private Dictionary<GuidAndFileIdPair, GuidAndFileIdPair> ReplaceGuids = new Dictionary<GuidAndFileIdPair, GuidAndFileIdPair>(); 
 
     private void OnGUI()
     {
@@ -32,10 +44,18 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
         {
             ScanSplines_Prefabs();
         }
-
+        
         if (GUILayout.Button("Convert Splines"))
         {
-            ConvertFoundSplines(); 
+            ConvertFoundSplines();
+            ConvertReferences();
+            ScanScripts(); 
+        }
+
+        if(GUILayout.Button("Destroy splines"))
+        {
+            DestroySplineComputers();
+            FoundSplines.Clear(); 
         }
 
         if(hasScanned)
@@ -73,9 +93,119 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
 
     }
 
+    public void DestroySplineComputers()
+    {
+        for(var i = 0; i < FoundSplines.Count; ++i)
+        {
+            var splineComputer = FoundSplines[i];
+            DestroyImmediate(splineComputer, true); 
+        }
+    }
+
+    public void ScanScripts()
+    {
+        hasScanned = true; 
+        FoundScripts.Clear();
+
+
+        var all_scripts = System.IO.Directory.GetFiles(Application.dataPath, "*.cs", System.IO.SearchOption.AllDirectories); 
+        
+        for(var i = 0; i < all_scripts.Length; ++i)
+        {
+            var filename_script = all_scripts[i];
+            var text_script = System.IO.File.ReadAllText(filename_script);
+
+            var original_hash = text_script.GetHashCode();
+
+            // watch out 
+            if (text_script.Contains("namespace Dreamteck")) continue;
+            if (text_script.Contains("DreamtechToCorgiSplineConverter")) continue;
+
+            text_script = text_script.Replace("using Dreamteck.Splines;", "using CorgiSpline;");
+            text_script = text_script.Replace("using Dreamteck;", "using CorgiSpline;");
+            text_script = text_script.Replace("Dreamteck.Splines.SplineComputer", "CorgiSpline.Spline");
+            text_script = text_script.Replace("Splines.SplineComputer", "CorgiSpline.Spline");
+            text_script = text_script.Replace("SplineComputer", "Spline");
+            text_script = text_script.Replace("Dreamteck", "CorgiSpline");
+            
+            var new_hash = text_script.GetHashCode();
+
+            if(original_hash != new_hash)
+            {
+                System.IO.File.WriteAllText(filename_script, text_script);
+                Debug.Log($"Updated {filename_script}");
+            }
+        }
+    }
+
+    public void ConvertReferences()
+    {
+        var all_prefabs = Resources.FindObjectsOfTypeAll<Object>();
+
+        for(var i = 0; i < all_prefabs.Length; ++i)
+        {
+            var go = all_prefabs[i];
+            
+            var assetPath = AssetDatabase.GetAssetPath(go);
+            if (string.IsNullOrEmpty(assetPath)) continue;
+            if (assetPath == "Library\\unity editor resources") continue;
+            if (assetPath == "Library/unity editor resources") continue;
+
+            var filename = $"{Application.dataPath}/../{assetPath}";
+            if (!System.IO.File.Exists(filename)) continue;
+
+
+            var text_meta_lines = System.IO.File.ReadAllLines(filename);
+
+            var any_modified = false; 
+
+            for (var line_meta = 0; line_meta < text_meta_lines.Length; ++line_meta)
+            {
+                var text_meta_line = text_meta_lines[line_meta];
+
+                if (text_meta_line.Contains("component:"))
+                    continue;
+
+                var original_hash = text_meta_line.GetHashCode(); 
+
+                foreach (var guidPair in ReplaceGuids)
+                {
+                    var dreamteckGuidPair = guidPair.Key;
+                    var corgisplineGuidPair = guidPair.Value;
+
+                    if (text_meta_line.Contains("guid:"))
+                    {
+                        text_meta_line = text_meta_line.Replace(dreamteckGuidPair.guid, corgisplineGuidPair.guid);
+                    }
+
+                    if (text_meta_line.Contains("fileID:"))
+                    {
+                        text_meta_line = text_meta_line.Replace(dreamteckGuidPair.fileid.ToString(), corgisplineGuidPair.fileid.ToString());
+                    }
+                }
+
+                var modified_hash = text_meta_line.GetHashCode();
+
+                if(original_hash != modified_hash)
+                {
+                    any_modified = true;
+                    text_meta_lines[line_meta] = text_meta_line;
+                }
+
+            }
+
+            if(any_modified)
+            {
+                System.IO.File.WriteAllLines(filename, text_meta_lines);
+            }
+        }
+        
+    }
+
     private void ConvertFoundSplines()
     {
-
+        ReplaceGuids.Clear();
+        
         for (var i = 0; i < FoundSplines.Count; ++i)
         {
             var splineComputer = FoundSplines[i];
@@ -84,11 +214,9 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
             Undo.RecordObject(go, "Convert Spline");
 
             var corgiSpline = go.AddComponent<CorgiSpline.Spline>();
-
+            
             var splineType = splineComputer.type;
-
-
-
+            
             switch(splineType)
             {
                 case Dreamteck.Splines.Spline.Type.Linear:
@@ -161,10 +289,21 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
             {
                 corgiSpline.SetSplineClosed(true);
             }
+
+            EditorUtility.SetDirty(go);
+            AssetDatabase.SaveAssets(); 
+
+            var dreamteckSplineIdPair = new GuidAndFileIdPair();
+            var corgiSplineIdPair = new GuidAndFileIdPair();
+
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(splineComputer, out dreamteckSplineIdPair.guid, out dreamteckSplineIdPair.fileid);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(corgiSpline, out corgiSplineIdPair.guid, out corgiSplineIdPair.fileid);
+
+            ReplaceGuids.Add(dreamteckSplineIdPair, corgiSplineIdPair);
+
+            Debug.Log($"{dreamteckSplineIdPair.guid} {dreamteckSplineIdPair.fileid} -> {corgiSplineIdPair.guid} {corgiSplineIdPair.fileid} ");
             
             // clean up 
-            DestroyImmediate(splineComputer, true); 
-            
             Debug.Log($"Converted {go.name}'s SplineComputer.", go); 
             EditorUtility.SetDirty(go);
         }
