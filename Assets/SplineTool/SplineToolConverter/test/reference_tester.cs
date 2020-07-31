@@ -1,4 +1,7 @@
-﻿using System.Collections;
+﻿
+
+#if UNITY_EDITOR && DREAMTECK_SPLINES
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,3 +21,4 @@ public class reference_tester : MonoBehaviour
         
     }
 }
+#endif
