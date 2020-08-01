@@ -182,10 +182,12 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
                 {
                     var dreamteckGuidPair = guidPair.Key;
                     var corgisplineGuidPair = guidPair.Value;
-                    
-                    text_meta_line = text_meta_line.Replace(dreamteckGuidPair.assetGUID.ToString(), corgisplineGuidPair.assetGUID.ToString());
-                    text_meta_line = text_meta_line.Replace(dreamteckGuidPair.targetPrefabId.ToString(), corgisplineGuidPair.targetPrefabId.ToString());
-                    text_meta_line = text_meta_line.Replace(dreamteckGuidPair.targetObjectId.ToString(), corgisplineGuidPair.targetObjectId.ToString());
+
+                    if (corgisplineGuidPair.identifierType != 0)
+                    {
+                        text_meta_line = text_meta_line.Replace(dreamteckGuidPair.assetGUID.ToString(), corgisplineGuidPair.assetGUID.ToString());
+                        text_meta_line = text_meta_line.Replace(dreamteckGuidPair.targetObjectId.ToString(), corgisplineGuidPair.targetObjectId.ToString());
+                    }
                 }
 
                 var modified_hash = text_meta_line.GetHashCode();
@@ -301,10 +303,11 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
             var assetPath = AssetDatabase.GetAssetPath(go);
             if(!string.IsNullOrEmpty(assetPath))
             {
+                
                 AssetDatabase.ImportAsset(assetPath);
                 Debug.Log($"Reimported {go.name}");
             }
-
+            
             var dreamteckSplineIdPair = UnityEditor.GlobalObjectId.GetGlobalObjectIdSlow(splineComputer);
             var corgiSplineIdPair = UnityEditor.GlobalObjectId.GetGlobalObjectIdSlow(corgiSpline);
             
