@@ -8,6 +8,7 @@ using System.Text;
 using System.Linq;
 using UnityEditor.SceneManagement;
 using Dreamteck.Splines;
+using UnityEngine.SceneManagement;
 
 public class DreamtechToCorgiSplineConverter : EditorWindow
 {
@@ -30,8 +31,58 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
 
     private void OnGUI()
     {
-     
-        if(GUILayout.Button("Begin Scan (Scene)"))
+
+        GUILayout.BeginVertical("GroupBox");
+
+        GUILayout.Box("\nPlease read!\n\n This tool is to help converting a project from Dreamteck to CorgiSpline, but it is not a one click solution! It tries to drastically speed up the process, but you will likely have some manual work to do after, please be careful!\n\n" +
+            "Press 'Convert' to run the whole process of going through the project's Assets and attempt to convert all Dreamteck SplineComputer's to CorgiSpline Splines. " +
+            "This process will attempt to also update ANY references to the old splines, even code references. It does not gaurantee every reference in every scene will work, so be sure to make a backup before proceeding. \n\nAlways make a git repo! \n");
+
+        GUILayout.Box("After the conversion process is finished, you may need to reimport any assets affected to see the reference changes.");
+
+        if (GUILayout.Button("Convert Splines (Prefabs/Assets)"))
+        {
+            hasScanned = true;
+
+            FoundSplines.Clear();
+            SkippedSplines.Clear();
+
+            ScanSplines_CurrentScene();
+            ScanSplines_Prefabs();
+
+            ConvertFoundSplines();
+            ConvertReferences();
+
+            ScanScripts();
+
+            // refresh scripts 
+            AssetDatabase.Refresh();
+
+            // reload scene 
+            var currentScenePath = EditorSceneManager.GetActiveScene().path;
+            EditorSceneManager.OpenScene(currentScenePath, OpenSceneMode.Single);
+        }
+
+        EditorGUILayout.Space();
+        GUILayout.Box("This button will attempt to delete any splines that were found by the conversion process. Be sure to make a backup before proceeding.");
+
+        if (GUILayout.Button("Destroy all Dreamteck Splines."))
+        {
+            DestroySplineComputers();
+            FoundSplines.Clear();
+        }
+
+        GUILayout.EndVertical();
+
+        EditorGUILayout.Space();
+        EditorGUILayout.Space();
+
+        GUILayout.BeginVertical("GroupBox");
+
+        GUILayout.Box("The following options and info are just for helping debug the conversion process.");
+
+
+        if (GUILayout.Button("Begin Scan (Scene)"))
         {
 
             hasScanned = true;
@@ -52,26 +103,6 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
             ScanSplines_Prefabs();
         }
         
-        if (GUILayout.Button("Convert Splines"))
-        {
-            hasScanned = true;
-
-            FoundSplines.Clear();
-            SkippedSplines.Clear();
-            
-            ScanSplines_CurrentScene();
-            ScanSplines_Prefabs();
-
-            ConvertFoundSplines();
-            ConvertReferences();
-            ScanScripts(); 
-        }
-
-        if(GUILayout.Button("Destroy splines"))
-        {
-            DestroySplineComputers();
-            FoundSplines.Clear(); 
-        }
 
         if(hasScanned)
         {
@@ -106,6 +137,7 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
             GUILayout.Label("Awaiting scan.");
         }
 
+        GUILayout.EndVertical();
     }
 
     public void DestroySplineComputers()
