@@ -186,7 +186,7 @@ public class DreamtechToCorgiSplineConverter : EditorWindow
                     if (corgisplineGuidPair.identifierType != 0)
                     {
                         text_meta_line = text_meta_line.Replace(dreamteckGuidPair.assetGUID.ToString(), corgisplineGuidPair.assetGUID.ToString());
-                        text_meta_line = text_meta_line.Replace(dreamteckGuidPair.targetObjectId.ToString(), corgisplineGuidPair.targetObjectId.ToString());
+                        text_meta_line = text_meta_line.Replace(((long) dreamteckGuidPair.targetObjectId).ToString(), ((long) corgisplineGuidPair.targetObjectId).ToString());
                     }
                 }
 
