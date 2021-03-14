@@ -2,14 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
-using System;
-using System.Text.RegularExpressions;
-using System.Drawing;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Collections;
 using Unity.Mathematics;
-using UnityEngine.Events;
 using UnityEditor;
 
 namespace CorgiSpline
