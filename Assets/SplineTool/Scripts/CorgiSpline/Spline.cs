@@ -912,14 +912,9 @@ namespace CorgiSpline
             var vec = (p1.position - p0.position);
             var forward = vec.sqrMagnitude > 0 ? vec.normalized : Vector3.forward;
 
-            if (SplineSpace == Space.Self)
-            {
-                return transform.TransformDirection(forward);
-            }
-            else
-            {
-                return forward;
-            }
+
+            return forward;
+            
         }
 
         /// <summary>
