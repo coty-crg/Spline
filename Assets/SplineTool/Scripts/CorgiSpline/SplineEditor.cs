@@ -794,7 +794,8 @@ namespace CorgiSpline
 
             if (instance.GetSplineSpace() == Space.Self)
             {
-                splinePoint = instance.TransformSplinePoint(splinePoint);
+                splinePoint = instance.TransformSplinePoint(splinePoint); 
+                splinePointDelta = instance.transform.InverseTransformVector(splinePointDelta);
             }
 
             switch (Tools.current)
