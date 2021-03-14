@@ -73,7 +73,7 @@ namespace CorgiSpline
                 Points = TargetSpline.NativePoints,
                 Mode = TargetSpline.GetSplineMode(),
                 SplineSpace = TargetSpline.GetSplineSpace(),
-                localToWorldMatrix = TargetSpline.transform.localToWorldMatrix,
+                worldToLocalMatrix = TargetSpline.transform.worldToLocalMatrix,
                 ClosedSpline = TargetSpline.GetSplineClosed(),
 
                 FollowPosition = FollowPosition,
@@ -97,7 +97,7 @@ namespace CorgiSpline
             [ReadOnly] public NativeArray<SplinePoint> Points;
             public SplineMode Mode;
             public Space SplineSpace;
-            public Matrix4x4 localToWorldMatrix;
+            public Matrix4x4 worldToLocalMatrix;
             public bool ClosedSpline;
 
             // Component data
@@ -109,9 +109,9 @@ namespace CorgiSpline
             {
                 var particle = Particles[index];
 
-                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, particle.position);
-                var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0);
-                var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, worldToLocalMatrix, ClosedSpline, particle.position);
+                var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, worldToLocalMatrix, ClosedSpline, 0);
+                var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, worldToLocalMatrix, ClosedSpline, t);
 
                 if (FollowPosition)
                 {
