@@ -1,4 +1,4 @@
-﻿
+
 #if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
@@ -226,6 +226,7 @@ namespace CorgiSpline
             if (GUI.changed)
             {
                 serializedObject.ApplyModifiedProperties();
+                EditorUtility.SetDirty(instance);
             }
         }
 
@@ -817,6 +818,7 @@ namespace CorgiSpline
             if (anyMoved || anyRotated || anyScaled)
             {
                 Undo.RegisterCompleteObjectUndo(instance, "Move Point");
+                EditorUtility.SetDirty(instance);
 
                 var original_point = instance.Points[point_index];
                 instance.Points[point_index] = splinePoint;
