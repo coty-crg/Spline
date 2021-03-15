@@ -197,8 +197,11 @@ namespace CorgiSpline
                     var splinePoint0 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t0);
                     var splinePoint1 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t1);
 
-                    splinePoint0 = Spline.JobSafe_TransformSplinePoint(splinePoint0, worldToLocalMatrix);
-                    splinePoint1 = Spline.JobSafe_TransformSplinePoint(splinePoint1, worldToLocalMatrix);
+                    if(SplineSpace == Space.Self)
+                    {
+                        splinePoint0 = Spline.JobSafe_TransformSplinePoint(splinePoint0, worldToLocalMatrix);
+                        splinePoint1 = Spline.JobSafe_TransformSplinePoint(splinePoint1, worldToLocalMatrix);
+                    }
 
                     var position0 = splinePoint0.position;
                     var position1 = splinePoint1.position;
