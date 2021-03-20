@@ -57,6 +57,7 @@ namespace CorgiSpline
                     Mode = FollowSpline.GetSplineMode(),
                     SplineSpace = FollowSpline.GetSplineSpace(),
                     localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
+                    worldToLocalMatrix = FollowSpline.transform.worldToLocalMatrix,
                     ClosedSpline = FollowSpline.GetSplineClosed(),
                 };
 
@@ -124,6 +125,7 @@ namespace CorgiSpline
                 Mode = FollowSpline.GetSplineMode(),
                 SplineSpace = FollowSpline.GetSplineSpace(),
                 localToWorldMatrix = FollowSpline.transform.localToWorldMatrix,
+                worldToLocalMatrix = FollowSpline.transform.worldToLocalMatrix,
                 ClosedSpline = FollowSpline.GetSplineClosed(),
             };
 
@@ -150,13 +152,14 @@ namespace CorgiSpline
             public SplineMode Mode;
             public Space SplineSpace;
             public Matrix4x4 localToWorldMatrix;
+            public Matrix4x4 worldToLocalMatrix;
             public bool ClosedSpline;
 
             public void Execute(int index)
             {
                 var rb = RigidBodies[index];
 
-                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, rb.position);
+                var t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, worldToLocalMatrix, ClosedSpline, rb.position);
                 var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0);
                 var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
@@ -196,6 +199,7 @@ namespace CorgiSpline
             public SplineMode Mode;
             public Space SplineSpace;
             public Matrix4x4 localToWorldMatrix;
+            public Matrix4x4 worldToLocalMatrix;
             public bool ClosedSpline; 
 
             public void Execute(int index)
