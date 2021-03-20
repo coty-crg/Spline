@@ -905,10 +905,8 @@ namespace CorgiSpline
 
             var vec = (p1.position - p0.position);
             var forward = vec.sqrMagnitude > 0 ? vec.normalized : Vector3.forward;
-
-
-            return forward;
             
+            return forward;
         }
 
         /// <summary>
@@ -1910,15 +1908,9 @@ namespace CorgiSpline
 
             var vec = (p1.position - p0.position);
             var forward = vec.sqrMagnitude > 0 ? vec.normalized : Vector3.forward;
-
-            if (SplineSpace == Space.Self)
-            {
-                return localToWorldMatrix.MultiplyVector(forward);
-            }
-            else
-            {
-                return forward;
-            }
+            
+            // note: we want to return in world space, the GetPoints above are already world space so no matrix mult required here 
+            return forward;
         }
 
 #if UNITY_EDITOR
