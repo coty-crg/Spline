@@ -24,6 +24,7 @@ namespace CorgiSpline
         [Range(0.001f, 10f)] public float width = 1f;
         [Range(0f, 10f)] public float height = 1f;
         public float uv_tile_scale = 1f;
+        [Range(0f, 1f)] public float built_to_t = 1f;
 
         // internal 
         private Mesh mesh;
@@ -41,7 +42,7 @@ namespace CorgiSpline
             uvs = new NativeList<Vector4>(Allocator.Persistent);
             tris = new NativeList<int>(Allocator.Persistent);
 
-            Rebuild_Jobified();
+            // Rebuild_Jobified();
         }
 
         private void OnDisable()
@@ -115,6 +116,7 @@ namespace CorgiSpline
                 localToWorldMatrix = SplineReference.transform.localToWorldMatrix,
                 ClosedSpline = SplineReference.GetSplineClosed(),
 
+                built_to_t = built_to_t,
             };
 
             previousHandle = job.Schedule();
@@ -150,6 +152,7 @@ namespace CorgiSpline
             public float width;
             public float height;
             public float uv_tile_scale;
+            public float built_to_t;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -193,6 +196,9 @@ namespace CorgiSpline
                 {
                     var t0 = (float)(step - 1) / quality;
                     var t1 = (float)(step - 0) / quality;
+
+                    t0 *= built_to_t;
+                    t1 *= built_to_t;
 
                     var splinePoint0 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t0);
                     var splinePoint1 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t1);
