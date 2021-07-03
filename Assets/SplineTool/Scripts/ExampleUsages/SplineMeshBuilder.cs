@@ -25,6 +25,8 @@ namespace CorgiSpline
         [Range(0f, 10f)] public float height = 1f;
         public float uv_tile_scale = 1f;
         [Range(0f, 1f)] public float built_to_t = 1f;
+        public bool cover_ends_with_quads = true;
+        public bool uv_stretch_instead_of_tile;
 
         // internal 
         private Mesh mesh;
@@ -103,6 +105,7 @@ namespace CorgiSpline
                 width = width,
                 height = height,
                 uv_tile_scale = uv_tile_scale,
+                uv_stretch_instead_of_tile = uv_stretch_instead_of_tile,
 
                 verts = verts,
                 normals = normals,
@@ -117,6 +120,7 @@ namespace CorgiSpline
                 ClosedSpline = SplineReference.GetSplineClosed(),
 
                 built_to_t = built_to_t,
+                cover_ends_with_quads = cover_ends_with_quads,
             };
 
             previousHandle = job.Schedule();
@@ -153,6 +157,8 @@ namespace CorgiSpline
             public float height;
             public float uv_tile_scale;
             public float built_to_t;
+            public bool cover_ends_with_quads;
+            public bool uv_stretch_instead_of_tile;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -191,29 +197,34 @@ namespace CorgiSpline
                 // ensure even quality 
                 quality = quality - quality % 2;
 
-                // step through 
-                for (var step = 1; step < quality; ++step)
+                // closed splines overlap a bit so we dont have to stitch 
+                var until_quality = quality;
+
+                var full_loop = ClosedSpline && built_to_t >= 1f;
+
+                // hack for overlapping bezier when using a closed spline.. 
+                if(ClosedSpline && Mode == SplineMode.BSpline)
                 {
-                    var t0 = (float)(step - 1) / (quality - 1);
-                    var t1 = (float)(step - 0) / (quality - 1);
+                    built_to_t = Mathf.Clamp(built_to_t, 0, 0.95f);
+                }
 
-                    t0 *= built_to_t;
-                    t1 *= built_to_t;
+                // step through 
+                for (var step = 0; step < until_quality; ++step)
+                {
+                    var t = (float) step / quality;
+                        t *= built_to_t;
 
-                    var splinePoint0 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t0);
-                    var splinePoint1 = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t1);
+                    var up = Vector3.up;
+                    var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+                    var position = splinePoint.position;
+                    var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+                    var right = Vector3.Cross(forward, up); 
 
-                    var position0 = splinePoint0.position;
-                    var position1 = splinePoint1.position;
-
-                    var rotation0 = splinePoint0.rotation;
-                    var rotation1 = splinePoint1.rotation;
-
-                    var position = Vector3.Lerp(position0, position1, 0.5f);
-                    var forward = (position1 - position0).normalized;
-                    var rotation = Quaternion.Slerp(rotation0, rotation1, 0.5f);
-                    var up = rotation * Vector3.forward;
-                    var right = Vector3.Cross(forward, up);
+                    // skip if too close.. 
+                    if(Vector3.Distance(previousPosition, position) < 0.2f)
+                    {
+                        continue; 
+                    }
 
                     // verts 
                     var vert0 = position - right * width;
@@ -230,8 +241,15 @@ namespace CorgiSpline
                     normals.Add(normal1);
 
                     // uvs 
-                    current_uv_step += Vector3.Distance(previousPosition, position) * uv_tile_scale;
-                    current_uv_step = current_uv_step % 1.0f;
+                    if(uv_stretch_instead_of_tile)
+                    {
+                        current_uv_step = t;
+                    }
+                    else
+                    {
+                        current_uv_step += Vector3.Distance(previousPosition, position) * uv_tile_scale;
+                        current_uv_step = current_uv_step % 1.0f;
+                    }
 
                     uvs.Add(new Vector2(0f, current_uv_step));
                     uvs.Add(new Vector2(1f, current_uv_step));
@@ -239,8 +257,21 @@ namespace CorgiSpline
                     previousPosition = position;
                 }
 
+                // stich
+                if(cover_ends_with_quads && full_loop)
+                {
+                    verts.Add(verts[0]);
+                    verts.Add(verts[1]);
+
+                    normals.Add(normals[0]);
+                    normals.Add(normals[1]);
+
+                    uvs.Add(uvs[0]);
+                    uvs.Add(uvs[1]);
+                }
+
                 // generate tris 
-                for (var v = 0; v < verts.Length - 4; v += 4)
+                for (var v = 0; v < verts.Length - 2; v += 4)
                 {
                     tris.Add(v + 0);
                     tris.Add(v + 1);
@@ -283,7 +314,7 @@ namespace CorgiSpline
                     }
 
                     // generate triangles
-                    for (var v = floor_vert_index; v < verts.Length - 4; v += 4)
+                    for (var v = floor_vert_index; v < verts.Length - 2; v += 4)
                     {
                         tris.Add(v + 2);
                         tris.Add(v + 3);
@@ -306,7 +337,7 @@ namespace CorgiSpline
                     }
 
                     // wall triangles 
-                    for (var v = 0; v < floor_vert_index - 4; v += 4)
+                    for (var v = 0; v < floor_vert_index - 2; v += 4)
                     {
                         // right wall 
                         tris.Add(v + floor_vert_index + 1);
@@ -348,26 +379,29 @@ namespace CorgiSpline
                     }
 
                     // end cap triangles 
-                    var start_index = 0;
+                    if(cover_ends_with_quads)
+                    {
+                        var start_index = 0;
 
-                    // left cap 
-                    tris.Add(floor_vert_index + 0);
-                    tris.Add(start_index + 1);
-                    tris.Add(start_index + 0);
-                    tris.Add(floor_vert_index + 0);
-                    tris.Add(floor_vert_index + 1);
-                    tris.Add(start_index + 1);
+                        // left cap 
+                        tris.Add(floor_vert_index + 0);
+                        tris.Add(start_index + 1);
+                        tris.Add(start_index + 0);
+                        tris.Add(floor_vert_index + 0);
+                        tris.Add(floor_vert_index + 1);
+                        tris.Add(start_index + 1);
 
-                    // right cap 
-                    var end_cap_top = floor_vert_index - 2;
-                    var end_cap_bottom = verts.Length - 2;
+                        // right cap 
+                        var end_cap_top = floor_vert_index - 2;
+                        var end_cap_bottom = verts.Length - 2;
 
-                    tris.Add(end_cap_top + 0);
-                    tris.Add(end_cap_top + 1);
-                    tris.Add(end_cap_bottom + 0);
-                    tris.Add(end_cap_top + 1);
-                    tris.Add(end_cap_bottom + 1);
-                    tris.Add(end_cap_bottom + 0);
+                        tris.Add(end_cap_top + 0);
+                        tris.Add(end_cap_top + 1);
+                        tris.Add(end_cap_bottom + 0);
+                        tris.Add(end_cap_top + 1);
+                        tris.Add(end_cap_bottom + 1);
+                        tris.Add(end_cap_bottom + 0);
+                    }
                 }
             }
         }

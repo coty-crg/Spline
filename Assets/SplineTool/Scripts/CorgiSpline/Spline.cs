@@ -740,7 +740,14 @@ namespace CorgiSpline
                 return new SplinePoint();
             }
 
-            t = Mathf.Clamp01(t);
+            if (ClosedSpline)
+            {
+                t = Mathf.Repeat(t, 1f);
+            }
+            else
+            {
+                t = Mathf.Clamp01(t);
+            }
 
             if (Mode == SplineMode.Linear)
             {
@@ -1749,7 +1756,14 @@ namespace CorgiSpline
                 return new SplinePoint();
             }
 
-            t = Mathf.Clamp01(t);
+            if(ClosedSpline)
+            {
+                t = Mathf.Repeat(t, 1f);
+            }
+            else
+            {
+                t = Mathf.Clamp01(t);
+            }
 
             if (Mode == SplineMode.Linear)
             {
@@ -1901,7 +1915,20 @@ namespace CorgiSpline
 
         public static Vector3 JobSafe_GetForward(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
         {
-            var delta_t = 1f / 256f;
+            var pointsLength = Points.Length;
+            var delta_t = 4f / pointsLength;
+
+            switch(Mode)
+            {
+                case SplineMode.Linear:
+                case SplineMode.BSpline:
+                    delta_t = 1f / pointsLength;
+                    break;
+                case SplineMode.Bezier:
+                    delta_t = 3f / pointsLength;
+                    break;
+            }
+
 
             var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t * 1);
             var p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t * 1);
@@ -1911,6 +1938,12 @@ namespace CorgiSpline
             
             // note: we want to return in world space, the GetPoints above are already world space so no matrix mult required here 
             return forward;
+        }
+
+        public static Vector3 JobSafe_GetForward_FromRotation(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
+        {
+            var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+            return (p0.rotation * Vector3.forward).normalized;
         }
 
 #if UNITY_EDITOR
