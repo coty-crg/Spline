@@ -192,10 +192,10 @@ namespace CorgiSpline
                 quality = quality - quality % 2;
 
                 // step through 
-                for (var step = 0; step < quality; ++step)
+                for (var step = 1; step < quality; ++step)
                 {
-                    var t0 = (float)(step - 1) / quality;
-                    var t1 = (float)(step - 0) / quality;
+                    var t0 = (float)(step - 1) / (quality - 1);
+                    var t1 = (float)(step - 0) / (quality - 1);
 
                     t0 *= built_to_t;
                     t1 *= built_to_t;
@@ -240,7 +240,7 @@ namespace CorgiSpline
                 }
 
                 // generate tris 
-                for (var v = 0; v < verts.Length; v += 4)
+                for (var v = 0; v < verts.Length - 4; v += 4)
                 {
                     tris.Add(v + 0);
                     tris.Add(v + 1);
@@ -283,7 +283,7 @@ namespace CorgiSpline
                     }
 
                     // generate triangles
-                    for (var v = floor_vert_index; v < verts.Length; v += 4)
+                    for (var v = floor_vert_index; v < verts.Length - 4; v += 4)
                     {
                         tris.Add(v + 2);
                         tris.Add(v + 3);
@@ -305,9 +305,8 @@ namespace CorgiSpline
                         }
                     }
 
-
                     // wall triangles 
-                    for (var v = 0; v < floor_vert_index; v += 4)
+                    for (var v = 0; v < floor_vert_index - 4; v += 4)
                     {
                         // right wall 
                         tris.Add(v + floor_vert_index + 1);
@@ -327,11 +326,9 @@ namespace CorgiSpline
                         tris.Add(v + floor_vert_index + 0);
                         tris.Add(v + 2);
 
-
-                        //
                         if (v < floor_vert_index - 4)
                         {
-
+                        
                             // right wall 
                             tris.Add(v + floor_vert_index + 1 + 2);
                             tris.Add(v + 3 + 2);
@@ -339,7 +336,7 @@ namespace CorgiSpline
                             tris.Add(v + 3 + 2);
                             tris.Add(v + floor_vert_index + 1 + 2);
                             tris.Add(v + floor_vert_index + 3 + 2);
-
+                        
                             // left wall
                             tris.Add(v + floor_vert_index + 0 + 2);
                             tris.Add(v + 0 + 2);
@@ -349,6 +346,28 @@ namespace CorgiSpline
                             tris.Add(v + 2 + 2);
                         }
                     }
+
+                    // end cap triangles 
+                    var start_index = 0;
+
+                    // left cap 
+                    tris.Add(floor_vert_index + 0);
+                    tris.Add(start_index + 1);
+                    tris.Add(start_index + 0);
+                    tris.Add(floor_vert_index + 0);
+                    tris.Add(floor_vert_index + 1);
+                    tris.Add(start_index + 1);
+
+                    // right cap 
+                    var end_cap_top = floor_vert_index - 2;
+                    var end_cap_bottom = verts.Length - 2;
+
+                    tris.Add(end_cap_top + 0);
+                    tris.Add(end_cap_top + 1);
+                    tris.Add(end_cap_bottom + 0);
+                    tris.Add(end_cap_top + 1);
+                    tris.Add(end_cap_bottom + 1);
+                    tris.Add(end_cap_bottom + 0);
                 }
             }
         }
