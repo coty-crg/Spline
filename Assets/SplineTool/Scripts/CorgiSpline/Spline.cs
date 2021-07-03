@@ -1916,7 +1916,7 @@ namespace CorgiSpline
         public static Vector3 JobSafe_GetForward(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
         {
             var pointsLength = Points.Length;
-            var delta_t = 4f / pointsLength;
+            var delta_t = 1f / pointsLength;
 
             switch(Mode)
             {
