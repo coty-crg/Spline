@@ -213,7 +213,7 @@ namespace CorgiSpline
                 }
 
                 // step through 
-                for (var step = 0; step <= until_quality; ++step)
+                for (var step = 0; step < until_quality; ++step)
                 {
                     var t = (float) step / quality;
                     //    t *= built_to_t;
@@ -232,7 +232,7 @@ namespace CorgiSpline
                     var right = Vector3.Cross(forward, up); 
 
                     // skip if too close.. 
-                    if(first_set && !final_point_from_t && Vector3.Distance(previousPosition, position) < 0.2f)
+                    if(first_set && step != 0 && step != until_quality - 1 && Vector3.Distance(previousPosition, position) < 0.2f)
                     {
                         continue; 
                     }
