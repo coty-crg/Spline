@@ -305,6 +305,7 @@ namespace CorgiSpline
 
                     // update original points with modified list 
                     instance.Points = pointList.ToArray();
+                    instance.UpdateNative(); 
 
                     // deselect all points 
                     SelectedPoints.Clear();
@@ -487,6 +488,8 @@ namespace CorgiSpline
             {
                 instance.ReversePoints();
             }
+
+            instance.UpdateNative();
 
             EditorUtility.SetDirty(instance);
         }
@@ -772,6 +775,7 @@ namespace CorgiSpline
         {
             Undo.RecordObject(instance, "Inserting point.");
             instance.InsertPoint(placingPoint);
+            instance.UpdateNative();
         }
 
         private bool IsLeftMouseClicked()
