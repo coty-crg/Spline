@@ -846,7 +846,11 @@ namespace CorgiSpline
                 var inner_t = mod_t / delta_t;
 
                 var index = Mathf.FloorToInt(t * Points.Length);
-                    index = Mathf.Clamp(index, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
+
+                index = Mathf.Clamp(index, 0, Points.Length);
+
+                // note, offsetting by -1 so index0 starts behind current point 
+                index -= 1; 
 
                 int index0;
                 int index1;
@@ -855,7 +859,7 @@ namespace CorgiSpline
 
                 if(ClosedSpline)
                 {
-                    int mod_count = Points.Length - 1; // -1 to ignore duplicate final point 
+                    int mod_count = Points.Length; // - 1; // -1 to ignore duplicate final point 
 
                     index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                     index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
@@ -1863,7 +1867,10 @@ namespace CorgiSpline
                 var inner_t = mod_t / delta_t;
 
                 var index = Mathf.FloorToInt(t * Points.Length);
-                index = Mathf.Clamp(index, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
+                    index = Mathf.Clamp(index, 0, Points.Length); 
+                                                                  
+                // note, offsetting by -1 so index0 starts behind current point 
+                    index -= 1;
 
                 int index0;
                 int index1;
@@ -1872,7 +1879,7 @@ namespace CorgiSpline
 
                 if (ClosedSpline)
                 {
-                    int mod_count = Points.Length - 1; // -1 to ignore duplicate final point
+                    int mod_count = Points.Length; // - 1; // -1 to ignore duplicate final point
 
                     index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                     index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
