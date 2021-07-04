@@ -212,7 +212,14 @@ namespace CorgiSpline
                 for (var step = 0; step < until_quality; ++step)
                 {
                     var t = (float) step / quality;
-                        t *= built_to_t;
+                    //    t *= built_to_t;
+
+                    var final_point_from_t = false;
+                    if(t > built_to_t)
+                    {
+                        t = built_to_t;
+                        final_point_from_t = true; 
+                    }
 
                     var up = Vector3.up;
                     var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
@@ -221,7 +228,7 @@ namespace CorgiSpline
                     var right = Vector3.Cross(forward, up); 
 
                     // skip if too close.. 
-                    if(Vector3.Distance(previousPosition, position) < 0.2f)
+                    if(!final_point_from_t && Vector3.Distance(previousPosition, position) < 0.2f)
                     {
                         continue; 
                     }
@@ -255,6 +262,11 @@ namespace CorgiSpline
                     uvs.Add(new Vector2(1f, current_uv_step));
 
                     previousPosition = position;
+
+                    if (final_point_from_t)
+                    {
+                        break; 
+                    }
                 }
 
                 // stich
