@@ -204,6 +204,7 @@ namespace CorgiSpline
                 var until_quality = quality;
 
                 var full_loop = ClosedSpline && built_to_t >= 1f;
+                var first_set = false;
 
                 // hack for overlapping bezier when using a closed spline.. 
                 if(ClosedSpline && Mode == SplineMode.BSpline)
@@ -212,7 +213,7 @@ namespace CorgiSpline
                 }
 
                 // step through 
-                for (var step = 0; step < until_quality; ++step)
+                for (var step = 0; step <= until_quality; ++step)
                 {
                     var t = (float) step / quality;
                     //    t *= built_to_t;
@@ -231,7 +232,7 @@ namespace CorgiSpline
                     var right = Vector3.Cross(forward, up); 
 
                     // skip if too close.. 
-                    if(!final_point_from_t && Vector3.Distance(previousPosition, position) < 0.2f)
+                    if(first_set && !final_point_from_t && Vector3.Distance(previousPosition, position) < 0.2f)
                     {
                         continue; 
                     }
@@ -265,6 +266,7 @@ namespace CorgiSpline
                     uvs.Add(new Vector2(1f, current_uv_step));
 
                     previousPosition = position;
+                    first_set = true;
 
                     if (final_point_from_t)
                     {
