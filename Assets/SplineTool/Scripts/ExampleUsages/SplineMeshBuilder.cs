@@ -136,13 +136,16 @@ namespace CorgiSpline
             previousHandle.Complete();
 
             mesh.Clear();
-            mesh.SetVertices(verts.AsArray());
-            mesh.SetNormals(normals.AsArray());
-            mesh.SetUVs(0, uvs.AsArray());
-            mesh.SetIndices(tris.AsArray(), MeshTopology.Triangles, 0);
 
-            mesh.RecalculateBounds();
-            mesh.RecalculateTangents();
+            if(verts.Length > 3 && tris.Length > 0)
+            {
+                mesh.SetVertices(verts.AsArray());
+                mesh.SetNormals(normals.AsArray());
+                mesh.SetUVs(0, uvs.AsArray());
+                mesh.SetIndices(tris.AsArray(), MeshTopology.Triangles, 0);
+                mesh.RecalculateBounds();
+                mesh.RecalculateTangents();
+            }
 
             var meshFilter = GetComponent<MeshFilter>();
             meshFilter.sharedMesh = mesh;
