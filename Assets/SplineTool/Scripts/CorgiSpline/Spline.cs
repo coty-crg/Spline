@@ -1936,12 +1936,11 @@ namespace CorgiSpline
                     break;
             }
 
-
             var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t * 1);
             var p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t * 1);
 
             var vec = (p1.position - p0.position);
-            var forward = vec.sqrMagnitude > 0 ? vec.normalized : Vector3.forward;
+            var forward = vec.sqrMagnitude > 0.001f ? vec.normalized : Vector3.forward;
             
             // note: we want to return in world space, the GetPoints above are already world space so no matrix mult required here 
             return forward;

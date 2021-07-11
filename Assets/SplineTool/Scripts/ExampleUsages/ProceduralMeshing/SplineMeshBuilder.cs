@@ -20,29 +20,30 @@ namespace CorgiSpline
         public bool RebuildEveryFrame;
         public bool AllowAsyncRebuild;
 
+        [Range(0f, 1f)] public float built_to_t = 1f;
         [Range(32, 1024)] public int quality = 256;
         [Range(0.001f, 10f)] public float width = 1f;
         [Range(0f, 10f)] public float height = 1f;
         public float uv_tile_scale = 1f;
-        [Range(0f, 1f)] public float built_to_t = 1f;
         public bool cover_ends_with_quads = true;
         public bool uv_stretch_instead_of_tile;
 
         // internal 
-        private Mesh mesh;
-        private NativeList<Vector3> verts;
-        private NativeList<Vector3> normals;
-        private NativeList<Vector4> uvs;
-        private NativeList<int> tris;
+        protected Mesh _mesh;
+        protected NativeList<Vector3> _nativeVertices;
+        protected NativeList<Vector3> _nativeNormals;
+        protected NativeList<Vector4> _nativeUVs;
+        protected NativeList<int> _nativeTris;
+        protected JobHandle _previousHandle;
 
         private void OnEnable()
         {
-            mesh = new Mesh();
+            _mesh = new Mesh();
 
-            verts = new NativeList<Vector3>(Allocator.Persistent);
-            normals = new NativeList<Vector3>(Allocator.Persistent);
-            uvs = new NativeList<Vector4>(Allocator.Persistent);
-            tris = new NativeList<int>(Allocator.Persistent);
+            _nativeVertices = new NativeList<Vector3>(Allocator.Persistent);
+            _nativeNormals = new NativeList<Vector3>(Allocator.Persistent);
+            _nativeUVs = new NativeList<Vector4>(Allocator.Persistent);
+            _nativeTris = new NativeList<int>(Allocator.Persistent);
 
             // Rebuild_Jobified();
         }
@@ -51,20 +52,20 @@ namespace CorgiSpline
         {
             CompleteJob();
 
-            verts.Dispose();
-            normals.Dispose();
-            uvs.Dispose();
-            tris.Dispose();
+            _nativeVertices.Dispose();
+            _nativeNormals.Dispose();
+            _nativeUVs.Dispose();
+            _nativeTris.Dispose();
 
-            if (mesh != null)
+            if (_mesh != null)
             {
                 if (Application.isPlaying)
                 {
-                    Destroy(mesh);
+                    Destroy(_mesh);
                 }
                 else
                 {
-                    DestroyImmediate(mesh);
+                    DestroyImmediate(_mesh);
                 }
             }
         }
@@ -85,8 +86,6 @@ namespace CorgiSpline
             }
         }
 
-        private JobHandle previousHandle;
-
         public void Rebuild_Jobified()
         {
             if (SplineReference == null)
@@ -99,6 +98,36 @@ namespace CorgiSpline
                 return;
             }
 
+            _previousHandle = ScheduleMeshingJob();
+
+            if (!AllowAsyncRebuild)
+            {
+                CompleteJob();
+            }
+        }
+
+        public void CompleteJob()
+        {
+            _previousHandle.Complete();
+
+            _mesh.Clear();
+
+            if(_nativeVertices.Length > 3 && _nativeTris.Length > 0)
+            {
+                _mesh.SetVertices(_nativeVertices.AsArray());
+                _mesh.SetNormals(_nativeNormals.AsArray());
+                _mesh.SetUVs(0, _nativeUVs.AsArray());
+                _mesh.SetIndices(_nativeTris.AsArray(), MeshTopology.Triangles, 0);
+                _mesh.RecalculateBounds();
+                _mesh.RecalculateTangents();
+            }
+
+            var meshFilter = GetComponent<MeshFilter>();
+            meshFilter.sharedMesh = _mesh;
+        }
+
+        protected virtual JobHandle ScheduleMeshingJob(JobHandle dependency = default)
+        {
             var job = new BuildMeshFromSpline()
             {
                 quality = quality,
@@ -107,10 +136,10 @@ namespace CorgiSpline
                 uv_tile_scale = uv_tile_scale,
                 uv_stretch_instead_of_tile = uv_stretch_instead_of_tile,
 
-                verts = verts,
-                normals = normals,
-                uvs = uvs,
-                tris = tris,
+                verts = _nativeVertices,
+                normals = _nativeNormals,
+                uvs = _nativeUVs,
+                tris = _nativeTris,
 
                 Points = SplineReference.NativePoints,
                 Mode = SplineReference.GetSplineMode(),
@@ -123,32 +152,7 @@ namespace CorgiSpline
                 cover_ends_with_quads = cover_ends_with_quads,
             };
 
-            previousHandle = job.Schedule();
-
-            if (!AllowAsyncRebuild)
-            {
-                CompleteJob();
-            }
-        }
-
-        private void CompleteJob()
-        {
-            previousHandle.Complete();
-
-            mesh.Clear();
-
-            if(verts.Length > 3 && tris.Length > 0)
-            {
-                mesh.SetVertices(verts.AsArray());
-                mesh.SetNormals(normals.AsArray());
-                mesh.SetUVs(0, uvs.AsArray());
-                mesh.SetIndices(tris.AsArray(), MeshTopology.Triangles, 0);
-                mesh.RecalculateBounds();
-                mesh.RecalculateTangents();
-            }
-
-            var meshFilter = GetComponent<MeshFilter>();
-            meshFilter.sharedMesh = mesh;
+            return job.Schedule(dependency);
         }
 
         [BurstCompile]
@@ -277,14 +281,16 @@ namespace CorgiSpline
                 // stich
                 if(cover_ends_with_quads && full_loop)
                 {
+                    var offset_end = verts.Length - 2;
+
                     verts.Add(verts[0]);
                     verts.Add(verts[1]);
 
                     normals.Add(normals[0]);
                     normals.Add(normals[1]);
 
-                    uvs.Add(uvs[0]);
-                    uvs.Add(uvs[1]);
+                    uvs.Add(uvs[offset_end + 0]);
+                    uvs.Add(uvs[offset_end + 1]);
                 }
 
                 // generate tris 
