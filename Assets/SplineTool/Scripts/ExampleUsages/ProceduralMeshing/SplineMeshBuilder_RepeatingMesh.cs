@@ -28,6 +28,7 @@ namespace CorgiSpline
 
             native_tris = new NativeList<int>(Allocator.Persistent);
             native_verts = new NativeList<Vector3>(Allocator.Persistent);
+            native_normals = new NativeList<Vector3>(Allocator.Persistent);
 
             native_stitch_start = new NativeList<int>(Allocator.Persistent);
             native_stitch_end = new NativeList<int>(Allocator.Persistent);
@@ -39,6 +40,7 @@ namespace CorgiSpline
 
             native_tris.Dispose();
             native_verts.Dispose();
+            native_normals.Dispose();
 
             native_stitch_start.Dispose();
             native_stitch_end.Dispose();
