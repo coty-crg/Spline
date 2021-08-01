@@ -109,7 +109,7 @@ namespace CorgiSpline
                 var start_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
                 var firstPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
 
-                var end_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, built_to_t);
+                var end_forward = Vector3.up; //  Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, built_to_t);
                 var lastPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, built_to_t);
 
                 var previousPosition = firstPoint.position;
@@ -129,7 +129,7 @@ namespace CorgiSpline
                 // step through 
                 for (var step = 0; step < quality; ++step)
                 {
-                    var t = (float) step / (quality - 1);
+                    var t = (float) step / (quality);
 
                     var final_point_from_t = false;
                     if (t > built_to_t)
@@ -142,6 +142,16 @@ namespace CorgiSpline
                     var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
                     var position = splinePoint.position;
                     var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+
+                    // if(step > 0)
+                    // {
+                    //     if(Vector3.Distance(position, previousPosition) > 0.0001f)
+                    //     {
+                    //         forward = (position - previousPosition).normalized;
+                    //     }
+                    // }
+
+
                     var right = Vector3.Cross(forward, up);
 
                     // skip if too close.. 

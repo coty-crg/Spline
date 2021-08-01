@@ -47,22 +47,55 @@ namespace CorgiSpline
             var instance = (Spline)target;
 
             GUILayout.BeginVertical("GroupBox");
-            
 
-            instance.SetSplineMode((SplineMode)EditorGUILayout.EnumPopup("Curve Type", instance.GetSplineMode()));
-            instance.SetSplineSpace((Space)EditorGUILayout.EnumPopup("Spline Space", instance.GetSplineSpace()), true);
+            var splineMode = instance.GetSplineMode();
+            var newSplineMode = (SplineMode)EditorGUILayout.EnumPopup("Curve Type", splineMode);
+            if(splineMode != newSplineMode)
+            {
+                Undo.RecordObject(instance, "Changed Spline Mode");
+                instance.SetSplineMode(newSplineMode);
+                EditorUtility.SetDirty(instance);
+            }
 
-            instance.UpdateNativeArrayOnEnable = EditorGUILayout.Toggle(new GUIContent("Update NativeArray OnEnable",
+            var splineSpace = instance.GetSplineSpace();
+            var newSplineSpace = (Space)EditorGUILayout.EnumPopup("Spline Space", splineSpace);
+            if (splineSpace != newSplineSpace)
+            {
+                Undo.RecordObject(instance, "Changed Spline Space");
+                instance.SetSplineSpace(newSplineSpace, true);
+                EditorUtility.SetDirty(instance);
+            }
+
+            var newUpdateNativeArrayOnEnable = EditorGUILayout.Toggle(new GUIContent("Update NativeArray OnEnable",
                 "Only necessary if you care about using Splines in the Job System. Some of the example scripts use this."), instance.UpdateNativeArrayOnEnable);
+            if(newUpdateNativeArrayOnEnable != instance.UpdateNativeArrayOnEnable)
+            {
+                Undo.RecordObject(instance, "UpdateNativeArrayOnEnable");
+                instance.UpdateNativeArrayOnEnable = newUpdateNativeArrayOnEnable;
+                EditorUtility.SetDirty(instance);
+            }
 
             GUILayout.BeginVertical("GroupBox");
             EditorGUILayout.LabelField("Editor Only Settings");
 
-            instance.EditorAlwaysDraw = EditorGUILayout.Toggle(new GUIContent("Always Draw Spline (Editor)", 
+            var newEditorAlwaysDraw = EditorGUILayout.Toggle(new GUIContent("Always Draw Spline (Editor)", 
                 "If enabled, the gizmos drawing this spline will continue to draw, even when the GameObject is not selected."), instance.EditorAlwaysDraw);
+            if(newEditorAlwaysDraw != instance.EditorAlwaysDraw)
+            {
+                Undo.RecordObject(instance, "EditorAlwaysDraw");
+                instance.EditorAlwaysDraw = newEditorAlwaysDraw;
+                EditorUtility.SetDirty(instance);
+            }
 
-            instance.EditorDrawThickness = EditorGUILayout.Toggle(new GUIContent("Draw Thickness (Editor)", 
+            var newEditorDrawThickness = EditorGUILayout.Toggle(new GUIContent("Draw Thickness (Editor)", 
                 "If enabled, the gizmos drawing this spline will include scale.x while rendering the spline preview."), instance.EditorDrawThickness);
+
+            if(newEditorDrawThickness != instance.EditorDrawThickness)
+            {
+                Undo.RecordObject(instance, "EditorDrawThickness");
+                instance.EditorDrawThickness = newEditorDrawThickness;
+                EditorUtility.SetDirty(instance);
+            }
 
             GUILayout.EndVertical();
 

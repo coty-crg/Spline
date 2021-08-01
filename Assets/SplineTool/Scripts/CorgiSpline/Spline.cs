@@ -1866,11 +1866,12 @@ namespace CorgiSpline
                 var mod_t = Mathf.Repeat(t, delta_t);
                 var inner_t = mod_t / delta_t;
 
-                var index = Mathf.FloorToInt(t * Points.Length);
-                    index = Mathf.Clamp(index, 0, Points.Length); 
+                var pointCount = Points.Length;
+                var index = Mathf.FloorToInt(t * pointCount);
+                    index = Mathf.Clamp(index, 0, pointCount); 
                                                                   
                 // note, offsetting by -1 so index0 starts behind current point 
-                    index -= 1;
+                index -= 1;
 
                 int index0;
                 int index1;
@@ -1904,6 +1905,26 @@ namespace CorgiSpline
                 var point2 = Points[index2];
                 var point3 = Points[index3];
 
+                if(!ClosedSpline)
+                {
+                    // if we're on the first point, guess 
+                    if (index < 0)
+                    {
+                        point0.position = point1.position + (point1.position - point2.position);
+                    }
+
+                    // if we're on the last point, guess 
+                    if (index > pointCount - 2)
+                    {
+                        point2.position = point1.position + (point1.position - point0.position);
+                    }
+
+                    if (index > pointCount - 3)
+                    {
+                        point3.position = point2.position + (point2.position - point1.position);
+                    }
+                }
+
                 var result = CalculateBSplinePoint(point0, point1, point2, point3, inner_t);
 
                 if (SplineSpace == Space.Self)
@@ -1936,16 +1957,37 @@ namespace CorgiSpline
                     break;
             }
 
-            if(!ClosedSpline && t > 1 - delta_t)
+            SplinePoint p0;
+            SplinePoint p1;
+
+            // if(t < delta_t)
+            // {
+            //     t += delta_t;
+            // }
+            // 
+            // if (t > delta_t)
+            // {
+            //     t -= delta_t;
+            // }
+
+            if (Mode == SplineMode.Linear && t < delta_t)
             {
-                delta_t *= 2; 
+                p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+                p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t);
+            }
+            else if(Mode == SplineMode.Linear && t >= 1.0f - delta_t)
+            {
+                p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t);
+                p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+            }
+            else
+            {
+                p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t);
+                p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t);
             }
 
-            var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t * 1);
-            var p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t * 1);
-
             var vec = (p1.position - p0.position);
-            var forward = vec.sqrMagnitude > 0.001f ? vec.normalized : Vector3.forward;
+            var forward = vec.sqrMagnitude > 0.00001f ? vec.normalized : Vector3.forward;
             
             // note: we want to return in world space, the GetPoints above are already world space so no matrix mult required here 
             return forward;
