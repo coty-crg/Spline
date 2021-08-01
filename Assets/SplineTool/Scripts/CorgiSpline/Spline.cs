@@ -1914,14 +1914,14 @@ namespace CorgiSpline
                     }
 
                     // if we're on the last point, guess 
-                    if (index > pointCount - 2)
+                    if (index >= pointCount - 2)
                     {
-                        point2.position = point1.position + (point1.position - point0.position);
+                        point2.position = point1.position + (point1.position - point0.position).normalized * 0.01f;
                     }
 
-                    if (index > pointCount - 3)
+                    if (index >= pointCount - 3)
                     {
-                        point3.position = point2.position + (point2.position - point1.position);
+                        point3.position = point2.position + (point2.position - point1.position).normalized * 0.01f;
                     }
                 }
 
@@ -1944,50 +1944,13 @@ namespace CorgiSpline
         public static Vector3 JobSafe_GetForward(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
         {
             var pointsLength = Points.Length;
-            var delta_t = 1f / pointsLength;
+            var delta_t = 0.0001f;
 
-            switch(Mode)
-            {
-                case SplineMode.Linear:
-                case SplineMode.BSpline:
-                    delta_t = 1f / pointsLength / 4f;
-                    break;
-                case SplineMode.Bezier:
-                    delta_t = 1f / pointsLength / 4f;
-                    break;
-            }
-
-            SplinePoint p0;
-            SplinePoint p1;
-
-            // if(t < delta_t)
-            // {
-            //     t += delta_t;
-            // }
-            // 
-            // if (t > delta_t)
-            // {
-            //     t -= delta_t;
-            // }
-
-            if (Mode == SplineMode.Linear && t < delta_t)
-            {
-                p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
-                p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t);
-            }
-            else if(Mode == SplineMode.Linear && t >= 1.0f - delta_t)
-            {
-                p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t);
-                p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
-            }
-            else
-            {
-                p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t);
-                p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t);
-            }
+            var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t);
+            var p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t);
 
             var vec = (p1.position - p0.position);
-            var forward = vec.sqrMagnitude > 0.00001f ? vec.normalized : Vector3.forward;
+            var forward = vec.sqrMagnitude > 0f ? vec.normalized : Vector3.forward;
             
             // note: we want to return in world space, the GetPoints above are already world space so no matrix mult required here 
             return forward;
