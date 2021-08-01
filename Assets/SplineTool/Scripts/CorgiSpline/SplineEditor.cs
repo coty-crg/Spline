@@ -346,6 +346,9 @@ namespace CorgiSpline
                 DrawSelectablePoints(instance);
             }
 
+            // update native every frame, to catch stuff like undo/redo or anything else weird that can happen.. 
+            // note: this means no jobs can be async when in editor mode; although this was true even before this change
+            instance.UpdateNative();
         }
 
         private void OnPointSelected(object index)
