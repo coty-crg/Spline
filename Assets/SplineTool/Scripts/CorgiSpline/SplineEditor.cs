@@ -268,6 +268,8 @@ namespace CorgiSpline
 
                 else
                 {
+                    Undo.RecordObject(instance, "Deleted spline point.");
+
                     // sort, 0, 1, 2, etc 
                     SelectedPoints.Sort();
 
@@ -309,6 +311,8 @@ namespace CorgiSpline
 
                     // deselect all points 
                     SelectedPoints.Clear();
+
+                    EditorUtility.SetDirty(instance); 
 
                     // consume event and exit 
                     Event.current.Use();
