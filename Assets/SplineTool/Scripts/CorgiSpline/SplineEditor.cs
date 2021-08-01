@@ -810,6 +810,9 @@ namespace CorgiSpline
                 Event.current.Use();
                 Repaint();
             }
+
+            // always force a repaint so we can see the updated visuals 
+            InternalEditorUtility.RepaintAllViews();
         }
 
         private void InsertPoint(Spline instance, SplinePoint placingPoint)
