@@ -216,6 +216,8 @@ namespace CorgiSpline
                     editPoint.rotation.eulerAngles = EditorGUILayout.Vector3Field("point rotation", editPoint.rotation.eulerAngles);
                     editPoint.scale = EditorGUILayout.Vector3Field("point scale", editPoint.scale);
 
+
+
                     if (!point.Equals(editPoint))
                     {
                         Undo.RecordObject(instance, "Points Edited");
@@ -246,6 +248,29 @@ namespace CorgiSpline
                         }
 
                         instance.UpdateNative();
+                    }
+
+                    if(GUILayout.Button("Rotations: Force Forward & Up"))
+                    {
+                        Undo.RecordObject(instance, "Forced Rotation");
+
+                        for(var p = 0; p < SelectedPoints.Count; ++p)
+                        {
+                            var point_index = SelectedPoints[p];
+                            var selectedPoint = instance.Points[point_index];
+
+
+                            var selected_t = instance.ProjectOnSpline_t(selectedPoint.position);
+                            var selected_forward = instance.GetForward(selected_t);
+                            var selected_up = Vector3.up;
+
+                            selectedPoint.rotation = Quaternion.LookRotation(selected_forward, selected_up);
+
+                            instance.Points[point_index] = selectedPoint;
+                        }
+
+                        instance.UpdateNative();
+                        EditorUtility.SetDirty(instance); 
                     }
 
                     GUILayout.EndVertical();
@@ -1160,15 +1185,30 @@ namespace CorgiSpline
 
         private bool DrawHandleRotation(Vector3 position, ref Quaternion rotation)
         {
-            var normal = rotation * Vector3.forward;
+            var up = rotation * Vector3.up;
+            var right = rotation * Vector3.right;
+            var forward = rotation * Vector3.forward;
+
             Handles.color = Color.green;
-            Handles.DrawLine(position, position + normal);
+            Handles.DrawLine(position, position + up);
+
+            Handles.color = Color.red;
+            Handles.DrawLine(position, position + right);
+
+            Handles.color = Color.blue;
+            Handles.DrawLine(position, position + forward);
 
             rotation = Handles.RotationHandle(rotation, position);
-            var new_normal = rotation * Vector3.forward;
 
-            var delta_normal = new_normal - normal;
-            var changed = delta_normal.sqrMagnitude > 0;
+            var new_up  = rotation * Vector3.up;
+            var new_right = rotation * Vector3.right;
+            var new_forward = rotation * Vector3.forward;
+
+            var changed = 
+                   (new_forward - forward).sqrMagnitude > 0
+                || (new_right - right).sqrMagnitude > 0
+                || (new_up - up).sqrMagnitude > 0;
+
             return changed;
         }
 
