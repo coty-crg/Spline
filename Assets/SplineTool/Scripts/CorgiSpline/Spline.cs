@@ -1953,7 +1953,7 @@ namespace CorgiSpline
                     delta_t = 1f / pointsLength / 4f;
                     break;
                 case SplineMode.Bezier:
-                    delta_t = 3f / pointsLength;
+                    delta_t = 1f / pointsLength / 4f;
                     break;
             }
 
