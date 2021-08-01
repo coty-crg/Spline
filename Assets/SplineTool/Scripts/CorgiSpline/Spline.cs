@@ -1952,6 +1952,24 @@ namespace CorgiSpline
             return (p0.rotation * Vector3.forward).normalized;
         }
 
+        public static Matrix4x4 GetLocalToWorldAtT(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
+        {
+            var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+            var up = Vector3.up;
+            var forward = JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+
+            var rotation = Quaternion.LookRotation(forward, up);
+            var trs = Matrix4x4.TRS(p0.position, rotation, p0.scale);
+            return trs;
+        }
+
+        public static Matrix4x4 GetLocalToWorldAtT_FromRotation(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
+        {
+            var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+            var trs = Matrix4x4.TRS(p0.position, p0.rotation, p0.scale);
+            return trs.inverse;
+        }
+
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
