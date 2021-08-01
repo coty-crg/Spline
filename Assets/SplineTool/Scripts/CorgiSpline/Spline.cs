@@ -1936,6 +1936,11 @@ namespace CorgiSpline
                     break;
             }
 
+            if(!ClosedSpline && t > 1 - delta_t)
+            {
+                delta_t *= 2; 
+            }
+
             var p0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta_t * 1);
             var p1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t + delta_t * 1);
 
