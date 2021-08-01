@@ -36,6 +36,8 @@ namespace CorgiSpline
                 minimum_distance_between_points = minimum_distance_between_points,
                 minimum_dot_between_forwards = minimum_dot_between_forwards,
                 max_distance_between_points = max_distance_between_points,
+                use_splinepoint_rotations = use_splinepoint_rotations,
+                use_splinepoint_scale = use_splinepoint_scale,
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
@@ -71,6 +73,8 @@ namespace CorgiSpline
             public float minimum_distance_between_points;
             public float max_distance_between_points;
             public float minimum_dot_between_forwards;
+            public bool use_splinepoint_rotations;
+            public bool use_splinepoint_scale;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -143,6 +147,12 @@ namespace CorgiSpline
                     var position = splinePoint.position;
                     var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
+                    if(use_splinepoint_rotations)
+                    {
+                        up = splinePoint.rotation * Vector3.up;
+                        forward = splinePoint.rotation * Vector3.forward;
+                    }
+
                     var right = Vector3.Cross(forward, up);
 
                     // skip if too close.. 
@@ -171,12 +181,20 @@ namespace CorgiSpline
                     var pi2 = Mathf.PI * 2f;
                     var tube_delta = 1f / (tube_quality - 1);
 
+
+                    var localWidth = width;
+
+                    if(use_splinepoint_scale)
+                    {
+                        localWidth *= splinePoint.scale.magnitude;
+                    }
+
                     for (var tube_step = 0; tube_step < tube_quality; ++tube_step)
                     {
                         var radians = tube_step * tube_delta * pi2; 
                         var circleOffset = UnitCirclePlane(right, up, radians);
 
-                        var vert = position + circleOffset * width;
+                        var vert = position + circleOffset * localWidth;
                         verts.Add(vert);
 
                         var normal = circleOffset;

@@ -27,6 +27,8 @@ namespace CorgiSpline
         public float uv_tile_scale = 1f;
         public bool cover_ends_with_quads = true;
         public bool uv_stretch_instead_of_tile;
+        public bool use_splinepoint_rotations = false;
+        public bool use_splinepoint_scale = false;
 
         // internal 
         protected Mesh _mesh;
@@ -135,6 +137,8 @@ namespace CorgiSpline
                 height = height,
                 uv_tile_scale = uv_tile_scale,
                 uv_stretch_instead_of_tile = uv_stretch_instead_of_tile,
+                use_splinepoint_rotations = use_splinepoint_rotations,
+                use_splinepoint_scale = use_splinepoint_scale,
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
@@ -166,6 +170,8 @@ namespace CorgiSpline
             public float built_to_t;
             public bool cover_ends_with_quads;
             public bool uv_stretch_instead_of_tile;
+            public bool use_splinepoint_rotations;
+            public bool use_splinepoint_scale;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -235,6 +241,21 @@ namespace CorgiSpline
                     var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
                     var right = Vector3.Cross(forward, up); 
 
+                    if(use_splinepoint_rotations)
+                    {
+                        up = splinePoint.rotation * Vector3.up;
+                        forward = splinePoint.rotation * Vector3.forward;
+                        
+                        right = Vector3.Cross(forward, up);
+                    }
+
+                    var localWidth = width;
+
+                    if(use_splinepoint_scale)
+                    {
+                        localWidth *= splinePoint.scale.x;
+                    }
+
                     // skip if too close.. 
                     if(first_set && step != 0 && step != until_quality - 1 && Vector3.Distance(previousPosition, position) < 0.2f)
                     {
@@ -242,8 +263,8 @@ namespace CorgiSpline
                     }
 
                     // verts 
-                    var vert0 = position - right * width;
-                    var vert1 = position + right * width;
+                    var vert0 = position - right * localWidth;
+                    var vert1 = position + right * localWidth;
 
                     verts.Add(vert0);
                     verts.Add(vert1);
@@ -329,7 +350,17 @@ namespace CorgiSpline
                         new_uv.x = 1.0f - new_uv.x;
                         // new_uv.y = 1.0f - new_uv.y;
 
-                        new_vert += new_normal * height;
+                        var localHeight = height;
+
+                        if(use_splinepoint_scale)
+                        {
+                            var splinePoint_t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, new_vert);
+                            var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, splinePoint_t);
+                            var splineScale = splinePoint.scale;
+                            localHeight *= splineScale.y;
+                        }
+
+                        new_vert += new_normal * localHeight;
 
                         verts.Add(new_vert);
                         normals.Add(new_normal);
