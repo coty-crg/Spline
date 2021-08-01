@@ -526,6 +526,8 @@ namespace CorgiSpline
                     }
 
                     var screenPointPosition = camera.WorldToScreenPoint(point.position);
+                        screenPointPosition.z = 0f;
+
                     var toPoint = screenPointPosition - screenPosition;
                     var toPointDistance = toPoint.magnitude;
                     if (toPointDistance < closestDistance)
@@ -549,8 +551,8 @@ namespace CorgiSpline
 
                 else if (closestIndex == Points.Length - 1)
                 {
-                    var index_a = closestIndex;
-                    var index_b = closestIndex - 1;
+                    var index_a = closestIndex - 1;
+                    var index_b = closestIndex ;
 
                     point0 = Points[index_a];
                     point1 = Points[index_b];
@@ -599,6 +601,9 @@ namespace CorgiSpline
                         point1 = point_c;
                     }
                 }
+
+                point0.position.z = 0;
+                point1.position.z = 0;
 
                 var projectedPosition = ProjectLinear(point0, point1, screenPosition);
                 var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
@@ -675,6 +680,12 @@ namespace CorgiSpline
                     p2.position = camera.WorldToScreenPoint(p2.position);
                     p3.position = camera.WorldToScreenPoint(p3.position);
 
+                    p0.position.z = 0f;
+                    p1.position.z = 0f;
+                    p2.position.z = 0f;
+                    p3.position.z = 0f;
+
+
                     var t = BSplineProject(p0.position, p1.position, p2.position, p3.position, screenPosition);
                     var projected = BSplineInterpolate(p0.position, p1.position, p2.position, p3.position, t);
                     var distance = Vector3.Distance(projected, screenPosition);
@@ -683,7 +694,7 @@ namespace CorgiSpline
                     {
                         closestDistance = distance;
 
-                        best_i = i;
+                        best_i = i + 1;
                         best_t = t;
                     }
                 }
@@ -1525,9 +1536,10 @@ namespace CorgiSpline
             var direction = b.position - a.position;
             var toPoint = point - a.position;
 
-            var dot = Vector3.Dot(direction, toPoint);
-            if (dot < 0) return a.position;
+            // var dot = Vector3.Dot(direction, toPoint);
+            // if (dot < 0) return a.position;
 
+            direction = direction.normalized;
 
             var projected = VectorProject(point - a.position, direction) + a.position;
             return projected;
