@@ -143,15 +143,6 @@ namespace CorgiSpline
                     var position = splinePoint.position;
                     var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
-                    // if(step > 0)
-                    // {
-                    //     if(Vector3.Distance(position, previousPosition) > 0.0001f)
-                    //     {
-                    //         forward = (position - previousPosition).normalized;
-                    //     }
-                    // }
-
-
                     var right = Vector3.Cross(forward, up);
 
                     // skip if too close.. 
