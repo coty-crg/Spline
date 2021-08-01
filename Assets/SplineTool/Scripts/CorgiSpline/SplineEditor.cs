@@ -479,7 +479,6 @@ namespace CorgiSpline
 
         private void AppendPoint(Spline instance, Vector3 position, Quaternion rotation, Vector3 scale)
         {
-            Undo.RegisterCompleteObjectUndo(instance, "AppendPoint");
 
             // if we want to place the point at the beginning, 
             // just reverse the array, place, then reverse again 
@@ -497,8 +496,6 @@ namespace CorgiSpline
             }
 
             instance.UpdateNative();
-
-            EditorUtility.SetDirty(instance);
         }
 
         private void DrawPlacePlane()
@@ -712,14 +709,14 @@ namespace CorgiSpline
                 switch (Tools.current)
                 {
                     case Tool.Move:
-                        Undo.RecordObject(this, "Moving Place Plane");
+                        // Undo.RecordObject(this, "Moving Place Plane");
                         var moved = DrawHandle(Vector3.zero, ref PlacePlaneOffset, out Vector3 offsetDelta);
 
 
                         // PlacePlaneOffset += offsetDelta;
                         break;
                     case Tool.Rotate:
-                        Undo.RecordObject(this, "Rotating Place Plane");
+                        // Undo.RecordObject(this, "Rotating Place Plane");
                         DrawHandleRotation(PlacePlaneOffset, ref PlacePlaneNormalRotation);
 
                         var normal = PlacePlaneNormalRotation * Vector3.forward;
@@ -766,11 +763,15 @@ namespace CorgiSpline
             {
                 if (PlaceMode == SplinePlacePointMode.InsertBetweenPoints)
                 {
+                    Undo.RecordObject(instance, "Inserting point.");
                     InsertPoint(instance, placingPoint);
+                    EditorUtility.SetDirty(instance);
                 }
                 else
                 {
+                    Undo.RegisterCompleteObjectUndo(instance, "AppendPoint");
                     AppendPoint(instance, placingPoint.position, placingPoint.rotation, placingPoint.scale);
+                    EditorUtility.SetDirty(instance);
                 }
 
                 Event.current.Use();
@@ -780,7 +781,6 @@ namespace CorgiSpline
 
         private void InsertPoint(Spline instance, SplinePoint placingPoint)
         {
-            Undo.RecordObject(instance, "Inserting point.");
             instance.InsertPoint(placingPoint);
             instance.UpdateNative();
         }
