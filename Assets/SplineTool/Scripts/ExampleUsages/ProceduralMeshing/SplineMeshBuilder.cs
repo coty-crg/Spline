@@ -36,7 +36,7 @@ namespace CorgiSpline
         protected NativeList<int> _nativeTris;
         protected JobHandle _previousHandle;
 
-        private void OnEnable()
+        protected virtual void OnEnable()
         {
             _mesh = new Mesh();
 
@@ -48,7 +48,7 @@ namespace CorgiSpline
             // Rebuild_Jobified();
         }
 
-        private void OnDisable()
+        protected virtual void OnDisable()
         {
             CompleteJob();
 
@@ -70,7 +70,7 @@ namespace CorgiSpline
             }
         }
 
-        private void Update()
+        protected virtual void Update()
         {
             if (RebuildEveryFrame)
             {
@@ -78,7 +78,7 @@ namespace CorgiSpline
             }
         }
 
-        private void LateUpdate()
+        protected virtual void LateUpdate()
         {
             if (RebuildEveryFrame && AllowAsyncRebuild)
             {
