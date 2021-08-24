@@ -14,10 +14,12 @@ namespace CorgiSpline
         private List<int> cache_tris = new List<int>();
         private List<Vector3> cache_verts = new List<Vector3>();
         private List<Vector3> cache_normals = new List<Vector3>();
+        private List<Vector4> cache_tangents = new List<Vector4>();
 
         private NativeList<int> native_tris;
         private NativeList<Vector3> native_verts;
         private NativeList<Vector3> native_normals;
+        private NativeList<Vector4> native_tangents;
 
         private NativeList<int> native_stitch_start;
         private NativeList<int> native_stitch_end;
@@ -29,6 +31,7 @@ namespace CorgiSpline
             native_tris = new NativeList<int>(Allocator.Persistent);
             native_verts = new NativeList<Vector3>(Allocator.Persistent);
             native_normals = new NativeList<Vector3>(Allocator.Persistent);
+            native_tangents = new NativeList<Vector4>(Allocator.Persistent);
 
             native_stitch_start = new NativeList<int>(Allocator.Persistent);
             native_stitch_end = new NativeList<int>(Allocator.Persistent);
@@ -41,6 +44,7 @@ namespace CorgiSpline
             native_tris.Dispose();
             native_verts.Dispose();
             native_normals.Dispose();
+            native_tangents.Dispose();
 
             native_stitch_start.Dispose();
             native_stitch_end.Dispose();
@@ -57,6 +61,7 @@ namespace CorgiSpline
             cache_tris.Clear();
             cache_verts.Clear();
             cache_normals.Clear();
+            cache_tangents.Clear();
 
             native_tris.Clear();
             native_verts.Clear();
@@ -66,6 +71,7 @@ namespace CorgiSpline
             RepeatableMesh.GetTriangles(cache_tris, 0);
             RepeatableMesh.GetVertices(cache_verts);
             RepeatableMesh.GetNormals(cache_normals);
+            RepeatableMesh.GetTangents(cache_tangents);
 
             for (var t = 0; t < cache_tris.Count; ++t)
                 native_tris.Add(cache_tris[t]);
@@ -75,6 +81,9 @@ namespace CorgiSpline
 
             for (var v = 0; v < cache_normals.Count; ++v)
                 native_normals.Add(cache_normals[v]);
+
+            for (var v = 0; v < cache_tangents.Count; ++v)
+                native_tangents.Add(cache_tangents[v]);
 
             // try and find start and end z values 
             var z_min = float.MaxValue;
@@ -188,6 +197,8 @@ namespace CorgiSpline
             {
                 repeatingMesh_tris = native_tris,
                 repeatingMesh_verts = native_verts,
+                repeatingMesh_normals = native_normals,
+                repeatingMesh_tangents = native_tangents,
 
                 repeatingMesh_stitchVertsStart = native_stitch_start,
                 repeatingMesh_stitchVertsEnd = native_stitch_end,
@@ -199,6 +210,9 @@ namespace CorgiSpline
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
+                tangents = _nativeTangents,
+                bounds = _nativeBounds,
+                
                 uvs = _nativeUVs,
                 tris = _nativeTris,
 
@@ -224,6 +238,8 @@ namespace CorgiSpline
 
             public NativeArray<int> repeatingMesh_tris;
             public NativeArray<Vector3> repeatingMesh_verts;
+            public NativeArray<Vector3> repeatingMesh_normals;
+            public NativeArray<Vector4> repeatingMesh_tangents;
 
             public NativeArray<int> repeatingMesh_stitchVertsStart;
             public NativeArray<int> repeatingMesh_stitchVertsEnd;
@@ -231,8 +247,10 @@ namespace CorgiSpline
             // mesh data 
             public NativeList<Vector3> verts;
             public NativeList<Vector3> normals;
+            public NativeList<Vector4> tangents;
             public NativeList<Vector4> uvs;
             public NativeList<int> tris;
+            public NativeArray<Bounds> bounds;
 
             // Spline data
             [ReadOnly]
@@ -245,6 +263,8 @@ namespace CorgiSpline
 
             public void Execute()
             {
+                var trackedBounds = new Bounds();
+
                 // reset data 
                 verts.Clear();
                 normals.Clear();
@@ -320,11 +340,16 @@ namespace CorgiSpline
                         var original = repeatingMesh_verts[ri];
 
                         var transformed = point_trs.MultiplyPoint(new Vector4(original.x, original.y, original.z, 1.0f));
-                        verts.Add(new Vector3(transformed.x, transformed.y, transformed.z));
+                        var vert = new Vector3(transformed.x, transformed.y, transformed.z);
+                        verts.Add(vert);
                         
                         // verts.Add(point_trs.MultiplyPoint(original));
                         uvs.Add(new Vector4(current_uv_step, 0f));
-                        normals.Add(new Vector3(0, 1, 0)); 
+                        normals.Add(new Vector3(0, 1, 0));
+
+                        // track bounds.. 
+                        trackedBounds.min = Vector3.Min(trackedBounds.min, vert);
+                        trackedBounds.max = Vector3.Max(trackedBounds.max, vert);
                     }
 
                     // copy/paste tris from repeatable mesh 
@@ -398,6 +423,8 @@ namespace CorgiSpline
                         tris.Add(triIndex_a_1);
                     }
                 }
+
+                bounds[0] = trackedBounds;
             }
         }
     }

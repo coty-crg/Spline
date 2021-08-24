@@ -34,7 +34,9 @@ namespace CorgiSpline
         protected Mesh _mesh;
         protected NativeList<Vector3> _nativeVertices;
         protected NativeList<Vector3> _nativeNormals;
+        protected NativeList<Vector4> _nativeTangents;
         protected NativeList<Vector4> _nativeUVs;
+        protected NativeArray<Bounds> _nativeBounds;
         protected NativeList<int> _nativeTris;
         protected JobHandle _previousHandle;
 
@@ -44,8 +46,10 @@ namespace CorgiSpline
 
             _nativeVertices = new NativeList<Vector3>(Allocator.Persistent);
             _nativeNormals = new NativeList<Vector3>(Allocator.Persistent);
+            _nativeTangents = new NativeList<Vector4>(Allocator.Persistent);
             _nativeUVs = new NativeList<Vector4>(Allocator.Persistent);
             _nativeTris = new NativeList<int>(Allocator.Persistent);
+            _nativeBounds = new NativeArray<Bounds>(1, Allocator.Persistent);
 
             // Rebuild_Jobified();
         }
@@ -56,8 +60,10 @@ namespace CorgiSpline
 
             _nativeVertices.Dispose();
             _nativeNormals.Dispose();
+            _nativeTangents.Dispose(); 
             _nativeUVs.Dispose();
             _nativeTris.Dispose();
+            _nativeBounds.Dispose(); 
 
             if (_mesh != null)
             {
@@ -116,12 +122,17 @@ namespace CorgiSpline
 
             if(_nativeVertices.Length > 3 && _nativeTris.Length > 0)
             {
+
                 _mesh.SetVertices(_nativeVertices.AsArray());
                 _mesh.SetNormals(_nativeNormals.AsArray());
                 _mesh.SetUVs(0, _nativeUVs.AsArray());
+                _mesh.SetTangents(_nativeTangents.AsArray()); 
                 _mesh.SetIndices(_nativeTris.AsArray(), MeshTopology.Triangles, 0);
-                _mesh.RecalculateBounds();
-                _mesh.RecalculateTangents();
+                
+                // _mesh.RecalculateBounds();
+                // _mesh.RecalculateTangents();
+
+                _mesh.bounds = _nativeBounds[0];
             }
 
             var meshFilter = GetComponent<MeshFilter>();
@@ -142,8 +153,10 @@ namespace CorgiSpline
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
+                tangents = _nativeTangents,
                 uvs = _nativeUVs,
                 tris = _nativeTris,
+                bounds = _nativeBounds,
 
                 Points = SplineReference.NativePoints,
                 Mode = SplineReference.GetSplineMode(),
@@ -176,8 +189,11 @@ namespace CorgiSpline
             // mesh data 
             public NativeList<Vector3> verts;
             public NativeList<Vector3> normals;
+            public NativeList<Vector4> tangents;
             public NativeList<Vector4> uvs;
             public NativeList<int> tris;
+
+            public NativeArray<Bounds> bounds;
 
             // Spline data
             [ReadOnly]
@@ -193,10 +209,13 @@ namespace CorgiSpline
                 // reset data 
                 verts.Clear();
                 normals.Clear();
+                tangents.Clear(); 
                 uvs.Clear();
                 tris.Clear();
 
                 // track
+                var trackedBounds = new Bounds();
+
                 var current_uv_step = 0f;
 
                 // setup 
@@ -276,8 +295,14 @@ namespace CorgiSpline
                     normals.Add(normal0);
                     normals.Add(normal1);
 
+                    var tangent0 = new Vector4(right.x, right.y, right.z, 1.0f);
+                    var tangent1 = new Vector4(right.x, right.y, right.z, 1.0f);
+
+                    tangents.Add(tangent0);
+                    tangents.Add(tangent1);
+
                     // uvs 
-                    if(uv_stretch_instead_of_tile)
+                    if (uv_stretch_instead_of_tile)
                     {
                         current_uv_step = t;
                     }
@@ -292,6 +317,13 @@ namespace CorgiSpline
 
                     previousPosition = position;
                     first_set = true;
+
+                    // track bounds.. 
+                    trackedBounds.min = Vector3.Min(trackedBounds.min, vert0);
+                    trackedBounds.min = Vector3.Min(trackedBounds.min, vert1);
+
+                    trackedBounds.max = Vector3.Max(trackedBounds.max, vert0);
+                    trackedBounds.max = Vector3.Max(trackedBounds.max, vert1);
 
                     if (final_point_from_t)
                     {
@@ -309,6 +341,9 @@ namespace CorgiSpline
 
                     normals.Add(normals[0]);
                     normals.Add(normals[1]);
+
+                    tangents.Add(tangents[0]);
+                    tangents.Add(tangents[1]);
 
                     uvs.Add(uvs[offset_end + 0]);
                     uvs.Add(uvs[offset_end + 1]);
@@ -346,6 +381,8 @@ namespace CorgiSpline
                         var new_vert = verts[v];
                         var new_normal = normals[v] * -1f;
                         var new_uv = uvs[v];
+                        var new_tagent = tangents[v] * -1f;
+                            new_tagent.w = 1.0f;
 
                         new_uv.x = 1.0f - new_uv.x;
                         // new_uv.y = 1.0f - new_uv.y;
@@ -364,7 +401,13 @@ namespace CorgiSpline
 
                         verts.Add(new_vert);
                         normals.Add(new_normal);
+                        tangents.Add(new_tagent);
                         uvs.Add(new_uv);
+
+
+                        // track bounds.. 
+                        trackedBounds.min = Vector3.Min(trackedBounds.min, new_vert);
+                        trackedBounds.max = Vector3.Max(trackedBounds.max, new_vert);
                     }
 
                     // generate triangles
@@ -457,6 +500,9 @@ namespace CorgiSpline
                         tris.Add(end_cap_bottom + 0);
                     }
                 }
+
+                // remember bounds 
+                bounds[0] = trackedBounds;
             }
         }
     }

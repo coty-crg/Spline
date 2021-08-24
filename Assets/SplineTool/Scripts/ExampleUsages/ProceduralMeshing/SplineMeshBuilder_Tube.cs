@@ -41,8 +41,10 @@ namespace CorgiSpline
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
+                tangents = _nativeTangents,
                 uvs = _nativeUVs,
                 tris = _nativeTris,
+                bounds = _nativeBounds,
 
                 Points = SplineReference.NativePoints,
                 Mode = SplineReference.GetSplineMode(),
@@ -79,8 +81,10 @@ namespace CorgiSpline
             // mesh data 
             public NativeList<Vector3> verts;
             public NativeList<Vector3> normals;
+            public NativeList<Vector4> tangents;
             public NativeList<Vector4> uvs;
             public NativeList<int> tris;
+            public NativeArray<Bounds> bounds;
 
             // Spline data
             [ReadOnly]
@@ -100,9 +104,12 @@ namespace CorgiSpline
 
             public void Execute()
             {
+                var trackedBounds = new Bounds();
+
                 // reset data 
                 verts.Clear();
                 normals.Clear();
+                tangents.Clear(); 
                 uvs.Clear();
                 tris.Clear();
 
@@ -111,9 +118,11 @@ namespace CorgiSpline
 
                 // setup 
                 var start_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
+                var start_up = Vector3.up; 
                 var firstPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
 
                 var end_forward = Vector3.up; //  Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, built_to_t);
+                var end_up = Vector3.right; 
                 var lastPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, built_to_t);
 
                 var previousPosition = firstPoint.position;
@@ -200,8 +209,16 @@ namespace CorgiSpline
                         var normal = circleOffset;
                         normals.Add(normal);
 
+                        var tangent3 = Vector3.Cross(forward, normal).normalized;
+                        var tangent = new Vector4(tangent3.x, tangent3.y, tangent3.z, 1.0f);
+                        tangents.Add(tangent);
+
                         var uv = new Vector2((float) tube_step * tube_delta * uv_tile_scale, current_uv_step);
                         uvs.Add(uv);
+
+                        // track bounds.. 
+                        trackedBounds.min = Vector3.Min(trackedBounds.min, vert);
+                        trackedBounds.max = Vector3.Max(trackedBounds.max, vert);
                     }
                     
                     previousPosition = position;
@@ -261,6 +278,7 @@ namespace CorgiSpline
 
                     verts.Add(firstPoint.position);
                     normals.Add(start_forward);
+                    tangents.Add(new Vector4(start_up.x, start_up.y, start_up.z, 1.0f));
                     uvs.Add(new Vector4(0f, 0f, 0f, 0f));
 
                     for(var v = 0; v < tube_quality - 1; ++v)
@@ -278,6 +296,7 @@ namespace CorgiSpline
 
                     verts.Add(lastPoint.position);
                     normals.Add(end_forward);
+                    tangents.Add(new Vector4(end_up.x, end_up.y, end_up.z, 1.0f));
                     uvs.Add(new Vector4(0f, 0f, 0f, 0f));
 
                     for (var v = 0; v < tube_quality - 1; ++v)
@@ -291,6 +310,8 @@ namespace CorgiSpline
                         tris.Add(vert_top1);
                     }
                 }
+
+                bounds[0] = trackedBounds;
             }
         }
     }
