@@ -78,20 +78,35 @@ namespace CorgiSpline
             }
         }
 
+        [System.NonSerialized] private bool _asyncReadyToRebuild = true;
+
         protected virtual void Update()
         {
             if (RebuildEveryFrame)
             {
+                if(AllowAsyncRebuild && !_asyncReadyToRebuild)
+                {
+                    return;
+                }
+
                 Rebuild_Jobified();
             }
         }
 
         protected virtual void LateUpdate()
         {
-            if (RebuildEveryFrame && AllowAsyncRebuild)
+            // note: cant be as async in the editor, for editing purposes
+#if UNITY_EDITOR
+            if (RebuildEveryFrame && AllowAsyncRebuild) 
             {
                 CompleteJob();
             }
+#else
+            if (RebuildEveryFrame && AllowAsyncRebuild && _previousHandle.IsCompleted)
+            {
+                CompleteJob();
+            }
+#endif
         }
 
         public void Rebuild_Jobified()
@@ -106,7 +121,9 @@ namespace CorgiSpline
                 return;
             }
 
+
             _previousHandle = ScheduleMeshingJob();
+            _asyncReadyToRebuild = false;
 
             if (!AllowAsyncRebuild)
             {
@@ -114,9 +131,17 @@ namespace CorgiSpline
             }
         }
 
+        public float _prevCompleteMs;
+
         public void CompleteJob()
         {
+            var stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+
             _previousHandle.Complete();
+
+            _prevCompleteMs = (float) stopwatch.ElapsedTicks / System.TimeSpan.TicksPerMillisecond;
+            stopwatch.Stop();
 
             _mesh.Clear();
 
@@ -137,6 +162,8 @@ namespace CorgiSpline
 
             var meshFilter = GetComponent<MeshFilter>();
             meshFilter.sharedMesh = _mesh;
+
+            _asyncReadyToRebuild = true;
         }
 
         protected virtual JobHandle ScheduleMeshingJob(JobHandle dependency = default)
