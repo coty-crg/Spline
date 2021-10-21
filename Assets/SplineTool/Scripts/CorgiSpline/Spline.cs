@@ -436,8 +436,7 @@ namespace CorgiSpline
 
                 for (var i = 0; i < length; i += 1)
                 {
-                    var index = i;
-                    index = Mathf.Clamp(index, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
+                    var index = Mathf.Clamp(i, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
 
                     int index0;
                     int index1;
@@ -446,7 +445,7 @@ namespace CorgiSpline
 
                     if (ClosedSpline)
                     {
-                        int mod_count = Points.Length - 1;
+                        int mod_count = Points.Length;
 
                         index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                         index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
@@ -1721,7 +1720,7 @@ namespace CorgiSpline
 
                     if (ClosedSpline)
                     {
-                        int mod_count = Points.Length - 1;
+                        int mod_count = Points.Length;
 
                         index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                         index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
