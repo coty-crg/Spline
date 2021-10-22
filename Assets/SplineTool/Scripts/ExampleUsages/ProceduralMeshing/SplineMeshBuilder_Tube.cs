@@ -245,10 +245,12 @@ namespace CorgiSpline
                         var vert = verts[v];
                         var normal = normals[v];
                         var uv = uvs[v + offset_end];
+                        var tangent = tangents[v + offset_end];
 
                         verts.Add(vert);
                         normals.Add(normal);
                         uvs.Add(uv);
+                        tangents.Add(tangent); 
                     }
                 }
 
