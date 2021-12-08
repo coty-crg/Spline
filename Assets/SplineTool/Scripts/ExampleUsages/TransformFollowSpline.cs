@@ -27,7 +27,7 @@ namespace CorgiSpline
 
             if (FollowRotation)
             {
-                var up = projectedPoint.rotation * Vector3.forward;
+                var up = projectedPoint.rotation * Vector3.up;
                 transform.rotation = Quaternion.LookRotation(projectedForward, up);
             }
         }

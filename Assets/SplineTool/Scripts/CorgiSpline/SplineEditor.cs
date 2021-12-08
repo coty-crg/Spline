@@ -254,22 +254,9 @@ namespace CorgiSpline
                     {
                         Undo.RecordObject(instance, "Forced Rotation");
 
-                        for(var p = 0; p < SelectedPoints.Count; ++p)
-                        {
-                            var point_index = SelectedPoints[p];
-                            var selectedPoint = instance.Points[point_index];
-
-
-                            var selected_t = instance.ProjectOnSpline_t(selectedPoint.position);
-                            var selected_forward = instance.GetForward(selected_t);
-                            var selected_up = Vector3.up;
-
-                            selectedPoint.rotation = Quaternion.LookRotation(selected_forward, selected_up);
-
-                            instance.Points[point_index] = selectedPoint;
-                        }
-
+                        instance.ForcePointsForwardAndUp(); 
                         instance.UpdateNative();
+
                         EditorUtility.SetDirty(instance); 
                     }
 

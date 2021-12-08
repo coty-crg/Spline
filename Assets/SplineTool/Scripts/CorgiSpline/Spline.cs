@@ -1991,6 +1991,22 @@ namespace CorgiSpline
             return trs.inverse;
         }
 
+        public void ForcePointsForwardAndUp()
+        {
+            for (var p = 0; p < Points.Length; ++p)
+            {
+                var selectedPoint = Points[p];
+
+                var selected_t = ProjectOnSpline_t(selectedPoint.position);
+                var selected_forward = GetForward(selected_t);
+                var selected_up = Vector3.up;
+
+                selectedPoint.rotation = Quaternion.LookRotation(selected_forward, selected_up);
+
+                Points[p] = selectedPoint;
+            }
+        }
+
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
