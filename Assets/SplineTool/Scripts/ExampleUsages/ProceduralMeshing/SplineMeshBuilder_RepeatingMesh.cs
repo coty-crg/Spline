@@ -7,6 +7,311 @@ using UnityEngine;
 
 namespace CorgiSpline
 {
+#if UNITY_EDITOR
+    using UnityEditor;
+
+    public class SplineMeshBuilder_RepeatingMeshEditor_GUI : EditorWindow
+    {
+        public SplineMeshBuilder_RepeatingMesh instance;
+
+        private List<Vector3> drawnPositions = new List<Vector3>();
+        private Vector3 _position = new Vector3(128f, 128f, 0f);
+        private Vector3 _rotation = new Vector3(0f, 25f, 0f);
+        private float _scale = 256f;
+
+        [System.NonSerialized] private int _selected_vert_0 = -1;
+
+        public static SplineMeshBuilder_RepeatingMeshEditor_GUI ShowWindow()
+        {
+            return GetWindow<SplineMeshBuilder_RepeatingMeshEditor_GUI>("RepeatingMeshEditor");
+        }
+
+        private void OnGUI()
+        {
+            DrawToolbar();
+
+            if (instance == null)
+            {
+                GUILayout.Label("Select an instance of SplineMeshBuilder_RepeatingMesh to edit.");
+                return;
+            }
+
+            HandlEvents();
+            DrawMeshEditor();
+        }
+
+        private void DrawToolbar()
+        {
+            instance = (SplineMeshBuilder_RepeatingMesh)EditorGUILayout.ObjectField("Instance", instance, typeof(SplineMeshBuilder_RepeatingMesh), true);
+
+            GUILayout.BeginHorizontal();
+            {
+                GUILayout.Label("Tools");
+                if (GUILayout.Button("swap overrides order"))
+                {
+                    var tempa = new int[instance.override_stich_start.Count];
+                    var tempb = new int[instance.override_stich_end.Count];
+
+                    for (var i = 0; i < instance.override_stich_start.Count; ++i)
+                    {
+                        tempa[i] = instance.override_stich_start[i];
+                    }
+
+                    for (var i = 0; i < instance.override_stich_end.Count; ++i)
+                    {
+                        tempb[i] = instance.override_stich_end[i];
+                    }
+
+                    for (var i = 0; i < instance.override_stich_start.Count; ++i)
+                    {
+                        instance.override_stich_start[i] = tempa[instance.override_stich_start.Count - 1 - i];
+                    }
+
+                    for (var i = 0; i < instance.override_stich_end.Count; ++i)
+                    {
+                        instance.override_stich_end[i] = tempb[instance.override_stich_end.Count - 1 - i];
+                    }
+                }
+
+                if (GUILayout.Button("swap overrides starts and ends"))
+                {
+                    var temp = new int[instance.override_stich_start.Count];
+
+                    for (var i = 0; i < instance.override_stich_start.Count; ++i)
+                    {
+                        temp[i] = instance.override_stich_start[i];
+                    }
+
+                    for (var i = 0; i < instance.override_stich_start.Count; ++i)
+                    {
+                        instance.override_stich_start[i] = instance.override_stich_end[i];
+                    }
+
+                    for (var i = 0; i < instance.override_stich_start.Count; ++i)
+                    {
+                        instance.override_stich_end[i] = temp[i];
+                    }
+                }
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            {
+                GUILayout.Label("Stats");
+                GUILayout.Label($"verts: {instance.RepeatableMesh.vertexCount}");
+                GUILayout.Label($"stitched: {instance.override_stich_start.Count}");
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        private void HandlEvents()
+        {
+            if (Event.current.type == EventType.MouseDrag && Event.current.button == 0)
+            {
+                _rotation.y += Event.current.delta.x;
+                _rotation.x += Event.current.delta.y;
+                Event.current.Use();
+            }
+
+            else if (Event.current.type == EventType.MouseDrag && Event.current.button == 2)
+            {
+                _position.x += Event.current.delta.x;
+                _position.y += Event.current.delta.y;
+
+                Event.current.Use();
+            }
+
+            else if (Event.current.type == EventType.ScrollWheel)
+            {
+                _scale += Event.current.delta.y * 10f;
+
+                Event.current.Use();
+            }
+        }
+
+        private void DrawMeshEditor()
+        {
+            var mesh = instance.RepeatableMesh;
+            var verts = mesh.vertices;
+            var triangles = mesh.triangles;
+
+            Handles.BeginGUI();
+
+            var localToWorld = Matrix4x4.TRS(_position, Quaternion.Euler(_rotation), new Vector3(_scale, _scale, _scale)); ;
+
+            for (var s = 0; s < 2; ++s)
+            {
+                var offset = Vector3.zero;
+                if (s == 1)
+                {
+                    offset = new Vector3(0, 0, -1);
+                }
+
+                drawnPositions.Clear();
+
+                Handles.color = Color.white;
+
+                for (var v = 0; v < verts.Length; ++v)
+                {
+                    if (s == 0 && _selected_vert_0 >= 0)
+                    {
+                        continue;
+                    }
+
+                    if (s > 0 && _selected_vert_0 == -1)
+                    {
+                        continue;
+                    }
+
+                    var vertex = verts[v] + offset;
+                    var worldPos = localToWorld.MultiplyPoint(vertex);
+                    worldPos.z = 0f;
+
+                    var skip = false;
+                    foreach (var prevPos in drawnPositions)
+                    {
+                        if (Vector3.Distance(prevPos, worldPos) < 0.01f)
+                        {
+                            skip = true;
+                            break;
+                        }
+                    }
+
+                    if (skip) continue;
+                    drawnPositions.Add(worldPos);
+
+                    if (_selected_vert_0 >= 0)
+                    {
+                        Handles.color = Color.white;
+                    }
+
+                    if (_selected_vert_0 == v)
+                    {
+                        Handles.color = Color.green;
+                    }
+
+                    var buttonSize = 4f;
+                    if (Handles.Button(worldPos, Quaternion.identity, buttonSize, buttonSize, Handles.DotHandleCap))
+                    {
+                        if (_selected_vert_0 == -1)
+                        {
+                            _selected_vert_0 = v;
+                        }
+                        else
+                        {
+                            Undo.RecordObject(instance, "Adding point");
+
+                            // remove any duplicate stitched points.. 
+                            var existingIndex = instance.override_stich_start.IndexOf(_selected_vert_0);
+                            if (existingIndex >= 0)
+                            {
+                                instance.override_stich_start.RemoveAt(existingIndex);
+                                instance.override_stich_end.RemoveAt(existingIndex);
+                            }
+
+                            existingIndex = instance.override_stich_end.IndexOf(_selected_vert_0);
+                            if (existingIndex >= 0)
+                            {
+                                instance.override_stich_start.RemoveAt(existingIndex);
+                                instance.override_stich_end.RemoveAt(existingIndex);
+                            }
+
+                            existingIndex = instance.override_stich_start.IndexOf(v);
+                            if (existingIndex >= 0)
+                            {
+                                instance.override_stich_start.RemoveAt(existingIndex);
+                                instance.override_stich_end.RemoveAt(existingIndex);
+                            }
+
+                            existingIndex = instance.override_stich_end.IndexOf(v);
+                            if (existingIndex >= 0)
+                            {
+                                instance.override_stich_start.RemoveAt(existingIndex);
+                                instance.override_stich_end.RemoveAt(existingIndex);
+                            }
+
+                            // add the stitched points 
+                            instance.override_stich_start.Add(_selected_vert_0);
+                            instance.override_stich_end.Add(v);
+
+                            _selected_vert_0 = -1;
+                        }
+                    }
+                }
+
+                // draw the wireframe (preview) 
+                Handles.color = new Color(0.75f, 0.75f, 0.75f, 1f);
+
+                for (var t = 0; t < triangles.Length - 3; t += 3)
+                {
+                    var v0 = triangles[t + 0];
+                    var v1 = triangles[t + 1];
+                    var v2 = triangles[t + 2];
+
+                    var vert0 = verts[v0] + offset;
+                    var vert1 = verts[v1] + offset;
+                    var vert2 = verts[v2] + offset;
+
+                    var worldPos0 = localToWorld.MultiplyPoint(vert0);
+                    var worldPos1 = localToWorld.MultiplyPoint(vert1);
+                    var worldPos2 = localToWorld.MultiplyPoint(vert2);
+
+                    worldPos0.z = 0;
+                    worldPos1.z = 0;
+                    worldPos2.z = 0;
+
+                    Handles.DrawLine(worldPos0, worldPos1);
+                    Handles.DrawLine(worldPos1, worldPos2);
+                    Handles.DrawLine(worldPos2, worldPos0);
+                }
+            }
+
+            // draw stitching 
+            Handles.color = Color.green;
+            for (var o = 0; o < instance.override_stich_start.Count; ++o)
+            {
+                var offset = new Vector3(0, 0, -1);
+
+                var v0 = instance.override_stich_start[o];
+                var v1 = instance.override_stich_end[o];
+
+                var vertex0 = verts[v0];
+                var vertex1 = verts[v1] + offset;
+
+                var worldPos0 = localToWorld.MultiplyPoint(vertex0);
+                var worldPos1 = localToWorld.MultiplyPoint(vertex1);
+
+                worldPos0.z = 0;
+                worldPos1.z = 0;
+
+                Handles.DrawLine(worldPos0, worldPos1);
+            }
+
+            Handles.EndGUI();
+        }
+    }
+
+    [CustomEditor(typeof(SplineMeshBuilder_RepeatingMesh))]
+    public class SplineMeshBuilder_RepeatingMeshEditor : Editor
+    {
+        private SplineMeshBuilder_RepeatingMeshEditor_GUI customEditor;
+
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+
+            var instance = (SplineMeshBuilder_RepeatingMesh)target;
+
+            if (GUILayout.Button("Mesh Stitching Editor"))
+            {
+                var window = SplineMeshBuilder_RepeatingMeshEditor_GUI.ShowWindow();
+                window.instance = instance;
+            }
+        }
+    }
+#endif
+
+
     public class SplineMeshBuilder_RepeatingMesh : SplineMeshBuilder
     {
         public Mesh RepeatableMesh;
@@ -23,6 +328,9 @@ namespace CorgiSpline
 
         private NativeList<int> native_stitch_start;
         private NativeList<int> native_stitch_end;
+
+        [HideInInspector] public List<int> override_stich_start = new List<int>();
+        [HideInInspector] public List<int> override_stich_end = new List<int>();
 
         protected override void OnEnable()
         {
@@ -52,7 +360,7 @@ namespace CorgiSpline
 
         protected override JobHandle ScheduleMeshingJob(JobHandle dependency = default)
         {
-            if(RepeatableMesh == null)
+            if (RepeatableMesh == null)
             {
                 return dependency;
             }
@@ -88,10 +396,10 @@ namespace CorgiSpline
             // try and find start and end z values 
             var z_min = float.MaxValue;
             var z_max = float.MinValue;
-            for(var v = 0; v < native_verts.Length; ++v)
+            for (var v = 0; v < native_verts.Length; ++v)
             {
                 var vertex = native_verts[v];
-                if(vertex.z < z_min)
+                if (vertex.z < z_min)
                 {
                     z_min = vertex.z;
                 }
@@ -139,11 +447,11 @@ namespace CorgiSpline
 
                 var swap_index = -1;
 
-                for(var b = a + 1; b < angles.Length; ++b)
+                for (var b = a + 1; b < angles.Length; ++b)
                 {
                     var angle_b = angles[b];
 
-                    if(angle_a < angle_b)
+                    if (angle_a < angle_b)
                     {
                         swap_index = b;
                         break;
@@ -152,7 +460,7 @@ namespace CorgiSpline
 
 
                 // swap.. 
-                if(swap_index != -1)
+                if (swap_index != -1)
                 {
                     var b = swap_index;
                     var angle_b = angles[b];
@@ -177,19 +485,32 @@ namespace CorgiSpline
                 var tri_a = native_stitch_start[v];
                 var vert_a = native_verts[tri_a];
 
-                for(var j = 0; j < native_stitch_end.Length; ++j)
+                for (var j = 0; j < native_stitch_end.Length; ++j)
                 {
                     var tri_b = native_stitch_end[j];
                     var vert_b = native_verts[tri_b];
 
-                    if(vert_a.x == vert_b.x && vert_a.y == vert_b.y)
+                    if (vert_a.x == vert_b.x && vert_a.y == vert_b.y)
                     {
                         // swap 
                         var tri_end = native_stitch_end[v];
                         native_stitch_end[v] = tri_b;
                         native_stitch_end[j] = tri_end;
-                        break; 
+                        break;
                     }
+                }
+            }
+
+            // optional override step 
+            if (override_stich_start != null && override_stich_end != null && override_stich_start.Count > 0 && override_stich_end.Count > 0 && override_stich_start.Count == override_stich_end.Count)
+            {
+                native_stitch_start.Clear();
+                native_stitch_end.Clear();
+
+                for (var i = 0; i < override_stich_start.Count; ++i)
+                {
+                    native_stitch_start.Add(override_stich_start[i]);
+                    native_stitch_end.Add(override_stich_end[i]);
                 }
             }
 
@@ -212,7 +533,7 @@ namespace CorgiSpline
                 normals = _nativeNormals,
                 tangents = _nativeTangents,
                 bounds = _nativeBounds,
-                
+
                 uvs = _nativeUVs,
                 tris = _nativeTris,
 
@@ -279,14 +600,14 @@ namespace CorgiSpline
                 var previousPosition = firstPoint.position;
 
                 // closed splines overlap a bit so we dont have to stitch 
-                var full_loop = ClosedSpline  && built_to_t >= 1f;
+                var full_loop = ClosedSpline && built_to_t >= 1f;
                 var first_set = false;
 
 
                 var repeatingBoundsMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
                 var repeatingBoundsMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
 
-                for(var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
+                for (var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
                 {
                     var vert = repeatingMesh_verts[ri];
                     repeatingBoundsMin = Vector3.Min(repeatingBoundsMin, vert);
@@ -299,7 +620,7 @@ namespace CorgiSpline
                 // step through 
                 for (var step = 0; step < quality; ++step)
                 {
-                    var t = (float) step / (quality - 1);
+                    var t = (float)step / (quality - 1);
 
                     var final_point_from_t = false;
                     if (t > built_to_t)
@@ -312,9 +633,9 @@ namespace CorgiSpline
                     var position = splinePoint.position;
 
                     // don't allow repeating to intersect, if possible..
-                    if(first_set && Vector3.Distance(position, previousPosition) <= boundsDistance)
+                    if (first_set && Vector3.Distance(position, previousPosition) <= boundsDistance)
                     {
-                        continue; 
+                        continue;
                     }
 
 
@@ -333,16 +654,16 @@ namespace CorgiSpline
 
 
                     // todo:
-                    
+
                     // copy/paste verts from repeatable mesh
-                    for(var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
+                    for (var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
                     {
                         var original = repeatingMesh_verts[ri];
 
                         var transformed = point_trs.MultiplyPoint(new Vector4(original.x, original.y, original.z, 1.0f));
                         var vert = new Vector3(transformed.x, transformed.y, transformed.z);
                         verts.Add(vert);
-                        
+
                         // verts.Add(point_trs.MultiplyPoint(original));
                         uvs.Add(new Vector4(current_uv_step, 0f));
                         normals.Add(new Vector3(0, 1, 0));
@@ -360,7 +681,7 @@ namespace CorgiSpline
                     }
 
                     // stitch 
-                    if(first_set)
+                    if (first_set)
                     {
 
                         var tri_offset_a = repeatingMesh_verts.Length * (repeatCount - 1);
@@ -401,7 +722,7 @@ namespace CorgiSpline
                 }
 
 
-                if(ClosedSpline && built_to_t >= 1f)
+                if (ClosedSpline && built_to_t >= 1f)
                 {
                     var tri_offset_a = repeatingMesh_verts.Length * (repeatCount - 1);
                     var tri_offset_b = 0;
@@ -427,5 +748,64 @@ namespace CorgiSpline
                 bounds[0] = trackedBounds;
             }
         }
+
+
+#if UNITY_EDITOR
+        [System.NonSerialized] private List<Vector3> drawnPositions = new List<Vector3>();
+
+        private void OnDrawGizmosSelected()
+        {
+            var localToWorld = transform.localToWorldMatrix;
+
+            Gizmos.DrawWireMesh(RepeatableMesh, transform.position, transform.rotation, transform.lossyScale);
+
+            drawnPositions.Clear();
+
+            for (var v = 0; v < cache_verts.Count; ++v)
+            {
+                var vertex = cache_verts[v];
+                var worldPos = localToWorld.MultiplyPoint(vertex);
+
+                var skip = false;
+                foreach (var prevPos in drawnPositions)
+                {
+                    if (Vector3.Distance(prevPos, worldPos) < 0.01f)
+                    {
+                        skip = true;
+                        break;
+                    }
+                }
+
+                if (skip) continue;
+                drawnPositions.Add(worldPos);
+
+                UnityEditor.Handles.Label(worldPos, $"{v:N0}");
+            }
+        }
+
+        private void OnSceneGUI()
+        {
+            var localToWorld = transform.localToWorldMatrix;
+
+            UnityEditor.Handles.BeginGUI();
+
+            for (var v = 0; v < cache_verts.Count; ++v)
+            {
+                var vertex = cache_verts[v];
+                var worldPos = localToWorld.MultiplyPoint(vertex);
+
+                var size = 0.025f;
+
+                if (UnityEditor.Handles.Button(worldPos, Quaternion.identity, size, size, UnityEditor.Handles.DotHandleCap))
+                {
+                    Debug.Log(v);
+                }
+            }
+
+            UnityEditor.Handles.EndGUI();
+            UnityEditor.SceneView.RepaintAll();
+        }
+#endif
+
     }
 }
