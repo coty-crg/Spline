@@ -38,6 +38,7 @@ namespace CorgiSpline
         protected NativeList<Vector4> _nativeTangents;
         protected NativeList<Vector4> _nativeUVs;
         protected NativeArray<Bounds> _nativeBounds;
+        protected NativeList<Vector4> _nativeColors;
         protected NativeList<int> _nativeTris;
         protected JobHandle _previousHandle;
 
@@ -51,8 +52,9 @@ namespace CorgiSpline
             _nativeUVs = new NativeList<Vector4>(Allocator.Persistent);
             _nativeTris = new NativeList<int>(Allocator.Persistent);
             _nativeBounds = new NativeArray<Bounds>(1, Allocator.Persistent);
+            _nativeColors = new NativeList<Vector4>(Allocator.Persistent);
 
-            if (RebuildOnEnable)
+            if(RebuildOnEnable)
             {
                 Rebuild_Jobified();
                 CompleteJob();
@@ -65,10 +67,11 @@ namespace CorgiSpline
 
             _nativeVertices.Dispose();
             _nativeNormals.Dispose();
-            _nativeTangents.Dispose();
+            _nativeTangents.Dispose(); 
             _nativeUVs.Dispose();
             _nativeTris.Dispose();
             _nativeBounds.Dispose();
+            _nativeColors.Dispose();
 
             if (_mesh != null)
             {
@@ -89,7 +92,7 @@ namespace CorgiSpline
         {
             if (RebuildEveryFrame)
             {
-                if (AllowAsyncRebuild && !_asyncReadyToRebuild)
+                if(AllowAsyncRebuild && !_asyncReadyToRebuild)
                 {
                     return;
                 }
@@ -102,7 +105,7 @@ namespace CorgiSpline
         {
             // note: cant be as async in the editor, for editing purposes
 #if UNITY_EDITOR
-            if (RebuildEveryFrame && AllowAsyncRebuild)
+            if (RebuildEveryFrame && AllowAsyncRebuild) 
             {
                 CompleteJob();
             }
@@ -145,19 +148,27 @@ namespace CorgiSpline
 
             _previousHandle.Complete();
 
-            _prevCompleteMs = (float)stopwatch.ElapsedTicks / System.TimeSpan.TicksPerMillisecond;
+            _prevCompleteMs = (float) stopwatch.ElapsedTicks / System.TimeSpan.TicksPerMillisecond;
             stopwatch.Stop();
 
             _mesh.Clear();
 
-            if (_nativeVertices.Length > 3 && _nativeTris.Length > 0)
+            if(_nativeVertices.Length > 3 && _nativeTris.Length > 0)
             {
-
                 _mesh.SetVertices(_nativeVertices.AsArray());
                 _mesh.SetNormals(_nativeNormals.AsArray());
-                _mesh.SetUVs(0, _nativeUVs.AsArray());
-                _mesh.SetTangents(_nativeTangents.AsArray());
+                _mesh.SetTangents(_nativeTangents.AsArray()); 
                 _mesh.SetIndices(_nativeTris.AsArray(), MeshTopology.Triangles, 0);
+
+                if(_nativeUVs.Length > 0)
+                {
+                    _mesh.SetUVs(0, _nativeUVs.AsArray());
+                }
+
+                if(_nativeColors.Length > 0)
+                {
+                    _mesh.SetColors(_nativeColors.AsArray());
+                }
 
                 // _mesh.RecalculateBounds();
                 // _mesh.RecalculateTangents();
@@ -169,7 +180,7 @@ namespace CorgiSpline
             meshFilter.sharedMesh = _mesh;
 
             var meshCollider = GetComponent<MeshCollider>();
-            if (meshCollider != null)
+            if(meshCollider != null)
             {
                 meshCollider.sharedMesh = _mesh;
             }
@@ -195,6 +206,7 @@ namespace CorgiSpline
                 uvs = _nativeUVs,
                 tris = _nativeTris,
                 bounds = _nativeBounds,
+                colors = _nativeColors,
 
                 Points = SplineReference.NativePoints,
                 Mode = SplineReference.GetSplineMode(),
@@ -230,6 +242,7 @@ namespace CorgiSpline
             public NativeList<Vector4> tangents;
             public NativeList<Vector4> uvs;
             public NativeList<int> tris;
+            public NativeList<Vector4> colors;
 
             public NativeArray<Bounds> bounds;
 
@@ -247,9 +260,10 @@ namespace CorgiSpline
                 // reset data 
                 verts.Clear();
                 normals.Clear();
-                tangents.Clear();
+                tangents.Clear(); 
                 uvs.Clear();
                 tris.Clear();
+                colors.Clear();
 
                 // track
                 var trackedBounds = new Bounds();
@@ -274,7 +288,7 @@ namespace CorgiSpline
                 var first_set = false;
 
                 // hack for overlapping bezier when using a closed spline.. 
-                if (ClosedSpline && Mode == SplineMode.BSpline)
+                if(ClosedSpline && Mode == SplineMode.BSpline)
                 {
                     built_to_t = Mathf.Clamp(built_to_t, 0, 0.95f);
                 }
@@ -282,41 +296,41 @@ namespace CorgiSpline
                 // step through 
                 for (var step = 0; step < until_quality; ++step)
                 {
-                    var t = (float)step / quality;
+                    var t = (float) step / quality;
                     //    t *= built_to_t;
 
                     var final_point_from_t = false;
-                    if (t > built_to_t)
+                    if(t > built_to_t)
                     {
                         t = built_to_t;
-                        final_point_from_t = true;
+                        final_point_from_t = true; 
                     }
 
                     var up = Vector3.up;
                     var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
                     var position = splinePoint.position;
                     var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
-                    var right = Vector3.Cross(forward, up);
+                    var right = Vector3.Cross(forward, up); 
 
-                    if (use_splinepoint_rotations)
+                    if(use_splinepoint_rotations)
                     {
                         up = splinePoint.rotation * Vector3.up;
                         forward = splinePoint.rotation * Vector3.forward;
-
+                        
                         right = Vector3.Cross(forward, up);
                     }
 
                     var localWidth = width;
 
-                    if (use_splinepoint_scale)
+                    if(use_splinepoint_scale)
                     {
                         localWidth *= splinePoint.scale.x;
                     }
 
                     // skip if too close.. 
-                    if (first_set && step != 0 && step != until_quality - 1 && Vector3.Distance(previousPosition, position) < 0.2f)
+                    if(first_set && step != 0 && step != until_quality - 1 && Vector3.Distance(previousPosition, position) < 0.2f)
                     {
-                        continue;
+                        continue; 
                     }
 
                     // verts 
@@ -333,11 +347,16 @@ namespace CorgiSpline
                     normals.Add(normal0);
                     normals.Add(normal1);
 
+                    // tangents 
                     var tangent0 = new Vector4(right.x, right.y, right.z, 1.0f);
                     var tangent1 = new Vector4(right.x, right.y, right.z, 1.0f);
 
                     tangents.Add(tangent0);
                     tangents.Add(tangent1);
+
+                    // colors 
+                    colors.Add(Color.white);
+                    colors.Add(Color.white);
 
                     // uvs 
                     if (uv_stretch_instead_of_tile)
@@ -365,12 +384,12 @@ namespace CorgiSpline
 
                     if (final_point_from_t)
                     {
-                        break;
+                        break; 
                     }
                 }
 
                 // stich
-                if (cover_ends_with_quads && full_loop)
+                if(cover_ends_with_quads && full_loop)
                 {
                     var offset_end = verts.Length - 2;
 
@@ -382,6 +401,9 @@ namespace CorgiSpline
 
                     tangents.Add(tangents[0]);
                     tangents.Add(tangents[1]);
+
+                    colors.Add(colors[0]);
+                    colors.Add(colors[1]);
 
                     uvs.Add(uvs[offset_end + 0]);
                     uvs.Add(uvs[offset_end + 1]);
@@ -417,17 +439,18 @@ namespace CorgiSpline
                     for (var v = 0; v < floor_vert_index; ++v)
                     {
                         var new_vert = verts[v];
+                        var new_color = colors[v];
                         var new_normal = normals[v] * -1f;
                         var new_uv = uvs[v];
                         var new_tagent = tangents[v] * -1f;
-                        new_tagent.w = 1.0f;
+                            new_tagent.w = 1.0f;
 
                         new_uv.x = 1.0f - new_uv.x;
                         // new_uv.y = 1.0f - new_uv.y;
 
                         var localHeight = height;
 
-                        if (use_splinepoint_scale)
+                        if(use_splinepoint_scale)
                         {
                             var splinePoint_t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, new_vert);
                             var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, splinePoint_t);
@@ -441,6 +464,7 @@ namespace CorgiSpline
                         normals.Add(new_normal);
                         tangents.Add(new_tagent);
                         uvs.Add(new_uv);
+                        colors.Add(new_color);
 
 
                         // track bounds.. 
@@ -494,7 +518,7 @@ namespace CorgiSpline
 
                         if (v < floor_vert_index - 4)
                         {
-
+                        
                             // right wall 
                             tris.Add(v + floor_vert_index + 1 + 2);
                             tris.Add(v + 3 + 2);
@@ -502,7 +526,7 @@ namespace CorgiSpline
                             tris.Add(v + 3 + 2);
                             tris.Add(v + floor_vert_index + 1 + 2);
                             tris.Add(v + floor_vert_index + 3 + 2);
-
+                        
                             // left wall
                             tris.Add(v + floor_vert_index + 0 + 2);
                             tris.Add(v + 0 + 2);
@@ -514,7 +538,7 @@ namespace CorgiSpline
                     }
 
                     // end cap triangles 
-                    if (cover_ends_with_quads)
+                    if(cover_ends_with_quads)
                     {
                         var start_index = 0;
 

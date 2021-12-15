@@ -42,13 +42,15 @@ namespace CorgiSpline
 
         private void DrawToolbar()
         {
-            instance = (SplineMeshBuilder_RepeatingMesh)EditorGUILayout.ObjectField("Instance", instance, typeof(SplineMeshBuilder_RepeatingMesh), true);
+            instance = (SplineMeshBuilder_RepeatingMesh) EditorGUILayout.ObjectField("Instance", instance, typeof(SplineMeshBuilder_RepeatingMesh), true);
 
             GUILayout.BeginHorizontal();
             {
                 GUILayout.Label("Tools");
                 if (GUILayout.Button("swap overrides order"))
                 {
+                    Undo.RecordObject(instance, "Swapped start/end stitches.");
+
                     var tempa = new int[instance.override_stich_start.Count];
                     var tempb = new int[instance.override_stich_end.Count];
 
@@ -75,6 +77,8 @@ namespace CorgiSpline
 
                 if (GUILayout.Button("swap overrides starts and ends"))
                 {
+                    Undo.RecordObject(instance, "Swapped wind direction of stitches.");
+
                     var temp = new int[instance.override_stich_start.Count];
 
                     for (var i = 0; i < instance.override_stich_start.Count; ++i)
@@ -91,6 +95,13 @@ namespace CorgiSpline
                     {
                         instance.override_stich_end[i] = temp[i];
                     }
+                }
+
+                if(GUILayout.Button("Clear stitches"))
+                {
+                    Undo.RecordObject(instance, "Cleared stitches.");
+                    instance.override_stich_end.Clear();
+                    instance.override_stich_start.Clear();
                 }
             }
             GUILayout.EndHorizontal();
@@ -144,7 +155,7 @@ namespace CorgiSpline
                 var offset = Vector3.zero;
                 if (s == 1)
                 {
-                    offset = new Vector3(0, 0, -1);
+                    offset = new Vector3(0, 0, -2);
                 }
 
                 drawnPositions.Clear();
@@ -270,7 +281,7 @@ namespace CorgiSpline
             Handles.color = Color.green;
             for (var o = 0; o < instance.override_stich_start.Count; ++o)
             {
-                var offset = new Vector3(0, 0, -1);
+                var offset = new Vector3(0, 0, -2);
 
                 var v0 = instance.override_stich_start[o];
                 var v1 = instance.override_stich_end[o];
@@ -300,49 +311,65 @@ namespace CorgiSpline
         {
             base.OnInspectorGUI();
 
-            var instance = (SplineMeshBuilder_RepeatingMesh)target;
+            var instance = (SplineMeshBuilder_RepeatingMesh) target;
 
-            if (GUILayout.Button("Mesh Stitching Editor"))
+            if(GUILayout.Button("Mesh Stitching Editor"))
             {
                 var window = SplineMeshBuilder_RepeatingMeshEditor_GUI.ShowWindow();
-                window.instance = instance;
+                window.instance = instance; 
             }
         }
     }
 #endif
 
 
+    [System.Serializable]
+    public enum RepeatMode
+    {
+        PasteAndStitch = 0,
+        PasteAndBend = 1,
+    }
+
     public class SplineMeshBuilder_RepeatingMesh : SplineMeshBuilder
     {
         public Mesh RepeatableMesh;
+        public Vector3 MeshLocalOffsetVertices;
+        public bool UseRepeatingMeshUVs;
+        public RepeatMode MeshRepeatMode;
 
         private List<int> cache_tris = new List<int>();
         private List<Vector3> cache_verts = new List<Vector3>();
         private List<Vector3> cache_normals = new List<Vector3>();
         private List<Vector4> cache_tangents = new List<Vector4>();
+        private List<Vector4> cache_uv0 = new List<Vector4>();
+        private List<Color> cache_colors = new List<Color>();
 
         private NativeList<int> native_tris;
         private NativeList<Vector3> native_verts;
         private NativeList<Vector3> native_normals;
         private NativeList<Vector4> native_tangents;
+        private NativeList<Vector4> native_uv0;
+        private NativeList<Vector4> native_colors;
 
         private NativeList<int> native_stitch_start;
         private NativeList<int> native_stitch_end;
 
-        [HideInInspector] public List<int> override_stich_start = new List<int>();
-        [HideInInspector] public List<int> override_stich_end = new List<int>();
+        [HideInInspector] public List<int> override_stich_start = new List<int>(); 
+        [HideInInspector] public List<int> override_stich_end = new List<int>(); 
 
         protected override void OnEnable()
         {
-            base.OnEnable();
-
             native_tris = new NativeList<int>(Allocator.Persistent);
             native_verts = new NativeList<Vector3>(Allocator.Persistent);
             native_normals = new NativeList<Vector3>(Allocator.Persistent);
             native_tangents = new NativeList<Vector4>(Allocator.Persistent);
+            native_uv0 = new NativeList<Vector4>(Allocator.Persistent);
+            native_colors = new NativeList<Vector4>(Allocator.Persistent);
 
             native_stitch_start = new NativeList<int>(Allocator.Persistent);
             native_stitch_end = new NativeList<int>(Allocator.Persistent);
+
+            base.OnEnable();
         }
 
         protected override void OnDisable()
@@ -353,6 +380,7 @@ namespace CorgiSpline
             native_verts.Dispose();
             native_normals.Dispose();
             native_tangents.Dispose();
+            native_colors.Dispose();
 
             native_stitch_start.Dispose();
             native_stitch_end.Dispose();
@@ -360,7 +388,7 @@ namespace CorgiSpline
 
         protected override JobHandle ScheduleMeshingJob(JobHandle dependency = default)
         {
-            if (RepeatableMesh == null)
+            if(RepeatableMesh == null)
             {
                 return dependency;
             }
@@ -370,16 +398,22 @@ namespace CorgiSpline
             cache_verts.Clear();
             cache_normals.Clear();
             cache_tangents.Clear();
+            cache_uv0.Clear();
+            cache_colors.Clear();
 
             native_tris.Clear();
             native_verts.Clear();
+            native_uv0.Clear();
             native_stitch_start.Clear();
             native_stitch_end.Clear();
+            native_colors.Clear();
 
             RepeatableMesh.GetTriangles(cache_tris, 0);
             RepeatableMesh.GetVertices(cache_verts);
             RepeatableMesh.GetNormals(cache_normals);
             RepeatableMesh.GetTangents(cache_tangents);
+            RepeatableMesh.GetUVs(0, cache_uv0);
+            RepeatableMesh.GetColors(cache_colors);
 
             for (var t = 0; t < cache_tris.Count; ++t)
                 native_tris.Add(cache_tris[t]);
@@ -393,13 +427,19 @@ namespace CorgiSpline
             for (var v = 0; v < cache_tangents.Count; ++v)
                 native_tangents.Add(cache_tangents[v]);
 
+            for (var v = 0; v < cache_uv0.Count; ++v)
+                native_uv0.Add(cache_uv0[v]);
+
+            for (var v = 0; v < cache_colors.Count; ++v)
+                native_colors.Add(new Vector4(cache_colors[v].r, cache_colors[v].g, cache_colors[v].b, cache_colors[v].a));
+
             // try and find start and end z values 
             var z_min = float.MaxValue;
             var z_max = float.MinValue;
-            for (var v = 0; v < native_verts.Length; ++v)
+            for(var v = 0; v < native_verts.Length; ++v)
             {
                 var vertex = native_verts[v];
-                if (vertex.z < z_min)
+                if(vertex.z < z_min)
                 {
                     z_min = vertex.z;
                 }
@@ -447,11 +487,11 @@ namespace CorgiSpline
 
                 var swap_index = -1;
 
-                for (var b = a + 1; b < angles.Length; ++b)
+                for(var b = a + 1; b < angles.Length; ++b)
                 {
                     var angle_b = angles[b];
 
-                    if (angle_a < angle_b)
+                    if(angle_a < angle_b)
                     {
                         swap_index = b;
                         break;
@@ -460,7 +500,7 @@ namespace CorgiSpline
 
 
                 // swap.. 
-                if (swap_index != -1)
+                if(swap_index != -1)
                 {
                     var b = swap_index;
                     var angle_b = angles[b];
@@ -485,18 +525,18 @@ namespace CorgiSpline
                 var tri_a = native_stitch_start[v];
                 var vert_a = native_verts[tri_a];
 
-                for (var j = 0; j < native_stitch_end.Length; ++j)
+                for(var j = 0; j < native_stitch_end.Length; ++j)
                 {
                     var tri_b = native_stitch_end[j];
                     var vert_b = native_verts[tri_b];
 
-                    if (vert_a.x == vert_b.x && vert_a.y == vert_b.y)
+                    if(vert_a.x == vert_b.x && vert_a.y == vert_b.y)
                     {
                         // swap 
                         var tri_end = native_stitch_end[v];
                         native_stitch_end[v] = tri_b;
                         native_stitch_end[j] = tri_end;
-                        break;
+                        break; 
                     }
                 }
             }
@@ -520,10 +560,19 @@ namespace CorgiSpline
                 repeatingMesh_verts = native_verts,
                 repeatingMesh_normals = native_normals,
                 repeatingMesh_tangents = native_tangents,
+                repeatingMesh_uv0 = native_uv0,
+                repeatingMesh_colors = native_colors,
+                repeatingMesh_bounds = RepeatableMesh.bounds,
+
+                repeatingMesh_has_colors = native_colors.Length  == native_verts.Length,
+                repeatingMesh_has_uv0 = native_uv0.Length  == native_verts.Length,
 
                 repeatingMesh_stitchVertsStart = native_stitch_start,
                 repeatingMesh_stitchVertsEnd = native_stitch_end,
-
+                MeshLocalOffsetVertices = MeshLocalOffsetVertices,
+                UseRepeatingMeshUVs = UseRepeatingMeshUVs,
+                MeshRepeatMode = MeshRepeatMode,
+                
                 built_to_t = built_to_t,
                 quality = quality,
                 uv_tile_scale = uv_tile_scale,
@@ -533,7 +582,8 @@ namespace CorgiSpline
                 normals = _nativeNormals,
                 tangents = _nativeTangents,
                 bounds = _nativeBounds,
-
+                colors = _nativeColors,
+                
                 uvs = _nativeUVs,
                 tris = _nativeTris,
 
@@ -561,9 +611,17 @@ namespace CorgiSpline
             public NativeArray<Vector3> repeatingMesh_verts;
             public NativeArray<Vector3> repeatingMesh_normals;
             public NativeArray<Vector4> repeatingMesh_tangents;
+            public NativeArray<Vector4> repeatingMesh_uv0;
+            public NativeArray<Vector4> repeatingMesh_colors;
+            public Bounds repeatingMesh_bounds;
+
+            public bool repeatingMesh_has_uv0;
+            public bool repeatingMesh_has_colors;
 
             public NativeArray<int> repeatingMesh_stitchVertsStart;
             public NativeArray<int> repeatingMesh_stitchVertsEnd;
+            public bool UseRepeatingMeshUVs;
+            public RepeatMode MeshRepeatMode;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -571,7 +629,9 @@ namespace CorgiSpline
             public NativeList<Vector4> tangents;
             public NativeList<Vector4> uvs;
             public NativeList<int> tris;
+            public NativeList<Vector4> colors;
             public NativeArray<Bounds> bounds;
+            public Vector3 MeshLocalOffsetVertices;
 
             // Spline data
             [ReadOnly]
@@ -591,6 +651,8 @@ namespace CorgiSpline
                 normals.Clear();
                 uvs.Clear();
                 tris.Clear();
+                tangents.Clear();
+                colors.Clear();
 
                 // track
                 var current_uv_step = 0f;
@@ -600,14 +662,14 @@ namespace CorgiSpline
                 var previousPosition = firstPoint.position;
 
                 // closed splines overlap a bit so we dont have to stitch 
-                var full_loop = ClosedSpline && built_to_t >= 1f;
+                var full_loop = ClosedSpline  && built_to_t >= 1f;
                 var first_set = false;
 
 
                 var repeatingBoundsMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
                 var repeatingBoundsMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
 
-                for (var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
+                for(var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
                 {
                     var vert = repeatingMesh_verts[ri];
                     repeatingBoundsMin = Vector3.Min(repeatingBoundsMin, vert);
@@ -617,112 +679,192 @@ namespace CorgiSpline
                 var boundsDistance = Vector3.Distance(repeatingBoundsMin, repeatingBoundsMax);
                 var repeatCount = 0;
 
-                // step through 
-                for (var step = 0; step < quality; ++step)
+                if (MeshRepeatMode == RepeatMode.PasteAndBend)
                 {
-                    var t = (float)step / (quality - 1);
+                    var meshBoundsZ = (repeatingMesh_bounds.max.z - repeatingMesh_bounds.min.z);
+                    var totalMeshZ = meshBoundsZ * quality;
 
-                    var final_point_from_t = false;
-                    if (t > built_to_t)
+                    for (var meshIndex = 0; meshIndex < quality; ++meshIndex)
                     {
-                        t = built_to_t;
-                        final_point_from_t = true;
-                    }
+                        var currentMeshZ = meshIndex * meshBoundsZ;
 
-                    var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
-                    var position = splinePoint.position;
-
-                    // don't allow repeating to intersect, if possible..
-                    if (first_set && Vector3.Distance(position, previousPosition) <= boundsDistance)
-                    {
-                        continue;
-                    }
-
-
-                    var point_trs = Spline.GetLocalToWorldAtT(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
-
-                    // uvs 
-                    if (uv_stretch_instead_of_tile)
-                    {
-                        current_uv_step = t;
-                    }
-                    else
-                    {
-                        current_uv_step += Vector3.Distance(previousPosition, position) * uv_tile_scale;
-                        current_uv_step = current_uv_step % 1.0f;
-                    }
-
-
-                    // todo:
-
-                    // copy/paste verts from repeatable mesh
-                    for (var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
-                    {
-                        var original = repeatingMesh_verts[ri];
-
-                        var transformed = point_trs.MultiplyPoint(new Vector4(original.x, original.y, original.z, 1.0f));
-                        var vert = new Vector3(transformed.x, transformed.y, transformed.z);
-                        verts.Add(vert);
-
-                        // verts.Add(point_trs.MultiplyPoint(original));
-                        uvs.Add(new Vector4(current_uv_step, 0f));
-                        normals.Add(new Vector3(0, 1, 0));
-
-                        // track bounds.. 
-                        trackedBounds.min = Vector3.Min(trackedBounds.min, vert);
-                        trackedBounds.max = Vector3.Max(trackedBounds.max, vert);
-                    }
-
-                    // copy/paste tris from repeatable mesh 
-                    var tri_offset = repeatingMesh_verts.Length * repeatCount;
-                    for (var ri = 0; ri < repeatingMesh_tris.Length; ++ri)
-                    {
-                        tris.Add(repeatingMesh_tris[ri] + tri_offset);
-                    }
-
-                    // stitch 
-                    if (first_set)
-                    {
-
-                        var tri_offset_a = repeatingMesh_verts.Length * (repeatCount - 1);
-                        var tri_offset_b = repeatingMesh_verts.Length * (repeatCount - 0);
-
-                        for (var ri = 0; ri < repeatingMesh_stitchVertsStart.Length; ri += 1)
+                        // pasted the mesh over and over, bending the verts to be along the spline 
+                        for (var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
                         {
-                            var triIndex_a_0 = repeatingMesh_stitchVertsEnd[ri + 0] + tri_offset_a;
-                            var triIndex_a_1 = repeatingMesh_stitchVertsEnd[(ri + 1) % repeatingMesh_stitchVertsEnd.Length] + tri_offset_a;
+                            var repeating_vertex = repeatingMesh_verts[ri];
+                            var normal = repeatingMesh_normals[ri];
+                            var tangent = repeatingMesh_tangents[ri];
 
-                            var triIndex_b_0 = repeatingMesh_stitchVertsStart[ri + 0] + tri_offset_b;
-                            var triIndex_b_1 = repeatingMesh_stitchVertsStart[(ri + 1) % repeatingMesh_stitchVertsStart.Length] + tri_offset_b;
+                            if(repeatingMesh_has_colors)
+                            {
+                                var color = repeatingMesh_colors[ri];
+                                colors.Add(color);
+                            }
 
-                            tris.Add(triIndex_b_0);
-                            tris.Add(triIndex_b_1);
-                            tris.Add(triIndex_a_0);
+                            var meshBoundsWithInnerZ = currentMeshZ + (repeating_vertex.z - repeatingMesh_bounds.min.z); // / meshBoundsZ;
+                            var innerMesh_t = meshBoundsWithInnerZ / totalMeshZ;
 
-                            tris.Add(triIndex_a_0);
-                            tris.Add(triIndex_b_1);
-                            tris.Add(triIndex_a_1);
+                            // var trs = Spline.GetLocalToWorldAtT(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, innerMesh_t);
+                            var vertex_splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, innerMesh_t);
+                            var trs = Matrix4x4.TRS(vertex_splinePoint.position, vertex_splinePoint.rotation, vertex_splinePoint.scale);
+                            var vertex = trs.MultiplyPoint(new Vector3(repeating_vertex.x, repeating_vertex.y, 0));
+                            normal = trs.MultiplyVector(normal);
+                            tangent = trs.MultiplyVector(tangent);
+                            
+                            verts.Add(vertex);
+                            normals.Add(normal);
+                            tangents.Add(tangent);
+
+                            if (UseRepeatingMeshUVs && repeatingMesh_has_uv0)
+                            {
+                                uvs.Add(repeatingMesh_uv0[ri]);
+                            }
+                            else
+                            {
+                                uvs.Add(new Vector4(current_uv_step, 0f));
+                            }
+
+                            // track bounds.. 
+                            trackedBounds.min = Vector3.Min(trackedBounds.min, vertex);
+                            trackedBounds.max = Vector3.Max(trackedBounds.max, vertex);
                         }
 
+                        // copy/paste tris from repeatable mesh 
+                        var tri_offset = repeatingMesh_verts.Length * repeatCount;
+                        for (var ri = 0; ri < repeatingMesh_tris.Length; ++ri)
+                        {
+                            tris.Add(repeatingMesh_tris[ri] + tri_offset);
+                        }
+
+                        repeatCount++;
                     }
-
-                    // stitch the current mesh copy to the previous mesh copy 
-                    // dont let meshes intersect, if possible 
-                    // repeat 
-
-                    previousPosition = position;
-
-                    first_set = true;
-                    repeatCount++;
-
-                    if (final_point_from_t)
+                }
+                else
+                {
+                    // step through 
+                    for (var step = 0; step < quality; ++step)
                     {
-                        break;
+                        var t = (float)step / (quality - 1);
+
+                        var final_point_from_t = false;
+                        if (t > built_to_t)
+                        {
+                            t = built_to_t;
+                            final_point_from_t = true;
+                        }
+
+                        var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+                        var position = splinePoint.position;
+
+                        // don't allow repeating to intersect, if possible..
+                        if (first_set && Vector3.Distance(position, previousPosition) <= boundsDistance)
+                        {
+                            continue;
+                        }
+
+
+                        var point_trs = Spline.GetLocalToWorldAtT(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+                        var point_trs_i = point_trs.inverse;
+
+                        // uvs 
+                        if (uv_stretch_instead_of_tile)
+                        {
+                            current_uv_step = t;
+                        }
+                        else
+                        {
+                            current_uv_step += Vector3.Distance(previousPosition, position) * uv_tile_scale;
+                            current_uv_step = current_uv_step % 1.0f;
+                        }
+
+                        // copy/paste verts from repeatable mesh
+                        for (var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
+                        {
+                            var repeating_vertex = repeatingMesh_verts[ri];
+
+
+                            var vertex = repeating_vertex + MeshLocalOffsetVertices;
+                            vertex = point_trs.MultiplyPoint(new Vector4(vertex.x, vertex.y, vertex.z, 1.0f));
+
+                            var normal = repeatingMesh_normals[ri];
+                            normal = point_trs.MultiplyVector(normal);
+
+                            var tangent = repeatingMesh_tangents[ri];
+                            tangent = point_trs.MultiplyVector(tangent);
+
+                            if(repeatingMesh_has_colors)
+                            {
+                                var color = repeatingMesh_colors[ri];
+                                colors.Add(color);
+                            }
+
+                            verts.Add(new Vector3(vertex.x, vertex.y, vertex.z));
+                            normals.Add(normal);
+                            tangents.Add(tangent);
+
+                            if (UseRepeatingMeshUVs && repeatingMesh_has_uv0)
+                            {
+                                uvs.Add(repeatingMesh_uv0[ri]);
+                            }
+                            else
+                            {
+                                uvs.Add(new Vector4(current_uv_step, 0f));
+                            }
+
+                            // track bounds.. 
+                            trackedBounds.min = Vector3.Min(trackedBounds.min, vertex);
+                            trackedBounds.max = Vector3.Max(trackedBounds.max, vertex);
+                        }
+
+                        // copy/paste tris from repeatable mesh 
+                        var tri_offset = repeatingMesh_verts.Length * repeatCount;
+                        for (var ri = 0; ri < repeatingMesh_tris.Length; ++ri)
+                        {
+                            tris.Add(repeatingMesh_tris[ri] + tri_offset);
+                        }
+
+                        // stitch 
+                        if (first_set)
+                        {
+
+                            var tri_offset_a = repeatingMesh_verts.Length * (repeatCount - 1);
+                            var tri_offset_b = repeatingMesh_verts.Length * (repeatCount - 0);
+
+                            for (var ri = 0; ri < repeatingMesh_stitchVertsStart.Length; ri += 1)
+                            {
+                                var triIndex_a_0 = repeatingMesh_stitchVertsEnd[ri + 0] + tri_offset_a;
+                                var triIndex_a_1 = repeatingMesh_stitchVertsEnd[(ri + 1) % repeatingMesh_stitchVertsEnd.Length] + tri_offset_a;
+
+                                var triIndex_b_0 = repeatingMesh_stitchVertsStart[ri + 0] + tri_offset_b;
+                                var triIndex_b_1 = repeatingMesh_stitchVertsStart[(ri + 1) % repeatingMesh_stitchVertsStart.Length] + tri_offset_b;
+
+                                tris.Add(triIndex_b_0);
+                                tris.Add(triIndex_b_1);
+                                tris.Add(triIndex_a_0);
+
+                                tris.Add(triIndex_a_0);
+                                tris.Add(triIndex_b_1);
+                                tris.Add(triIndex_a_1);
+                            }
+                        }
+
+                        // stitch the current mesh copy to the previous mesh copy 
+                        // dont let meshes intersect, if possible 
+                        // repeat 
+
+                        previousPosition = position;
+
+                        first_set = true;
+                        repeatCount++;
+
+                        if (final_point_from_t)
+                        {
+                            break;
+                        }
                     }
                 }
 
-
-                if (ClosedSpline && built_to_t >= 1f)
+                if(ClosedSpline && built_to_t >= 1f)
                 {
                     var tri_offset_a = repeatingMesh_verts.Length * (repeatCount - 1);
                     var tri_offset_b = 0;
@@ -748,64 +890,5 @@ namespace CorgiSpline
                 bounds[0] = trackedBounds;
             }
         }
-
-
-#if UNITY_EDITOR
-        [System.NonSerialized] private List<Vector3> drawnPositions = new List<Vector3>();
-
-        private void OnDrawGizmosSelected()
-        {
-            var localToWorld = transform.localToWorldMatrix;
-
-            Gizmos.DrawWireMesh(RepeatableMesh, transform.position, transform.rotation, transform.lossyScale);
-
-            drawnPositions.Clear();
-
-            for (var v = 0; v < cache_verts.Count; ++v)
-            {
-                var vertex = cache_verts[v];
-                var worldPos = localToWorld.MultiplyPoint(vertex);
-
-                var skip = false;
-                foreach (var prevPos in drawnPositions)
-                {
-                    if (Vector3.Distance(prevPos, worldPos) < 0.01f)
-                    {
-                        skip = true;
-                        break;
-                    }
-                }
-
-                if (skip) continue;
-                drawnPositions.Add(worldPos);
-
-                UnityEditor.Handles.Label(worldPos, $"{v:N0}");
-            }
-        }
-
-        private void OnSceneGUI()
-        {
-            var localToWorld = transform.localToWorldMatrix;
-
-            UnityEditor.Handles.BeginGUI();
-
-            for (var v = 0; v < cache_verts.Count; ++v)
-            {
-                var vertex = cache_verts[v];
-                var worldPos = localToWorld.MultiplyPoint(vertex);
-
-                var size = 0.025f;
-
-                if (UnityEditor.Handles.Button(worldPos, Quaternion.identity, size, size, UnityEditor.Handles.DotHandleCap))
-                {
-                    Debug.Log(v);
-                }
-            }
-
-            UnityEditor.Handles.EndGUI();
-            UnityEditor.SceneView.RepaintAll();
-        }
-#endif
-
     }
 }
