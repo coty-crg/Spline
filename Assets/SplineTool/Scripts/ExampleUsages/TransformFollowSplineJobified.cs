@@ -10,6 +10,7 @@ using UnityEngine.Jobs;
 
 namespace CorgiSpline
 {
+    [DefaultExecutionOrder(-1)]
     public class TransformFollowSplineJobified : MonoBehaviour
     {
         public Spline FollowSpline;
@@ -20,15 +21,16 @@ namespace CorgiSpline
         public Transform[] Transforms;
 
         private TransformAccessArray _TransformsAccess;
+        private JobHandle _previousJobHandle;
 
         private void OnEnable()
         {
             _TransformsAccess = new TransformAccessArray(Transforms);
-
         }
 
         private void OnDisable()
         {
+            _previousJobHandle.Complete(); 
             _TransformsAccess.Dispose();
         }
 
@@ -62,6 +64,8 @@ namespace CorgiSpline
 
         private void Update()
         {
+            _previousJobHandle.Complete();
+
             UpdateTransformAccessArray();
 
             var job = new TransformFollowSplineJob()
@@ -79,8 +83,12 @@ namespace CorgiSpline
                 ClosedSpline = FollowSpline.GetSplineClosed(),
             };
 
-            var handle = job.Schedule(_TransformsAccess);
-            //handle.Complete(); 
+            _previousJobHandle = job.Schedule(_TransformsAccess);
+        }
+
+        private void LateUpdate()
+        {
+            _previousJobHandle.Complete();
         }
 
         [BurstCompile]
