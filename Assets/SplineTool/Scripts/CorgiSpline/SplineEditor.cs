@@ -254,7 +254,7 @@ namespace CorgiSpline
                     {
                         Undo.RecordObject(instance, "Forced Rotation");
 
-                        instance.ForcePointsForwardAndUp(); 
+                        instance.SetSplinePointsRotationForward(); 
                         instance.UpdateNative();
 
                         EditorUtility.SetDirty(instance); 

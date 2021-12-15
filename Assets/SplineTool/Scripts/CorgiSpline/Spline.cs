@@ -1246,6 +1246,34 @@ namespace CorgiSpline
         }
 
         // helpers 
+        public void SetSplinePointsRotationForward()
+        {
+            var isLocalSpace = GetSplineSpace() == Space.Self;
+
+            if (isLocalSpace)
+            {
+                SetSplineSpace(Space.World, true);
+            }
+
+            for (var p = 0; p < Points.Length; ++p)
+            {
+                var selectedPoint = Points[p];
+
+                var selected_t = ProjectOnSpline_t(selectedPoint.position);
+                var selected_forward = GetForward(selected_t);
+                var selected_up = Vector3.up;
+
+                selectedPoint.rotation = Quaternion.LookRotation(selected_forward, selected_up);
+
+                Points[p] = selectedPoint;
+            }
+
+            if (isLocalSpace)
+            {
+                SetSplineSpace(Space.Self, true);
+            }
+        }
+
         private static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
         {
             var oneMinusT = 1f - t;
@@ -1554,6 +1582,55 @@ namespace CorgiSpline
 
             var percentage = distanceToPoint / distanceAB;
             return percentage;
+        }
+
+        public float CalculateSplineLength()
+        {
+            var length = 0f;
+
+            var space = GetSplineSpace();
+            var pointLength = Points.Length;
+
+            switch (Mode)
+            {
+                // linear is simple: iterate over points directly 
+                case SplineMode.Linear:
+                    for(var p = 1; p < pointLength; ++p)
+                    {
+                        var point0 = Points[p - 1];
+                        var point1 = Points[p];
+
+                        if(space == Space.Self)
+                        {
+                            point0 = TransformSplinePoint(point0);
+                            point1 = TransformSplinePoint(point1);
+                        }
+
+                        length += Vector3.Distance(point0.position, point1.position);
+                    }
+
+                    break;
+
+                // for bezier and bspline, just iterate to estimate 
+                case SplineMode.Bezier:
+                case SplineMode.BSpline:
+
+                    var quality = 256;
+                    for(var s = 0; s < quality; ++s)
+                    {
+                        var t = (float) s / quality;
+                        var delta = 1f / quality;
+
+                        var point0 = GetPoint(t - delta);
+                        var point1 = GetPoint(t);
+
+                        length += Vector3.Distance(point0.position, point1.position); 
+                    }
+
+                    break;
+            }
+
+            return length; 
         }
 
         // job helpers 
@@ -1991,22 +2068,52 @@ namespace CorgiSpline
             return trs.inverse;
         }
 
-        public void ForcePointsForwardAndUp()
+        public static float JobSafe_CalculateSplineLength(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline)
         {
-            for (var p = 0; p < Points.Length; ++p)
+            var length = 0f;
+            var pointLength = Points.Length;
+
+            switch (Mode)
             {
-                var selectedPoint = Points[p];
+                // linear is simple: iterate over points directly 
+                case SplineMode.Linear:
+                    for (var p = 1; p < pointLength; ++p)
+                    {
+                        var point0 = Points[p - 1];
+                        var point1 = Points[p];
 
-                var selected_t = ProjectOnSpline_t(selectedPoint.position);
-                var selected_forward = GetForward(selected_t);
-                var selected_up = Vector3.up;
+                        if (SplineSpace == Space.Self)
+                        {
+                            point0 = JobSafe_TransformSplinePoint(point0, localToWorldMatrix);
+                            point1 = JobSafe_TransformSplinePoint(point1, localToWorldMatrix);
+                        }
 
-                selectedPoint.rotation = Quaternion.LookRotation(selected_forward, selected_up);
+                        length += Vector3.Distance(point0.position, point1.position);
+                    }
 
-                Points[p] = selectedPoint;
+                    break;
+
+                // for bezier and bspline, just iterate to estimate 
+                case SplineMode.Bezier:
+                case SplineMode.BSpline:
+
+                    var quality = 256;
+                    for (var s = 0; s < quality; ++s)
+                    {
+                        var t = (float)s / quality;
+                        var delta = 1f / quality;
+
+                        var point0 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t - delta);
+                        var point1 = JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+
+                        length += Vector3.Distance(point0.position, point1.position);
+                    }
+
+                    break;
             }
-        }
 
+            return length;
+        }
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
