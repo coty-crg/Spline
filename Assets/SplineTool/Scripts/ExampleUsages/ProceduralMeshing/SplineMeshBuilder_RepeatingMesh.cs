@@ -706,7 +706,7 @@ namespace CorgiSpline
 
                             // var trs = Spline.GetLocalToWorldAtT(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, innerMesh_t);
                             var vertex_splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, innerMesh_t);
-                            var trs = Matrix4x4.TRS(vertex_splinePoint.position, vertex_splinePoint.rotation, vertex_splinePoint.scale);
+                            var trs = Matrix4x4.TRS(vertex_splinePoint.position + MeshLocalOffsetVertices, vertex_splinePoint.rotation, vertex_splinePoint.scale);
                             var vertex = trs.MultiplyPoint(new Vector3(repeating_vertex.x, repeating_vertex.y, 0));
                             normal = trs.MultiplyVector(normal);
                             tangent = trs.MultiplyVector(tangent);
