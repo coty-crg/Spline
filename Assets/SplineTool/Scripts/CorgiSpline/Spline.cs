@@ -658,13 +658,42 @@ namespace CorgiSpline
                 var closestDistance = float.MaxValue;
                 var best_i = 0;
                 var best_t = 0f;
-
-                for (var i = 0; i < length - 3; i += 1)
+                 
+                for (var i = 0; i < length; i += 1)
                 {
-                    var p0 = Points[i + 0];
-                    var p1 = Points[i + 1];
-                    var p2 = Points[i + 2];
-                    var p3 = Points[i + 3];
+                    var index = Mathf.Clamp(i, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
+
+                    int index0;
+                    int index1;
+                    int index2;
+                    int index3;
+
+                    if (ClosedSpline)
+                    {
+                        int mod_count = Points.Length;
+
+                        index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
+                        index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
+                        index2 = ((index + 2) % (mod_count) + mod_count) % mod_count;
+                        index3 = ((index + 3) % (mod_count) + mod_count) % mod_count;
+                    }
+                    else
+                    {
+                        index0 = index + 0;
+                        index1 = index + 1;
+                        index2 = index + 2;
+                        index3 = index + 3;
+
+                        index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+                        index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+                        index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
+                        index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+                    }
+
+                    var p0 = Points[index0];
+                    var p1 = Points[index1];
+                    var p2 = Points[index2];
+                    var p3 = Points[index3];
 
                     if (SplineSpace == Space.Self)
                     {
@@ -685,7 +714,6 @@ namespace CorgiSpline
                     p2.position.z = 0f;
                     p3.position.z = 0f;
 
-
                     var t = BSplineProject(p0.position, p1.position, p2.position, p3.position, screenPosition);
                     var projected = BSplineInterpolate(p0.position, p1.position, p2.position, p3.position, t);
                     var distance = Vector3.Distance(projected, screenPosition);
@@ -694,7 +722,7 @@ namespace CorgiSpline
                     {
                         closestDistance = distance;
 
-                        best_i = i + 1;
+                        best_i = i;
                         best_t = t;
                     }
                 }
