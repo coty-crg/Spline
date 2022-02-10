@@ -21,7 +21,7 @@ public class CorgiFrametimeUI : MonoBehaviour
 
         if(meshBuilder != null)
         {
-            sb.AppendLine($"~{meshBuilder._prevCompleteMs:N4} ms to build mesh");
+            sb.AppendLine($"~{meshBuilder.GetPreviousMeshingDurationMs():N4} ms to build mesh");
         }
 
         if(meshFilter != null && meshFilter.sharedMesh != null)

@@ -14,22 +14,51 @@ namespace CorgiSpline
     public class SplineMeshBuilder : MonoBehaviour
     {
         // references 
+        [Header("Spline")]
         public Spline SplineReference;
 
         // settings
+        [Header("SplineMeshBuilder Settings")]
+        [Tooltip("Re-run this script every frame. Useful for dynamic splines.")] 
         public bool RebuildEveryFrame;
+
+        [Tooltip("Have this script run at least once, when the object is enabled.")] 
         public bool RebuildOnEnable;
+
+        [Tooltip("Attempts to run the mesh builder script off the main thread, so the game is not slowed down.")] 
         public bool AllowAsyncRebuild;
 
+        [Tooltip("Stores the mesh, so it does not need to be rebuilt at runtime.")] 
+        public bool SerializeMesh;
+
+        [Tooltip("Stop building the mesh at this % of the spline.")]
         [Range(0f, 1f)] public float built_to_t = 1f;
+
+        [Tooltip("Visual quality of the mesh along the spline. Higher values look nicer but are slower to compute.")]
         [Range(32, 1024)] public int quality = 256;
+
+        [Tooltip("Width of the mesh along each spline node's local x axis.")]
         [Range(0.001f, 10f)] public float width = 1f;
+
+        [Tooltip("Height of the mesh along each spline node's local y axis.")]
         [Range(0f, 10f)] public float height = 1f;
+
+        [Tooltip("UV tiling scale of the mesh along the spline, if applicable.")]
         public float uv_tile_scale = 1f;
+
+        [Tooltip("If true, non-closed splines will have their ends covered with a cap, when applicable.")]
         public bool cover_ends_with_quads = true;
+
+        [Tooltip("Instead of tiling the UVs, stretch them along the spline.")]
         public bool uv_stretch_instead_of_tile;
+
+        [Tooltip("When calculating rotations, use the spline point data.")]
         public bool use_splinepoint_rotations = false;
+
+        [Tooltip("When calculating scale, use the spline point data.")]
         public bool use_splinepoint_scale = false;
+
+        [HideInInspector, SerializeField] protected Mesh _serializedMesh;
 
         // internal 
         protected Mesh _mesh;
@@ -42,9 +71,22 @@ namespace CorgiSpline
         protected NativeList<int> _nativeTris;
         protected JobHandle _previousHandle;
 
+        private float _prevCompleteMs;
+        private bool _asyncReadyToRebuild = true;
+
         protected virtual void OnEnable()
         {
-            _mesh = new Mesh();
+            Debug.Assert(SplineReference != null, "SplineReference is null", gameObject);
+
+            if (SerializeMesh)
+            {
+                _mesh = _serializedMesh;
+            }
+
+            if(_mesh == null)
+            {
+                _mesh = new Mesh();
+            }
 
             _nativeVertices = new NativeList<Vector3>(Allocator.Persistent);
             _nativeNormals = new NativeList<Vector3>(Allocator.Persistent);
@@ -73,20 +115,21 @@ namespace CorgiSpline
             _nativeBounds.Dispose();
             _nativeColors.Dispose();
 
-            if (_mesh != null)
+            if(!SerializeMesh)
             {
-                if (Application.isPlaying)
+                if (_mesh != null)
                 {
-                    Destroy(_mesh);
-                }
-                else
-                {
-                    DestroyImmediate(_mesh);
+                    if (Application.isPlaying)
+                    {
+                        Destroy(_mesh);
+                    }
+                    else
+                    {
+                        DestroyImmediate(_mesh);
+                    }
                 }
             }
         }
-
-        [System.NonSerialized] private bool _asyncReadyToRebuild = true;
 
         protected virtual void Update()
         {
@@ -117,6 +160,9 @@ namespace CorgiSpline
 #endif
         }
 
+        /// <summary>
+        /// Schedules the meshing job. If async, it will be completed in CompleteJob() later.
+        /// </summary>
         public void Rebuild_Jobified()
         {
             if (SplineReference == null)
@@ -129,7 +175,6 @@ namespace CorgiSpline
                 return;
             }
 
-
             _previousHandle = ScheduleMeshingJob();
             _asyncReadyToRebuild = false;
 
@@ -139,8 +184,9 @@ namespace CorgiSpline
             }
         }
 
-        public float _prevCompleteMs;
-
+        /// <summary>
+        /// Completes a meshing job. 
+        /// </summary>
         public void CompleteJob()
         {
             var stopwatch = new System.Diagnostics.Stopwatch();
@@ -176,6 +222,12 @@ namespace CorgiSpline
                 _mesh.bounds = _nativeBounds[0];
             }
 
+            // store the mesh, if we want to serialize it 
+            if(SerializeMesh)
+            {
+                _serializedMesh = _mesh;
+            }
+
             var meshFilter = GetComponent<MeshFilter>();
             meshFilter.sharedMesh = _mesh;
 
@@ -188,6 +240,12 @@ namespace CorgiSpline
             _asyncReadyToRebuild = true;
         }
 
+        /// <summary>
+        /// This is what schedules the actual IJob for the meshing. 
+        /// Override this to easily implement new meshing algorithms.
+        /// </summary>
+        /// <param name="dependency"></param>
+        /// <returns></returns>
         protected virtual JobHandle ScheduleMeshingJob(JobHandle dependency = default)
         {
             var job = new BuildMeshFromSpline()
@@ -220,6 +278,29 @@ namespace CorgiSpline
             };
 
             return job.Schedule(dependency);
+        }
+
+        /// <summary>
+        /// Returns the current mesh created from this script. 
+        /// </summary>
+        /// <returns></returns>
+        public Mesh GetMesh()
+        {
+            if(_serializedMesh != null)
+            {
+                return _serializedMesh;
+            }
+
+            return _mesh; 
+        }
+
+        /// <summary>
+        /// Returns the duration in ms for how long it took to generate the mesh, the last time this script was used. 
+        /// </summary>
+        /// <returns></returns>
+        public float GetPreviousMeshingDurationMs()
+        {
+            return _prevCompleteMs;
         }
 
         [BurstCompile]

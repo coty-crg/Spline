@@ -9,11 +9,17 @@ namespace CorgiSpline
 {
     public class SplineMeshBuilder_RepeatingMesh : SplineMeshBuilder
     {
+        [Header("RepeatingMesh")]
+        [Tooltip("The mesh to copy/paste when creating this spline mesh.")]
         public Mesh RepeatableMesh;
-        public Vector3 MeshLocalOffsetVertices;
-        public bool UseRepeatingMeshUVs;
-        // public RepeatMode MeshRepeatMode;
 
+        [Tooltip("Offsets the local vertices on each paste of the mesh along the spline.")]
+        public Vector3 MeshLocalOffsetVertices;
+
+        [Tooltip("Use the real UV data from the mesh we are pasting.")]
+        public bool UseRepeatingMeshUVs;
+
+        // internal stuff 
         private List<int> cache_tris = new List<int>();
         private List<Vector3> cache_verts = new List<Vector3>();
         private List<Vector3> cache_normals = new List<Vector3>();
@@ -30,6 +36,8 @@ namespace CorgiSpline
 
         protected override void OnEnable()
         {
+            Debug.Assert(RepeatableMesh != null, "RepeatableMesh is null.", gameObject);
+
             native_tris = new NativeList<int>(Allocator.Persistent);
             native_verts = new NativeList<Vector3>(Allocator.Persistent);
             native_normals = new NativeList<Vector3>(Allocator.Persistent);
@@ -71,12 +79,9 @@ namespace CorgiSpline
             native_uv0.Clear();
             native_colors.Clear();
 
+            // fetch the data from the repeatable mesh 
             RepeatableMesh.GetTriangles(cache_tris, 0);
             RepeatableMesh.GetVertices(cache_verts);
-            RepeatableMesh.GetNormals(cache_normals);
-            RepeatableMesh.GetTangents(cache_tangents);
-            RepeatableMesh.GetUVs(0, cache_uv0);
-            RepeatableMesh.GetColors(cache_colors);
 
             for (var t = 0; t < cache_tris.Count; ++t)
                 native_tris.Add(cache_tris[t]);
@@ -84,17 +89,79 @@ namespace CorgiSpline
             for (var v = 0; v < cache_verts.Count; ++v)
                 native_verts.Add(cache_verts[v]);
 
-            for (var v = 0; v < cache_normals.Count; ++v)
-                native_normals.Add(cache_normals[v]);
+            // check if this repeatable mesh actually has the attributes we want.. 
+            var has_normals = RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal);
+            var has_tangents = RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent);
+            var has_uv0 = RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord0);
+            var has_color = RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color);
 
-            for (var v = 0; v < cache_tangents.Count; ++v)
-                native_tangents.Add(cache_tangents[v]);
+            if(has_normals)
+            {
+                RepeatableMesh.GetNormals(cache_normals);
 
-            for (var v = 0; v < cache_uv0.Count; ++v)
-                native_uv0.Add(cache_uv0[v]);
+                for (var v = 0; v < cache_normals.Count; ++v)
+                {
+                    native_normals.Add(cache_normals[v]);
+                }
+            }
+            else
+            {
+                for (var v = 0; v < cache_verts.Count; ++v)
+                {
+                    native_normals.Add(Vector3.up);
+                }
+            }
 
-            for (var v = 0; v < cache_colors.Count; ++v)
-                native_colors.Add(new Vector4(cache_colors[v].r, cache_colors[v].g, cache_colors[v].b, cache_colors[v].a));
+            if(has_tangents)
+            {
+                RepeatableMesh.GetTangents(cache_tangents);
+
+                for (var v = 0; v < cache_tangents.Count; ++v)
+                {
+                    native_tangents.Add(cache_tangents[v]);
+                }
+            }
+            else
+            {
+                for (var v = 0; v < cache_verts.Count; ++v)
+                {
+                    native_tangents.Add(Vector3.right);
+                }
+            }
+
+            if(has_uv0)
+            {
+                RepeatableMesh.GetUVs(0, cache_uv0);
+
+                for (var v = 0; v < cache_uv0.Count; ++v)
+                {
+                    native_uv0.Add(cache_uv0[v]);
+                }
+            }
+            else
+            {
+                for (var v = 0; v < cache_verts.Count; ++v)
+                {
+                    native_uv0.Add(Vector4.zero);
+                }
+            }
+
+            if (has_color)
+            {
+                RepeatableMesh.GetColors(cache_colors);
+
+                for (var v = 0; v < cache_colors.Count; ++v)
+                {
+                    native_colors.Add(new Vector4(cache_colors[v].r, cache_colors[v].g, cache_colors[v].b, cache_colors[v].a));
+                }
+            }
+            else
+            {
+                for (var v = 0; v < cache_verts.Count; ++v)
+                {
+                    native_colors.Add(Color.white);
+                }
+            }
 
             // try and find start and end z values 
             var z_min = float.MaxValue;
