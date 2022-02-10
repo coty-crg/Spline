@@ -1613,6 +1613,11 @@ namespace CorgiSpline
             return percentage;
         }
 
+        /// <summary>
+        /// Helper function to automatically calculate the length of the spline. 
+        /// This may be slow to calculate, so it is recommended you cache this value, if possible.
+        /// </summary>
+        /// <returns></returns>
         public float CalculateSplineLength()
         {
             var length = 0f;
