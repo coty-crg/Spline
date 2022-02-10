@@ -368,10 +368,20 @@ namespace CorgiSpline
             if (PlacingPoint)
             {
 
-                if (Event.current.isKey && Event.current.keyCode == KeyCode.Escape)
+                if (Event.current.isKey)
                 {
-                    PlacingPoint = false;
-                    return;
+                    var pressedEscape = Event.current.keyCode == KeyCode.Escape 
+                        || Event.current.keyCode == KeyCode.W 
+                        || Event.current.keyCode == KeyCode.Q 
+                        || Event.current.keyCode == KeyCode.E 
+                        || Event.current.keyCode == KeyCode.R 
+                        || Event.current.keyCode == KeyCode.T;
+
+                    if (pressedEscape)
+                    {
+                        PlacingPoint = false;
+                        return;
+                    }
                 }
 
                 // hold right click, press left click
