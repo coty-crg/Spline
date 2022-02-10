@@ -1125,6 +1125,14 @@ namespace CorgiSpline
                 var sceneView = SceneView.currentDrawingSceneView;
                 var sceneCamera = sceneView.camera;
                 var screenPoint = sceneCamera.WorldToScreenPoint(position);
+
+                // if point is behind camera, skip it 
+                if(screenPoint.z < 0f)
+                {
+                    continue; 
+                }
+
+                // otherwise, force it to be close by 
                 screenPoint.z = 10f;
 
                 var cameraPoint = sceneCamera.ScreenToWorldPoint(screenPoint);
