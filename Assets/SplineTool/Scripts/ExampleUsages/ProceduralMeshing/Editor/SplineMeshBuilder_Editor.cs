@@ -121,6 +121,7 @@ namespace CorgiSpline
                         {
                             Undo.RecordObject(instance, "unlink"); 
                             instance._serializedMesh = null;
+                            instance.ResetMesh(); 
                         }
                     }
                     else
@@ -132,7 +133,7 @@ namespace CorgiSpline
                         EditorGUILayout.Space();
                         if(GUILayout.Button("Serialize Mesh"))
                         {
-                            var filename = EditorUtility.SaveFilePanel("Save Mesh Asset", Application.dataPath, $"{instance.gameObject.name}", ".asset");
+                            var filename = EditorUtility.SaveFilePanel("Save Mesh Asset", Application.dataPath, $"{instance.gameObject.name}", "asset");
                             if(!string.IsNullOrEmpty(filename))
                             {
                                 filename = filename.Replace(Application.dataPath + "/", "Assets/");

@@ -327,15 +327,24 @@ namespace CorgiSpline
         /// <summary>
         /// Discard the current mesh. 
         /// </summary>
-        public void ClearMesh()
+        public void ResetMesh()
         {
+            _serializedMesh = null;
+
             if (_mesh != null)
             {
 #if UNITY_EDITOR
+                if(!string.IsNullOrEmpty(UnityEditor.AssetDatabase.GetAssetPath(_mesh)))
+                {
+                    _mesh = null;
+                    _serializedMesh = null;
+                }
+
                 if(!Application.isPlaying)
                 {
                     DestroyImmediate(_mesh);
                 }
+                else
                 {
                     Destroy(_mesh);
                 }
@@ -344,6 +353,7 @@ namespace CorgiSpline
 #endif
             }
 
+            _mesh = new Mesh(); 
         }
 
         public void ConfigureSerializedMesh(Mesh mesh)
