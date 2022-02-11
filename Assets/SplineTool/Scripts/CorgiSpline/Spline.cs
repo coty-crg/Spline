@@ -118,6 +118,7 @@ namespace CorgiSpline
         // editor only settings 
         public bool EditorDrawThickness;
         public bool EditorAlwaysDraw;
+        public bool EditorAlwaysFacePointsForwardAndUp;
 
         private void OnEnable()
         {

@@ -97,6 +97,16 @@ namespace CorgiSpline
                 EditorUtility.SetDirty(instance);
             }
 
+            var newEditorAlwaysFacePointsForwardAndUp = EditorGUILayout.Toggle(new GUIContent("Force Points Forward&Up (Editor)", 
+                "If enabled, when editing a spline, points will automatically face forward relative to the points around them, with a y up vector."), instance.EditorAlwaysFacePointsForwardAndUp);
+
+            if(newEditorAlwaysFacePointsForwardAndUp != instance.EditorAlwaysFacePointsForwardAndUp)
+            {
+                Undo.RecordObject(instance, "Force Points Forward&Up");
+                instance.EditorAlwaysFacePointsForwardAndUp = newEditorAlwaysFacePointsForwardAndUp;
+                EditorUtility.SetDirty(instance);
+            }
+
             GUILayout.EndVertical();
 
             EditorGUILayout.Space();
@@ -174,6 +184,16 @@ namespace CorgiSpline
                     PlacePlaneOffset = EditorGUILayout.Vector3Field("Plane Offset", PlacePlaneOffset);
                     PlacePlaneNormalRotation.eulerAngles = EditorGUILayout.Vector3Field("Plane Rotation", PlacePlaneNormalRotation.eulerAngles);
                 }
+
+                if(instance.EditorAlwaysFacePointsForwardAndUp)
+                {
+                    Undo.RecordObject(instance, "Forced Rotation");
+
+                    instance.SetSplinePointsRotationForward();
+                    instance.UpdateNative();
+
+                    EditorUtility.SetDirty(instance);
+                }
             }
             else
             {
@@ -216,8 +236,6 @@ namespace CorgiSpline
                     editPoint.rotation.eulerAngles = EditorGUILayout.Vector3Field("point rotation", editPoint.rotation.eulerAngles);
                     editPoint.scale = EditorGUILayout.Vector3Field("point scale", editPoint.scale);
 
-
-
                     if (!point.Equals(editPoint))
                     {
                         Undo.RecordObject(instance, "Points Edited");
@@ -250,14 +268,14 @@ namespace CorgiSpline
                         instance.UpdateNative();
                     }
 
-                    if(GUILayout.Button("Rotations: Force Forward & Up"))
+                    if (instance.EditorAlwaysFacePointsForwardAndUp || GUILayout.Button("Rotations: Force Forward & Up"))
                     {
                         Undo.RecordObject(instance, "Forced Rotation");
 
-                        instance.SetSplinePointsRotationForward(); 
+                        instance.SetSplinePointsRotationForward();
                         instance.UpdateNative();
 
-                        EditorUtility.SetDirty(instance); 
+                        EditorUtility.SetDirty(instance);
                     }
 
                     GUILayout.EndVertical();
