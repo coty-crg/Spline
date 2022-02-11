@@ -41,34 +41,55 @@ namespace CorgiSpline
                     }
                     else
                     {
-                        var has_normals = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal);
-                        var has_tangents = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent);
-                        var has_uv0 = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord0);
-                        var has_color = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color);
-
-                        if (!has_normals)
+                        EditorGUILayout.Space(); 
+                        EditorGUILayout.BeginHorizontal();
                         {
-                            EditorGUILayout.HelpBox("RepeatableMesh does not contain normals. It is recommended to add them.",
-                                MessageType.Warning);
-                        }
+                            // draw preview 
+                            var assetPreview = AssetPreview.GetAssetPreview(instance.RepeatableMesh);
+                            if (assetPreview != null)
+                            {
+                                EditorGUILayout.Space();
+                                var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
+                                GUILayout.Label(assetPreview, style);
+                                EditorGUILayout.Space();
+                            }
 
-                        if (!has_tangents)
-                        {
-                            EditorGUILayout.HelpBox("RepeatableMesh does not contain tangents. It is recommended to add them.",
-                                MessageType.Warning);
-                        }
+                            EditorGUILayout.BeginVertical();
+                            {
+                                // warnings for missing vertex data 
+                                var has_normals = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal);
+                                var has_tangents = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent);
+                                var has_uv0 = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord0);
+                                var has_color = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color);
 
-                        if (!has_uv0 && instance.UseRepeatingMeshUVs)
-                        {
-                            EditorGUILayout.HelpBox("RepeatableMesh does not contain UVs. It is recommended to add them, because you have enabled UseRepeatingMeshUVs.",
-                                MessageType.Info);
-                        }
+                                if (!has_normals)
+                                {
+                                    EditorGUILayout.HelpBox("RepeatableMesh does not contain normals. It is recommended to add them.",
+                                        MessageType.Warning);
+                                }
 
-                        if (!has_color)
-                        {
-                            EditorGUILayout.HelpBox("RepeatableMesh does not contain vertex colors. It is recommended to add them.",
-                                MessageType.Info);
+                                if (!has_tangents)
+                                {
+                                    EditorGUILayout.HelpBox("RepeatableMesh does not contain tangents. It is recommended to add them.",
+                                        MessageType.Warning);
+                                }
+
+                                if (!has_uv0 && instance.UseRepeatingMeshUVs)
+                                {
+                                    EditorGUILayout.HelpBox("RepeatableMesh does not contain UVs. It is recommended to add them, because you have enabled UseRepeatingMeshUVs.",
+                                        MessageType.Info);
+                                }
+
+                                if (!has_color)
+                                {
+                                    EditorGUILayout.HelpBox("RepeatableMesh does not contain vertex colors. It is recommended to add them.",
+                                        MessageType.Info);
+                                }
+                            }
+                            EditorGUILayout.EndVertical();
                         }
+                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.Space();
                     }
                 }
                 GUILayout.EndVertical();
