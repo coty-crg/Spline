@@ -43,7 +43,7 @@
             }
         }
 
-        [MenuItem("GameObject/Create Other/CorgiSpline/Spline Mesh (tube)")]
+        [MenuItem("GameObject/CorgiSpline/Spline Mesh (tube)", priority = 10)]
         public static void MenuItemCreateMeshBuilder_Tubey()
         {
             var newGameobject = new GameObject("NewSplineMesh_Tube");

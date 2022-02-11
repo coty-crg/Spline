@@ -165,7 +165,7 @@ namespace CorgiSpline
             // base.OnInspectorGUI();
         }
 
-        [MenuItem("GameObject/Create Other/CorgiSpline/Spline Mesh (cube)")]
+        [MenuItem("GameObject/CorgiSpline/Spline Mesh (cube)", priority = 10)]
         public static void MenuItemCreateMeshBuilder_Cubey()
         {
             var newGameobject = new GameObject("NewSplineMesh_Cube");

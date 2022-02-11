@@ -1251,7 +1251,7 @@ namespace CorgiSpline
             var new_forward = rotation * Vector3.forward;
 
             var changed = 
-                   (new_forward - forward).sqrMagnitude > 0
+                   (new_forward - forward).sqrMagnitude > 0 
                 || (new_right - right).sqrMagnitude > 0
                 || (new_up - up).sqrMagnitude > 0;
 
@@ -1359,8 +1359,8 @@ namespace CorgiSpline
             GUI.backgroundColor = backgroundColor;
         }
 
-        [MenuItem("GameObject/Create Other/CorgiSpline/Spline (standalone)")]
-        public static void MenuItemCreateSpline()
+        [MenuItem("GameObject/CorgiSpline/Spline (standalone)", priority = 10)]
+        public static void MenuItemCreateSpline() 
         {
             var newGameobject = new GameObject("NewSpline", typeof(Spline));
 

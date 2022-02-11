@@ -110,7 +110,7 @@ namespace CorgiSpline
             }
         }
 
-        [MenuItem("GameObject/Create Other/CorgiSpline/Spline Mesh (repeating mesh)")]
+        [MenuItem("GameObject/CorgiSpline/Spline Mesh (repeating mesh)", priority = 10)]
         public static void MenuItemCreateMeshBuilder_RepeatingMesh()
         {
             var newGameobject = new GameObject("NewSplineMesh_RepeatingMesh");
