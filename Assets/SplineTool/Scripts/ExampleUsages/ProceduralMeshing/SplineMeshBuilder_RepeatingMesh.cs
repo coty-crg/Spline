@@ -9,7 +9,7 @@ namespace CorgiSpline
 {
     public class SplineMeshBuilder_RepeatingMesh : SplineMeshBuilder
     {
-        [Header("RepeatingMesh")]
+        // [Header("RepeatingMesh")]
         [Tooltip("The mesh to copy/paste when creating this spline mesh.")]
         public Mesh RepeatableMesh;
 

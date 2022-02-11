@@ -9,7 +9,7 @@ namespace CorgiSpline
 {
     public class SplineMeshBuilder_Tube : SplineMeshBuilder
     {
-        [Header("Tube Settings")]
+        // [Header("Tube Settings")]
         [Tooltip("The quality of the loop of the tube generated.")]
         [Range(4, 64)] public int tube_quality = 8;
 

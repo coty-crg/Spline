@@ -9,46 +9,83 @@ namespace CorgiSpline
     [CustomEditor(typeof(SplineMeshBuilder_RepeatingMesh))]
     public class SplineMeshBuilder_RepeatingMesh_Editor : SplineMeshBuilder_Editor
     {
+        protected SerializedProperty RepeatableMesh;
+        protected SerializedProperty MeshLocalOffsetVertices;
+        protected SerializedProperty UseRepeatingMeshUVs;
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+
+            RepeatableMesh              = serializedObject.FindProperty("RepeatableMesh");
+            MeshLocalOffsetVertices     = serializedObject.FindProperty("MeshLocalOffsetVertices");
+            UseRepeatingMeshUVs         = serializedObject.FindProperty("UseRepeatingMeshUVs");
+        }
+
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
 
             var instance = (SplineMeshBuilder_RepeatingMesh) target;
 
-            if (instance.RepeatableMesh == null)
+            GUILayout.BeginVertical("GroupBox");
             {
-                EditorGUILayout.HelpBox("RepeatableMesh is null. Please assign a mesh to repeat!", MessageType.Error);
+                GUILayout.BeginVertical("GroupBox");
+                {
+                    EditorGUILayout.LabelField("Repeating Mesh", EditorStyles.boldLabel);
+                    EditorGUILayout.PropertyField(RepeatableMesh);
+
+                    if (instance.RepeatableMesh == null)
+                    {
+                        EditorGUILayout.HelpBox("RepeatableMesh is null. Please assign a mesh to repeat!", MessageType.Error);
+                    }
+                    else
+                    {
+                        var has_normals = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal);
+                        var has_tangents = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent);
+                        var has_uv0 = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord0);
+                        var has_color = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color);
+
+                        if (!has_normals)
+                        {
+                            EditorGUILayout.HelpBox("RepeatableMesh does not contain normals. It is recommended to add them.",
+                                MessageType.Warning);
+                        }
+
+                        if (!has_tangents)
+                        {
+                            EditorGUILayout.HelpBox("RepeatableMesh does not contain tangents. It is recommended to add them.",
+                                MessageType.Warning);
+                        }
+
+                        if (!has_uv0 && instance.UseRepeatingMeshUVs)
+                        {
+                            EditorGUILayout.HelpBox("RepeatableMesh does not contain UVs. It is recommended to add them, because you have enabled UseRepeatingMeshUVs.",
+                                MessageType.Info);
+                        }
+
+                        if (!has_color)
+                        {
+                            EditorGUILayout.HelpBox("RepeatableMesh does not contain vertex colors. It is recommended to add them.",
+                                MessageType.Info);
+                        }
+                    }
+                }
+                GUILayout.EndVertical();
+
+                GUILayout.BeginVertical("GroupBox");
+                {
+                    EditorGUILayout.LabelField("Repeating Mesh Settings", EditorStyles.boldLabel);
+                    EditorGUILayout.PropertyField(MeshLocalOffsetVertices);
+                    EditorGUILayout.PropertyField(UseRepeatingMeshUVs);
+                }
+                GUILayout.EndVertical();
             }
-            else
+            GUILayout.EndVertical();
+
+            if (GUI.changed)
             {
-                var has_normals = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal);
-                var has_tangents = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent);
-                var has_uv0 = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord0);
-                var has_color = instance.RepeatableMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color);
-
-                if(!has_normals)
-                {
-                    EditorGUILayout.HelpBox("RepeatableMesh does not contain normals. It is recommended to add them.", 
-                        MessageType.Warning);
-                }
-
-                if (!has_tangents)
-                {
-                    EditorGUILayout.HelpBox("RepeatableMesh does not contain tangents. It is recommended to add them.", 
-                        MessageType.Warning);
-                }
-
-                if (!has_uv0 && instance.UseRepeatingMeshUVs)
-                {
-                    EditorGUILayout.HelpBox("RepeatableMesh does not contain UVs. It is recommended to add them, because you have enabled UseRepeatingMeshUVs.", 
-                        MessageType.Info);
-                }
-
-                if (!has_color)
-                {
-                    EditorGUILayout.HelpBox("RepeatableMesh does not contain vertex colors. It is recommended to add them.", 
-                        MessageType.Info);
-                }
+                serializedObject.ApplyModifiedProperties();
             }
         }
     }

@@ -14,11 +14,11 @@ namespace CorgiSpline
     public class SplineMeshBuilder : MonoBehaviour
     {
         // references 
-        [Header("Spline")]
+        // [Header("Spline")]
         public Spline SplineReference;
 
         // settings
-        [Header("SplineMeshBuilder Settings")]
+        // [Header("SplineMeshBuilder Settings")]
         [Tooltip("Re-run this script every frame. Useful for dynamic splines.")] 
         public bool RebuildEveryFrame;
 
@@ -133,6 +133,19 @@ namespace CorgiSpline
 
         protected virtual void Update()
         {
+#if UNITY_EDITOR
+            if(!Application.isPlaying)
+            {
+                if(UnityEditor.Selection.activeGameObject == gameObject)
+                {
+                    Rebuild_Jobified();
+                    CompleteJob(); 
+                }
+
+                return;
+            }
+#endif
+
             if (RebuildEveryFrame)
             {
                 if(AllowAsyncRebuild && !_asyncReadyToRebuild)
@@ -148,6 +161,11 @@ namespace CorgiSpline
         {
             // note: cant be as async in the editor, for editing purposes
 #if UNITY_EDITOR
+            if(!Application.isPlaying)
+            {
+                return;
+            }
+
             if (RebuildEveryFrame && AllowAsyncRebuild) 
             {
                 CompleteJob();
@@ -158,6 +176,19 @@ namespace CorgiSpline
                 CompleteJob();
             }
 #endif
+        }
+
+        /// <summary>
+        /// Used by the custom inspectors to force a main thread rebuild.
+        /// </summary>
+        public void ForceImmediateRebuild()
+        {
+            // finish any ongoing stuff
+            CompleteJob();
+
+            // force remesh and complete immediately 
+            Rebuild_Jobified();
+            CompleteJob(); 
         }
 
         /// <summary>
