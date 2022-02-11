@@ -79,6 +79,24 @@ namespace CorgiSpline
                         }
                     }
                 }
+                else if(!Application.isPlaying)
+                {
+                    var splineOnGameobject = instance.GetComponent<Spline>();
+                    if(splineOnGameobject != null && splineOnGameobject != instance.SplineReference)
+                    {
+                        EditorGUILayout.HelpBox("Referenced spline is not attached to this gameobject, but there is a spline on this gameobject.", MessageType.Warning);
+
+                        EditorGUILayout.BeginHorizontal();
+                        {
+                            if (GUILayout.Button("Reference attached Spline"))
+                            {
+                                Undo.RecordObject(instance, "Reference attached Spline");
+                                instance.SplineReference = splineOnGameobject;
+                            }
+                        }
+                        EditorGUILayout.EndHorizontal();
+                    }
+                }
             }
             GUILayout.EndVertical();
 
