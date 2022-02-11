@@ -70,6 +70,7 @@ namespace CorgiSpline
 
         private float _prevCompleteMs;
         private bool _asyncReadyToRebuild = true;
+        private bool _hasScheduledJob;
 
         protected virtual void OnEnable()
         {
@@ -78,6 +79,12 @@ namespace CorgiSpline
             if (_serializedMesh != null)
             {
                 _mesh = _serializedMesh;
+
+                if(Application.isPlaying)
+                {
+                    this.enabled = false; 
+                    return; 
+                }
             }
             else
             {
@@ -103,13 +110,16 @@ namespace CorgiSpline
         {
             CompleteJob();
 
-            _nativeVertices.Dispose();
-            _nativeNormals.Dispose();
-            _nativeTangents.Dispose(); 
-            _nativeUVs.Dispose();
-            _nativeTris.Dispose();
-            _nativeBounds.Dispose();
-            _nativeColors.Dispose();
+            if(_nativeVertices.IsCreated)
+            {
+                _nativeVertices.Dispose();
+                _nativeNormals.Dispose();
+                _nativeTangents.Dispose(); 
+                _nativeUVs.Dispose();
+                _nativeTris.Dispose();
+                _nativeBounds.Dispose();
+                _nativeColors.Dispose();
+            }
 
             if(_serializedMesh == null)
             {
@@ -204,6 +214,7 @@ namespace CorgiSpline
 
             _previousHandle = ScheduleMeshingJob();
             _asyncReadyToRebuild = false;
+            _hasScheduledJob = true; 
 
             if (!AllowAsyncRebuild)
             {
@@ -216,6 +227,13 @@ namespace CorgiSpline
         /// </summary>
         public void CompleteJob()
         {
+            if(!_hasScheduledJob)
+            {
+                return;
+            }
+
+            _hasScheduledJob = false;
+
             var stopwatch = new System.Diagnostics.Stopwatch();
             stopwatch.Start();
 
@@ -356,10 +374,17 @@ namespace CorgiSpline
             _mesh = new Mesh(); 
         }
 
+        /// <summary>
+        /// Sets our _sharedMesh and configures anything necessary from this change. 
+        /// </summary>
+        /// <param name="mesh"></param>
         public void ConfigureSerializedMesh(Mesh mesh)
         {
             _serializedMesh = mesh;
-            _mesh = mesh; 
+            _mesh = mesh;
+
+            RebuildEveryFrame = false;
+            RebuildOnEnable = false; 
         }
 
         [BurstCompile]
