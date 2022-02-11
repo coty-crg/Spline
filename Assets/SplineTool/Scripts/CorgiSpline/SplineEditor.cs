@@ -46,6 +46,11 @@ namespace CorgiSpline
         {
             var instance = (Spline)target;
 
+            if(!instance.gameObject.activeInHierarchy)
+            {
+                EditorGUILayout.HelpBox("This GameObject is disabled, so placing points will not be available.", MessageType.Warning); 
+            }
+
             GUILayout.BeginVertical("GroupBox");
 
             var splineMode = instance.GetSplineMode();
