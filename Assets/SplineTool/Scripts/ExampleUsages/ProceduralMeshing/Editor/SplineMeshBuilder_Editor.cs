@@ -79,7 +79,7 @@ namespace CorgiSpline
                         instance.SplineReference = instance.gameObject.GetComponent<Spline>();
                         if (instance.SplineReference == null)
                         {
-                            instance.SplineReference = instance.gameObject.AddComponent<Spline>();
+                            instance.SplineReference = Undo.AddComponent<Spline>(instance.gameObject);
                         }
                     }
                 }
@@ -125,9 +125,7 @@ namespace CorgiSpline
                     var existingMeshCollider = instance.GetComponent<MeshCollider>();
                     if(existingMeshCollider == null && GUILayout.Button("Generate MeshCollider"))
                     {
-                        Undo.RecordObject(instance, "Generate MeshCollider");
-
-                        var meshCollider = instance.gameObject.AddComponent<MeshCollider>();
+                        var meshCollider = Undo.AddComponent<MeshCollider>(instance.gameObject);
                             meshCollider.sharedMesh = instance.GetMesh(); 
                     }
                 }
