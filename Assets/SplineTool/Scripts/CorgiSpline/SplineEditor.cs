@@ -1358,6 +1358,17 @@ namespace CorgiSpline
             GUILayout.Box(content ?? GUIContent.none, textureStyle);
             GUI.backgroundColor = backgroundColor;
         }
+
+        [MenuItem("GameObject/Create Other/CorgiSpline/Spline (standalone)")]
+        public static void MenuItemCreateSpline()
+        {
+            var newGameobject = new GameObject("NewSpline", typeof(Spline));
+
+            if(Selection.activeTransform != null)
+            {
+                newGameobject.transform.SetParent(Selection.activeTransform); 
+            }
+        }
     }
 }
 

@@ -42,5 +42,20 @@
                 serializedObject.ApplyModifiedProperties();
             }
         }
+
+        [MenuItem("GameObject/Create Other/CorgiSpline/Spline Mesh (tube)")]
+        public static void MenuItemCreateMeshBuilder_Tubey()
+        {
+            var newGameobject = new GameObject("NewSplineMesh_Tube");
+
+            var spline = newGameobject.AddComponent<Spline>();
+            var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_Tube>();
+                meshBuilder.SplineReference = spline;
+
+            if (Selection.activeTransform != null)
+            {
+                newGameobject.transform.SetParent(Selection.activeTransform);
+            }
+        }
     }
 }

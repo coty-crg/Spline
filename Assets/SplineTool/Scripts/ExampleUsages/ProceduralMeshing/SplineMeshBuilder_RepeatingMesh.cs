@@ -36,7 +36,7 @@ namespace CorgiSpline
 
         protected override void OnEnable()
         {
-            Debug.Assert(RepeatableMesh != null, "RepeatableMesh is null.", gameObject);
+            Debug.Assert(!Application.isPlaying || RepeatableMesh != null, "RepeatableMesh is null.", gameObject);
 
             native_tris = new NativeList<int>(Allocator.Persistent);
             native_verts = new NativeList<Vector3>(Allocator.Persistent);

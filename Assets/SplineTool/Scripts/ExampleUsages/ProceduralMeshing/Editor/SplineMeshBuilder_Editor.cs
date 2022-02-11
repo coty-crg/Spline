@@ -164,6 +164,21 @@ namespace CorgiSpline
             // uncomment to draw the normal inspector.. 
             // base.OnInspectorGUI();
         }
+
+        [MenuItem("GameObject/Create Other/CorgiSpline/Spline Mesh (cube)")]
+        public static void MenuItemCreateMeshBuilder_Cubey()
+        {
+            var newGameobject = new GameObject("NewSplineMesh_Cube");
+
+            var spline = newGameobject.AddComponent<Spline>();
+            var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder>();
+                meshBuilder.SplineReference = spline;
+
+            if (Selection.activeTransform != null)
+            {
+                newGameobject.transform.SetParent(Selection.activeTransform);
+            }
+        }
     }
 }
 #endif

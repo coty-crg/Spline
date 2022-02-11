@@ -76,7 +76,7 @@ namespace CorgiSpline
 
         protected virtual void OnEnable()
         {
-            Debug.Assert(SplineReference != null, "SplineReference is null", gameObject);
+            Debug.Assert(!(Application.isPlaying && SplineReference == null), "SplineReference is null", gameObject);
 
             if (SerializeMesh)
             {
