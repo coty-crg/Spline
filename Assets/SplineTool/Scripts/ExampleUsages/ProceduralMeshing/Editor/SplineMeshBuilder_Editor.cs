@@ -55,6 +55,10 @@ namespace CorgiSpline
             {
                 EditorGUILayout.HelpBox($"Meshing took {instance.GetPreviousMeshingDurationMs()}ms to complete.", MessageType.Info);
             }
+            else
+            {
+                EditorGUILayout.HelpBox($"Awaiting remesh.", MessageType.Info);
+            }
 
             EditorGUILayout.Space();
 
