@@ -119,6 +119,17 @@ namespace CorgiSpline
                         EditorGUILayout.PropertyField(RebuildOnEnable);
                         EditorGUILayout.PropertyField(AllowAsyncRebuild);
                     }
+
+                    EditorGUILayout.Space();
+
+                    var existingMeshCollider = instance.GetComponent<MeshCollider>();
+                    if(existingMeshCollider == null && GUILayout.Button("Generate MeshCollider"))
+                    {
+                        Undo.RecordObject(instance, "Generate MeshCollider");
+
+                        var meshCollider = instance.gameObject.AddComponent<MeshCollider>();
+                            meshCollider.sharedMesh = instance.GetMesh(); 
+                    }
                 }
                 GUILayout.EndVertical();
 
