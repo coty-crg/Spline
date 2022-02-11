@@ -119,6 +119,7 @@ namespace CorgiSpline
         public bool EditorDrawThickness;
         public bool EditorAlwaysDraw;
         public bool EditorAlwaysFacePointsForwardAndUp;
+        public float EditorGizmosScale = 1.0f;
 
         private void OnEnable()
         {

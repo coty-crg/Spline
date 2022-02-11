@@ -107,6 +107,17 @@ namespace CorgiSpline
                 EditorUtility.SetDirty(instance);
             }
 
+            var newEditorGizmosScale = EditorGUILayout.FloatField(new GUIContent("Point Gizmos Scale (Editor)", "Scale of the gizmos points"), instance.EditorGizmosScale);
+
+            if(Mathf.Abs(newEditorGizmosScale - instance.EditorGizmosScale) > 0.0001f)
+            {
+                if (newEditorGizmosScale < 0.01f) newEditorGizmosScale = 0.01f;
+
+                Undo.RecordObject(instance, "Point Gizmos Scale");
+                instance.EditorGizmosScale = newEditorGizmosScale;
+                EditorUtility.SetDirty(instance);
+            }
+
             GUILayout.EndVertical();
 
             EditorGUILayout.Space();
@@ -1155,18 +1166,25 @@ namespace CorgiSpline
                 var screenPoint = sceneCamera.WorldToScreenPoint(position);
 
                 // if point is behind camera, skip it 
-                if(screenPoint.z < 0f)
+                if (screenPoint.z < 0f)
                 {
                     continue; 
                 }
 
                 // otherwise, force it to be close by 
-                screenPoint.z = 10f;
+                screenPoint.z = 10f / instance.EditorGizmosScale;
 
                 var cameraPoint = sceneCamera.ScreenToWorldPoint(screenPoint);
 
+                var pointSize = 0.10f;
+
+                if (sceneCamera.orthographic)
+                {
+                    pointSize = instance.EditorGizmosScale;
+                }
+
                 Handles.color = SelectedPoints.Contains(p) ? Color.white : isHandle ? Color.green : Color.blue;
-                var selected = Handles.Button(cameraPoint, Quaternion.identity, .1f, .1f, Handles.DotHandleCap);
+                var selected = Handles.Button(cameraPoint, Quaternion.identity, pointSize, pointSize, Handles.DotHandleCap);
                 if (selected)
                 {
                     Undo.RegisterCompleteObjectUndo(this, "Selected Point");
