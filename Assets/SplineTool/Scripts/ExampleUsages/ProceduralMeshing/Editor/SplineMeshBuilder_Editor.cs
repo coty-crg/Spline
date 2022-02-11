@@ -12,7 +12,6 @@ namespace CorgiSpline
         protected SerializedProperty RebuildEveryFrame;
         protected SerializedProperty RebuildOnEnable;
         protected SerializedProperty AllowAsyncRebuild;
-        protected SerializedProperty SerializeMesh;
         protected SerializedProperty built_to_t;
         protected SerializedProperty quality;
         protected SerializedProperty width;
@@ -30,7 +29,6 @@ namespace CorgiSpline
             RebuildEveryFrame           = serializedObject.FindProperty("RebuildEveryFrame");
             RebuildOnEnable             = serializedObject.FindProperty("RebuildOnEnable");
             AllowAsyncRebuild           = serializedObject.FindProperty("AllowAsyncRebuild");
-            SerializeMesh               = serializedObject.FindProperty("SerializeMesh");
             built_to_t                  = serializedObject.FindProperty("built_to_t");
             quality                     = serializedObject.FindProperty("quality");
             width                       = serializedObject.FindProperty("width");
@@ -111,13 +109,53 @@ namespace CorgiSpline
                 GUILayout.BeginVertical("GroupBox");
                 {
                     EditorGUILayout.LabelField("General Settings", EditorStyles.boldLabel);
-                    EditorGUILayout.PropertyField(SerializeMesh);
+                    // EditorGUILayout.PropertyField(SerializeMesh);
 
-                    if(!instance.SerializeMesh)
+                    if(instance._serializedMesh != null)
+                    {
+                        EditorGUI.BeginDisabledGroup(true); 
+                        EditorGUILayout.PropertyField(_serializedMesh);
+                        EditorGUI.EndDisabledGroup(); 
+
+                        if(GUILayout.Button("Unlink Serialized Mesh"))
+                        {
+                            Undo.RecordObject(instance, "unlink"); 
+                            instance._serializedMesh = null;
+                        }
+                    }
+                    else
                     {
                         EditorGUILayout.PropertyField(RebuildEveryFrame);
                         EditorGUILayout.PropertyField(RebuildOnEnable);
                         EditorGUILayout.PropertyField(AllowAsyncRebuild);
+
+                        EditorGUILayout.Space();
+                        if(GUILayout.Button("Serialize Mesh"))
+                        {
+                            var filename = EditorUtility.SaveFilePanel("Save Mesh Asset", Application.dataPath, $"{instance.gameObject.name}", ".asset");
+                            if(!string.IsNullOrEmpty(filename))
+                            {
+                                filename = filename.Replace(Application.dataPath + "/", "Assets/");
+
+                                Undo.RecordObject(instance, "serialized mesh"); 
+
+                                var existingAsset = AssetDatabase.LoadAssetAtPath<Mesh>(filename);
+                                if(existingAsset != null)
+                                {
+                                    instance.ConfigureSerializedMesh(existingAsset);
+                                }
+                                else
+                                {
+                                    var mesh = instance.GetMesh();
+
+                                    AssetDatabase.CreateAsset(mesh, filename);
+                                    AssetDatabase.SaveAssets();
+
+                                    var meshAsset = AssetDatabase.LoadAssetAtPath<Mesh>(filename);
+                                    instance.ConfigureSerializedMesh(meshAsset);
+                                }
+                            }
+                        }
                     }
 
                     EditorGUILayout.Space();

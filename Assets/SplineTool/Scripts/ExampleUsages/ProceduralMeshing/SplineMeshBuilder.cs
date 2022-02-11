@@ -28,9 +28,6 @@ namespace CorgiSpline
         [Tooltip("Attempts to run the mesh builder script off the main thread, so the game is not slowed down.")] 
         public bool AllowAsyncRebuild;
 
-        [Tooltip("Stores the mesh, so it does not need to be rebuilt at runtime.")] 
-        public bool SerializeMesh;
-
         [Tooltip("Stop building the mesh at this % of the spline.")]
         [Range(0f, 1f)] public float built_to_t = 1f;
 
@@ -58,7 +55,7 @@ namespace CorgiSpline
         [Tooltip("When calculating scale, use the spline point data.")]
         public bool use_splinepoint_scale = false;
 
-        [HideInInspector, SerializeField] protected Mesh _serializedMesh;
+        [HideInInspector] public Mesh _serializedMesh;
 
         // internal 
         protected Mesh _mesh;
@@ -78,12 +75,11 @@ namespace CorgiSpline
         {
             Debug.Assert(!(Application.isPlaying && SplineReference == null), "SplineReference is null", gameObject);
 
-            if (SerializeMesh)
+            if (_serializedMesh != null)
             {
                 _mesh = _serializedMesh;
             }
-
-            if(_mesh == null)
+            else
             {
                 _mesh = new Mesh();
             }
@@ -115,7 +111,7 @@ namespace CorgiSpline
             _nativeBounds.Dispose();
             _nativeColors.Dispose();
 
-            if(!SerializeMesh)
+            if(_serializedMesh == null)
             {
                 if (_mesh != null)
                 {
@@ -253,12 +249,6 @@ namespace CorgiSpline
                 _mesh.bounds = _nativeBounds[0];
             }
 
-            // store the mesh, if we want to serialize it 
-            if(SerializeMesh)
-            {
-                _serializedMesh = _mesh;
-            }
-
             var meshFilter = GetComponent<MeshFilter>();
             meshFilter.sharedMesh = _mesh;
 
@@ -332,6 +322,34 @@ namespace CorgiSpline
         public float GetPreviousMeshingDurationMs()
         {
             return _prevCompleteMs;
+        }
+
+        /// <summary>
+        /// Discard the current mesh. 
+        /// </summary>
+        public void ClearMesh()
+        {
+            if (_mesh != null)
+            {
+#if UNITY_EDITOR
+                if(!Application.isPlaying)
+                {
+                    DestroyImmediate(_mesh);
+                }
+                {
+                    Destroy(_mesh);
+                }
+#else
+                    Destroy(_mesh);
+#endif
+            }
+
+        }
+
+        public void ConfigureSerializedMesh(Mesh mesh)
+        {
+            _serializedMesh = mesh;
+            _mesh = mesh; 
         }
 
         [BurstCompile]
