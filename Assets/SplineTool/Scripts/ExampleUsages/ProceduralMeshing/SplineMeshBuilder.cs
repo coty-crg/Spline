@@ -196,7 +196,7 @@ namespace CorgiSpline
         /// </summary>
         public void Rebuild_Jobified()
         {
-            if (SplineReference == null)
+            if (SplineReference == null || SplineReference.GetPointCountIgnoreHandles() == 0)
             {
                 return;
             }
