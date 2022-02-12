@@ -1,4 +1,5 @@
-﻿namespace CorgiSpline
+﻿#if UNITY_EDITOR
+namespace CorgiSpline
 {
     using System.Collections;
     using System.Collections.Generic;
@@ -59,3 +60,4 @@
         }
     }
 }
+#endif
