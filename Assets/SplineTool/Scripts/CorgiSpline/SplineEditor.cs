@@ -62,14 +62,36 @@ namespace CorgiSpline
                 EditorUtility.SetDirty(instance);
             }
 
-            var splineSpace = instance.GetSplineSpace();
-            var newSplineSpace = (Space)EditorGUILayout.EnumPopup("Spline Space", splineSpace);
-            if (splineSpace != newSplineSpace)
+
+            var splineGameobjectHasMeshBuilder = instance.GetComponent<SplineMeshBuilder>() != null;
+            if (splineGameobjectHasMeshBuilder)
             {
-                Undo.RecordObject(instance, "Changed Spline Space");
-                instance.SetSplineSpace(newSplineSpace, true);
-                EditorUtility.SetDirty(instance);
+                EditorGUI.BeginDisabledGroup(true);
+
+                var splineSpace = instance.GetSplineSpace();
+                var newSplineSpace = (Space)EditorGUILayout.EnumPopup(new GUIContent("Spline Space", "Currently being overriden by a SplineMeshBuilder instance.") , splineSpace);
+                    newSplineSpace = Space.Self;
+
+                if (splineSpace != newSplineSpace)
+                {
+                    Undo.RecordObject(instance, "Changed Spline Space");
+                    instance.SetSplineSpace(newSplineSpace, true);
+                    EditorUtility.SetDirty(instance);
+                }
+                EditorGUI.EndDisabledGroup();
             }
+            else
+            {
+                var splineSpace = instance.GetSplineSpace();
+                var newSplineSpace = (Space)EditorGUILayout.EnumPopup("Spline Space", splineSpace);
+                if (splineSpace != newSplineSpace)
+                {
+                    Undo.RecordObject(instance, "Changed Spline Space");
+                    instance.SetSplineSpace(newSplineSpace, true);
+                    EditorUtility.SetDirty(instance);
+                }
+            }
+
 
             var newUpdateNativeArrayOnEnable = EditorGUILayout.Toggle(new GUIContent("Update NativeArray OnEnable",
                 "Only necessary if you care about using Splines in the Job System. Some of the example scripts use this."), instance.UpdateNativeArrayOnEnable);

@@ -14,8 +14,7 @@ namespace CorgiSpline
         protected SerializedProperty AllowAsyncRebuild;
         protected SerializedProperty built_to_t;
         protected SerializedProperty quality;
-        protected SerializedProperty width;
-        protected SerializedProperty height;
+        protected SerializedProperty scaleMult;
         protected SerializedProperty uv_tile_scale;
         protected SerializedProperty cover_ends_with_quads;
         protected SerializedProperty uv_stretch_instead_of_tile;
@@ -31,8 +30,7 @@ namespace CorgiSpline
             AllowAsyncRebuild           = serializedObject.FindProperty("AllowAsyncRebuild");
             built_to_t                  = serializedObject.FindProperty("built_to_t");
             quality                     = serializedObject.FindProperty("quality");
-            width                       = serializedObject.FindProperty("width");
-            height                      = serializedObject.FindProperty("height");
+            scaleMult                   = serializedObject.FindProperty("scaleMult");
             uv_tile_scale               = serializedObject.FindProperty("uv_tile_scale");
             cover_ends_with_quads       = serializedObject.FindProperty("cover_ends_with_quads");
             uv_stretch_instead_of_tile  = serializedObject.FindProperty("uv_stretch_instead_of_tile");
@@ -181,8 +179,7 @@ namespace CorgiSpline
                 {
                     EditorGUILayout.LabelField("Visual Settings", EditorStyles.boldLabel);
                     EditorGUILayout.PropertyField(built_to_t);
-                    EditorGUILayout.PropertyField(width);
-                    EditorGUILayout.PropertyField(height);
+                    EditorGUILayout.PropertyField(scaleMult);
                     EditorGUILayout.PropertyField(uv_tile_scale);
                     EditorGUILayout.PropertyField(cover_ends_with_quads);
                     EditorGUILayout.PropertyField(uv_stretch_instead_of_tile);
@@ -211,6 +208,8 @@ namespace CorgiSpline
             var newGameobject = new GameObject("NewSplineMesh_Cube");
 
             var spline = newGameobject.AddComponent<Spline>();
+                spline.SetSplineSpace(Space.Self, false);
+
             var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder>();
                 meshBuilder.SplineReference = spline;
 

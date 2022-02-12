@@ -25,12 +25,14 @@ namespace CorgiSpline
 
         protected override JobHandle ScheduleMeshingJob(JobHandle dependency = default)
         {
+            DetermineSplineSettings(out Space splineSpace, out Matrix4x4 localToWorldMatrix, out Matrix4x4 worldToLocalMatrix);
+
             var job = new BuildMeshFromSpline_Tube()
             {
                 quality = quality,
                 tube_quality = tube_quality,
-                width = width,
-                height = height,
+                width = scaleMult.x,
+                height = scaleMult.y,
                 uv_tile_scale = uv_tile_scale,
                 uv_stretch_instead_of_tile = uv_stretch_instead_of_tile,
                 minimum_distance_between_points = minimum_distance_between_points,
@@ -48,10 +50,11 @@ namespace CorgiSpline
 
                 Points = SplineReference.NativePoints,
                 Mode = SplineReference.GetSplineMode(),
-                SplineSpace = SplineReference.GetSplineSpace(),
-                worldToLocalMatrix = SplineReference.transform.worldToLocalMatrix,
-                localToWorldMatrix = SplineReference.transform.localToWorldMatrix,
                 ClosedSpline = SplineReference.GetSplineClosed(),
+
+                SplineSpace = splineSpace,
+                worldToLocalMatrix = worldToLocalMatrix,
+                localToWorldMatrix = localToWorldMatrix,
 
                 built_to_t = built_to_t,
                 cover_ends_with_quads = cover_ends_with_quads,

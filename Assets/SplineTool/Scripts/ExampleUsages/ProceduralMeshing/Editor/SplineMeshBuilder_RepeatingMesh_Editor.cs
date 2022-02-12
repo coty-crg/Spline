@@ -118,6 +118,8 @@ namespace CorgiSpline
             var newGameobject = new GameObject("NewSplineMesh_RepeatingMesh");
 
             var spline = newGameobject.AddComponent<Spline>();
+                spline.SetSplineSpace(Space.Self, false);
+
             var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_RepeatingMesh>();
                 meshBuilder.SplineReference = spline;
 

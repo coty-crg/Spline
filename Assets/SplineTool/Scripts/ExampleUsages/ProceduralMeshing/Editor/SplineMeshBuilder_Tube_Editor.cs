@@ -51,6 +51,8 @@ namespace CorgiSpline
             var newGameobject = new GameObject("NewSplineMesh_Tube");
 
             var spline = newGameobject.AddComponent<Spline>();
+                spline.SetSplineSpace(Space.Self, false);
+
             var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_Tube>();
                 meshBuilder.SplineReference = spline;
 

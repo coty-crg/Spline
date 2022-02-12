@@ -180,6 +180,8 @@ namespace CorgiSpline
                 }
             }
 
+            DetermineSplineSettings(out Space splineSpace, out Matrix4x4 localToWorldMatrix, out Matrix4x4 worldToLocalMatrix);
+
             var job = new BuildMeshFromSpline_RepeatingMesh()
             {
                 repeatingMesh_tris = native_tris,
@@ -200,8 +202,7 @@ namespace CorgiSpline
                 quality = quality,
                 uv_tile_scale = uv_tile_scale,
                 uv_stretch_instead_of_tile = uv_stretch_instead_of_tile,
-                width = width,
-                height = height,
+                scale = scaleMult,
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
@@ -214,10 +215,11 @@ namespace CorgiSpline
 
                 Points = SplineReference.NativePoints,
                 Mode = SplineReference.GetSplineMode(),
-                SplineSpace = SplineReference.GetSplineSpace(),
-                worldToLocalMatrix = SplineReference.transform.worldToLocalMatrix,
-                localToWorldMatrix = SplineReference.transform.localToWorldMatrix,
                 ClosedSpline = SplineReference.GetSplineClosed(),
+
+                SplineSpace = splineSpace,
+                worldToLocalMatrix = worldToLocalMatrix,
+                localToWorldMatrix = localToWorldMatrix,
             };
 
             return job.Schedule(dependency);
@@ -244,8 +246,7 @@ namespace CorgiSpline
             public bool repeatingMesh_has_colors;
 
             public bool UseRepeatingMeshUVs;
-            public float width;
-            public float height;
+            public Vector3 scale;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -337,7 +338,7 @@ namespace CorgiSpline
                         var trs = Matrix4x4.TRS(
                             vertex_splinePoint.position + MeshLocalOffsetVertices, 
                             vertex_splinePoint.rotation, 
-                            Vector3.Scale(vertex_splinePoint.scale, new Vector3(width, height, 1f)));
+                            Vector3.Scale(vertex_splinePoint.scale, scale));
 
                         var vertex = trs.MultiplyPoint(new Vector3(repeating_vertex.x, repeating_vertex.y, 0));
                         normal = trs.MultiplyVector(normal);
