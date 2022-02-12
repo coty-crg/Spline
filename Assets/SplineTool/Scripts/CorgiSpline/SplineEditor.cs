@@ -405,11 +405,14 @@ namespace CorgiSpline
                 if (Event.current.isKey)
                 {
                     var pressedEscape = Event.current.keyCode == KeyCode.Escape 
-                        || Event.current.keyCode == KeyCode.W 
-                        || Event.current.keyCode == KeyCode.Q 
-                        || Event.current.keyCode == KeyCode.E 
-                        || Event.current.keyCode == KeyCode.R 
-                        || Event.current.keyCode == KeyCode.T;
+
+                        || (!_rightMouseHeld 
+                        && (   Event.current.keyCode == KeyCode.W 
+                            || Event.current.keyCode == KeyCode.Q 
+                            || Event.current.keyCode == KeyCode.E 
+                            || Event.current.keyCode == KeyCode.R 
+                            || Event.current.keyCode == KeyCode.T)
+                            );
 
                     if (pressedEscape)
                     {
