@@ -47,11 +47,15 @@ namespace CorgiSpline
         [MenuItem("GameObject/CorgiSpline/Spline Mesh (tube)", priority = 10)]
         public static void MenuItemCreateMeshBuilder_Tubey()
         {
+            var editorConfig = SplineEditorConfig.FindConfig();
             var newGameobject = new GameObject("NewSplineMesh_Tube");
 
             var spline = newGameobject.AddComponent<Spline>();
             var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_Tube>();
                 meshBuilder.SplineReference = spline;
+
+            var newMeshRenderer = newGameobject.AddComponent<MeshRenderer>();
+                newMeshRenderer.sharedMaterial = editorConfig.defaultMaterialForRenderers;
 
             if (Selection.activeTransform != null)
             {

@@ -113,16 +113,23 @@ namespace CorgiSpline
         [MenuItem("GameObject/CorgiSpline/Spline Mesh (repeating mesh)", priority = 10)]
         public static void MenuItemCreateMeshBuilder_RepeatingMesh()
         {
+            var editorConfig = SplineEditorConfig.FindConfig();
+
             var newGameobject = new GameObject("NewSplineMesh_RepeatingMesh");
 
             var spline = newGameobject.AddComponent<Spline>();
             var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_RepeatingMesh>();
                 meshBuilder.SplineReference = spline;
 
+            var newMeshRenderer = newGameobject.AddComponent<MeshRenderer>();
+                newMeshRenderer.sharedMaterial = editorConfig.defaultMaterialForRenderers;
+
             if (Selection.activeTransform != null)
             {
                 newGameobject.transform.SetParent(Selection.activeTransform);
             }
+
+
         }
     }
 }
