@@ -43,6 +43,9 @@ namespace CorgiSpline
         [Tooltip("Scale the local space spline samples during meshing. Affects different mesh builders in different ways.")] 
         public Vector3 scaleMult = Vector3.one;
 
+        [Tooltip("Offset all vertices from the spline locally by this offset")]
+        public Vector3 vertexOffset = Vector3.zero;
+
         [Tooltip("UV tiling scale of the mesh along the spline, if applicable.")]
         public float uv_tile_scale = 1f;
 
@@ -318,6 +321,7 @@ namespace CorgiSpline
                 uv_stretch_instead_of_tile = uv_stretch_instead_of_tile,
                 use_splinepoint_rotations = use_splinepoint_rotations,
                 use_splinepoint_scale = use_splinepoint_scale,
+                vertexOffset = vertexOffset,
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
@@ -423,6 +427,7 @@ namespace CorgiSpline
             public bool uv_stretch_instead_of_tile;
             public bool use_splinepoint_rotations;
             public bool use_splinepoint_scale;
+            public Vector3 vertexOffset;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -496,7 +501,7 @@ namespace CorgiSpline
 
                     var up = Vector3.up;
                     var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
-                    var position = splinePoint.position;
+                    var position = splinePoint.position + vertexOffset;
                     var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
                     var right = Vector3.Cross(forward, up); 
 

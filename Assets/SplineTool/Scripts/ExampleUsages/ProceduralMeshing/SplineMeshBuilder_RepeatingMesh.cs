@@ -13,8 +13,8 @@ namespace CorgiSpline
         [Tooltip("The mesh to copy/paste when creating this spline mesh.")]
         public Mesh RepeatableMesh;
 
-        [Tooltip("Offsets the local vertices on each paste of the mesh along the spline.")]
-        public Vector3 MeshLocalOffsetVertices;
+        // [Tooltip("Offsets the local vertices on each paste of the mesh along the spline.")]
+        // public Vector3 MeshLocalOffsetVertices;
 
         [Tooltip("Use the real UV data from the mesh we are pasting.")]
         public bool UseRepeatingMeshUVs;
@@ -195,7 +195,7 @@ namespace CorgiSpline
                 repeatingMesh_has_colors = native_colors.Length  == native_verts.Length,
                 repeatingMesh_has_uv0 = native_uv0.Length  == native_verts.Length,
 
-                MeshLocalOffsetVertices = MeshLocalOffsetVertices,
+                MeshLocalOffsetVertices = vertexOffset,
                 UseRepeatingMeshUVs = UseRepeatingMeshUVs,
 
                 built_to_t = built_to_t,

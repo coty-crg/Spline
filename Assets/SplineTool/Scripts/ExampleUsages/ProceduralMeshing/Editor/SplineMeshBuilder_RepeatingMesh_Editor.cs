@@ -10,7 +10,6 @@ namespace CorgiSpline
     public class SplineMeshBuilder_RepeatingMesh_Editor : SplineMeshBuilder_Editor
     {
         protected SerializedProperty RepeatableMesh;
-        protected SerializedProperty MeshLocalOffsetVertices;
         protected SerializedProperty UseRepeatingMeshUVs;
 
         protected override void OnEnable()
@@ -18,7 +17,6 @@ namespace CorgiSpline
             base.OnEnable();
 
             RepeatableMesh              = serializedObject.FindProperty("RepeatableMesh");
-            MeshLocalOffsetVertices     = serializedObject.FindProperty("MeshLocalOffsetVertices");
             UseRepeatingMeshUVs         = serializedObject.FindProperty("UseRepeatingMeshUVs");
         }
 
@@ -97,7 +95,6 @@ namespace CorgiSpline
                 GUILayout.BeginVertical("GroupBox");
                 {
                     EditorGUILayout.LabelField("Repeating Mesh Settings", EditorStyles.boldLabel);
-                    EditorGUILayout.PropertyField(MeshLocalOffsetVertices);
                     EditorGUILayout.PropertyField(UseRepeatingMeshUVs);
                 }
                 GUILayout.EndVertical();

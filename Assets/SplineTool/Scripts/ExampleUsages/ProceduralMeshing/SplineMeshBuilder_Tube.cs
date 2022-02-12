@@ -40,6 +40,7 @@ namespace CorgiSpline
                 max_distance_between_points = max_distance_between_points,
                 use_splinepoint_rotations = use_splinepoint_rotations,
                 use_splinepoint_scale = use_splinepoint_scale,
+                vertexOffset = vertexOffset,
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
@@ -80,6 +81,7 @@ namespace CorgiSpline
             public float minimum_dot_between_forwards;
             public bool use_splinepoint_rotations;
             public bool use_splinepoint_scale;
+            public Vector3 vertexOffset;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -156,7 +158,7 @@ namespace CorgiSpline
 
                     var up = Vector3.up;
                     var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
-                    var position = splinePoint.position;
+                    var position = splinePoint.position + vertexOffset;
                     var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
                     if(use_splinepoint_rotations)
