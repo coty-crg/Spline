@@ -704,43 +704,94 @@ namespace CorgiSpline
                     // wall triangles 
                     for (var v = 0; v < floor_vert_index - 2; v += 4)
                     {
-                        // right wall 
-                        tris.Add(v + floor_vert_index + 1);
-                        tris.Add(v + 3);
-                        tris.Add(v + 1);
-
-                        tris.Add(v + 3);
-                        tris.Add(v + floor_vert_index + 1);
-                        tris.Add(v + floor_vert_index + 3);
-
-                        // left wall
-                        tris.Add(v + floor_vert_index + 0);
-                        tris.Add(v + 0);
-                        tris.Add(v + 2);
-
-                        tris.Add(v + floor_vert_index + 2);
-                        tris.Add(v + floor_vert_index + 0);
-                        tris.Add(v + 2);
-
-                        if (v < floor_vert_index - 4)
+                        if(normalsMode == MeshBuilderNormals.Hard)
                         {
-                        
                             // right wall 
-                            tris.Add(v + floor_vert_index + 1 + 2);
-                            tris.Add(v + 3 + 2);
-                            tris.Add(v + 1 + 2);
-                            tris.Add(v + 3 + 2);
-                            tris.Add(v + floor_vert_index + 1 + 2);
-                            tris.Add(v + floor_vert_index + 3 + 2);
-                        
+                            AddWallHardNormals(
+                                v + floor_vert_index + 1,
+                                v + 3,
+                                v + 1,
+                                v + 3,
+                                v + floor_vert_index + 1,
+                                v + floor_vert_index + 3
+                            );
+
                             // left wall
-                            tris.Add(v + floor_vert_index + 0 + 2);
-                            tris.Add(v + 0 + 2);
-                            tris.Add(v + 2 + 2);
-                            tris.Add(v + floor_vert_index + 2 + 2);
-                            tris.Add(v + floor_vert_index + 0 + 2);
-                            tris.Add(v + 2 + 2);
+                            AddWallHardNormals(
+                                v + floor_vert_index + 0,
+                                v + 0,
+                                v + 2,
+                                v + floor_vert_index + 2,
+                                v + floor_vert_index + 0,
+                                v + 2
+                            );
+
+                            if (v < floor_vert_index - 4)
+                            {
+
+                                // right wall 
+                                AddWallHardNormals(
+                                    v + floor_vert_index + 1 + 2,
+                                    v + 3 + 2,
+                                    v + 1 + 2,
+                                    v + 3 + 2,
+                                    v + floor_vert_index + 1 + 2,
+                                    v + floor_vert_index + 3 + 2
+                                );
+
+                                // left wall
+                                AddWallHardNormals(
+                                    v + floor_vert_index + 0 + 2,
+                                    v + 0 + 2,
+                                    v + 2 + 2,
+                                    v + floor_vert_index + 2 + 2,
+                                    v + floor_vert_index + 0 + 2,
+                                    v + 2 + 2
+                                );
+                            }
                         }
+                        else
+                        {
+                            // right wall 
+                            tris.Add(v + floor_vert_index + 1);
+                            tris.Add(v + 3);
+                            tris.Add(v + 1);
+
+                            tris.Add(v + 3);
+                            tris.Add(v + floor_vert_index + 1);
+                            tris.Add(v + floor_vert_index + 3);
+
+                            // left wall
+                            tris.Add(v + floor_vert_index + 0);
+                            tris.Add(v + 0);
+                            tris.Add(v + 2);
+
+                            tris.Add(v + floor_vert_index + 2);
+                            tris.Add(v + floor_vert_index + 0);
+                            tris.Add(v + 2);
+
+                            if (v < floor_vert_index - 4)
+                            {
+                        
+                                // right wall 
+                                tris.Add(v + floor_vert_index + 1 + 2);
+                                tris.Add(v + 3 + 2);
+                                tris.Add(v + 1 + 2);
+                                tris.Add(v + 3 + 2);
+                                tris.Add(v + floor_vert_index + 1 + 2);
+                                tris.Add(v + floor_vert_index + 3 + 2);
+                        
+                                // left wall
+                                tris.Add(v + floor_vert_index + 0 + 2);
+                                tris.Add(v + 0 + 2);
+                                tris.Add(v + 2 + 2);
+                                tris.Add(v + floor_vert_index + 2 + 2);
+                                tris.Add(v + floor_vert_index + 0 + 2);
+                                tris.Add(v + 2 + 2);
+                            }
+
+                        }
+
                     }
 
                     // end cap triangles 
@@ -771,6 +822,54 @@ namespace CorgiSpline
 
                 // remember bounds 
                 bounds[0] = trackedBounds;
+            }
+
+            private void AddWallHardNormals(int v0, int v1, int v2, int v3, int v4, int v5)
+            {
+                var hv_i_r0 = verts.Length;
+
+                verts.Add(verts[v0]);
+                verts.Add(verts[v1]);
+                verts.Add(verts[v2]);
+                verts.Add(verts[v3]);
+                verts.Add(verts[v4]);
+                verts.Add(verts[v5]);
+
+                normals.Add(normals[v0]);
+                normals.Add(normals[v1]);
+                normals.Add(normals[v2]);
+                normals.Add(normals[v3]);
+                normals.Add(normals[v4]);
+                normals.Add(normals[v5]);
+
+                tangents.Add(tangents[v0]);
+                tangents.Add(tangents[v1]);
+                tangents.Add(tangents[v2]);
+                tangents.Add(tangents[v3]);
+                tangents.Add(tangents[v4]);
+                tangents.Add(tangents[v5]);
+
+                uvs.Add(uvs[v0]);
+                uvs.Add(uvs[v1]);
+                uvs.Add(uvs[v2]);
+                uvs.Add(uvs[v3]);
+                uvs.Add(uvs[v4]);
+                uvs.Add(uvs[v5]);
+
+                colors.Add(colors[v0]);
+                colors.Add(colors[v1]);
+                colors.Add(colors[v2]);
+                colors.Add(colors[v3]);
+                colors.Add(colors[v4]);
+                colors.Add(colors[v5]);
+
+                // right wall 
+                tris.Add(hv_i_r0 + 0);
+                tris.Add(hv_i_r0 + 1);
+                tris.Add(hv_i_r0 + 2);
+                tris.Add(hv_i_r0 + 3);
+                tris.Add(hv_i_r0 + 4);
+                tris.Add(hv_i_r0 + 5);
             }
         }
     }
