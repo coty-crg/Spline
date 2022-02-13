@@ -257,7 +257,9 @@ namespace CorgiSpline
                 }
 
                 // generate triangles 
-                for (var v = 0; v < verts.Length - tube_quality - 1; v += 1)
+                var vertexLength = verts.Length;
+
+                for (var v = 0; v < vertexLength - tube_quality - 1; v += 1)
                 {
                     var offset_bot = v;
                     var offset_top = v + tube_quality;
@@ -266,6 +268,39 @@ namespace CorgiSpline
                     var vert_bot1 = offset_bot + 1;
                     var vert_top0 = offset_top + 0;
                     var vert_top1 = offset_top + 1;
+
+                    // if we're wanting normals to be hard, duplicate some data and use it for triangle generation instead 
+                    if (normalsMode == MeshBuilderNormals.Hard)
+                    {
+                        var averageNormal = ((normals[vert_bot0] + normals[vert_bot1] + normals[vert_top0] + normals[vert_top1]) / 4).normalized;
+                        var averageTangent = ((tangents[vert_bot0] + tangents[vert_bot1] + tangents[vert_top0] + tangents[vert_top1]) / 4).normalized;
+
+                        verts.Add(verts[vert_bot0]);
+                        verts.Add(verts[vert_bot1]);
+                        verts.Add(verts[vert_top0]);
+                        verts.Add(verts[vert_top1]);
+
+                        normals.Add(averageNormal);
+                        normals.Add(averageNormal);
+                        normals.Add(averageNormal);
+                        normals.Add(averageNormal);
+
+                        tangents.Add(averageTangent);
+                        tangents.Add(averageTangent);
+                        tangents.Add(averageTangent);
+                        tangents.Add(averageTangent);
+
+                        uvs.Add(uvs[vert_bot0]);
+                        uvs.Add(uvs[vert_bot1]);
+                        uvs.Add(uvs[vert_top0]);
+                        uvs.Add(uvs[vert_top1]);
+
+                        // replace these for triangles 
+                        vert_bot0 = verts.Length - 4 + 0;
+                        vert_bot1 = verts.Length - 4 + 1;
+                        vert_top0 = verts.Length - 4 + 2;
+                        vert_top1 = verts.Length - 4 + 3;
+                    }
 
                     tris.Add(vert_bot0);
                     tris.Add(vert_bot1);
@@ -279,10 +314,11 @@ namespace CorgiSpline
                 if(cover_ends_with_quads && !full_loop)
                 {
                     var v_start_center = verts.Length;
+                    var startTangent = new Vector4(start_up.x, start_up.y, start_up.z, 1.0f);
 
                     verts.Add(firstPoint.position);
                     normals.Add(start_forward);
-                    tangents.Add(new Vector4(start_up.x, start_up.y, start_up.z, 1.0f));
+                    tangents.Add(startTangent);
                     uvs.Add(new Vector4(0f, 0f, 0f, 0f));
 
                     for(var v = 0; v < tube_quality - 1; ++v)
@@ -291,6 +327,28 @@ namespace CorgiSpline
                         var vert_top0 = v;
                         var vert_top1 = v + 1;
 
+                        // always have caps as hard normals 
+                        verts.Add(verts[vert_bot]);
+                        verts.Add(verts[vert_top0]);
+                        verts.Add(verts[vert_top1]);
+
+                        normals.Add(start_forward);
+                        normals.Add(start_forward);
+                        normals.Add(start_forward);
+
+                        tangents.Add(startTangent);
+                        tangents.Add(startTangent);
+                        tangents.Add(startTangent);
+
+                        uvs.Add(uvs[vert_bot]);
+                        uvs.Add(uvs[vert_top0]);
+                        uvs.Add(uvs[vert_top1]);
+
+                        // replace these for triangles 
+                        vert_bot = verts.Length  - 3 + 0;
+                        vert_top0 = verts.Length - 3 + 1;
+                        vert_top1 = verts.Length - 3 + 2;
+
                         tris.Add(vert_top1);
                         tris.Add(vert_top0);
                         tris.Add(vert_bot);
@@ -298,9 +356,11 @@ namespace CorgiSpline
 
                     var v_end_center = verts.Length;
 
+                    var endTangent = new Vector4(end_up.x, end_up.y, end_up.z, 1.0f);
+
                     verts.Add(lastPoint.position);
                     normals.Add(end_forward);
-                    tangents.Add(new Vector4(end_up.x, end_up.y, end_up.z, 1.0f));
+                    tangents.Add(endTangent);
                     uvs.Add(new Vector4(0f, 0f, 0f, 0f));
 
                     for (var v = 0; v < tube_quality - 1; ++v)
@@ -308,6 +368,28 @@ namespace CorgiSpline
                         var vert_bot = v_end_center;
                         var vert_top0 = v + offset_end;
                         var vert_top1 = v + 1 + offset_end;
+
+                        // always have caps as hard normals 
+                        verts.Add(verts[vert_bot]);
+                        verts.Add(verts[vert_top0]);
+                        verts.Add(verts[vert_top1]);
+
+                        normals.Add(end_forward);
+                        normals.Add(end_forward);
+                        normals.Add(end_forward);
+
+                        tangents.Add(endTangent);
+                        tangents.Add(endTangent);
+                        tangents.Add(endTangent);
+
+                        uvs.Add(uvs[vert_bot]);
+                        uvs.Add(uvs[vert_top0]);
+                        uvs.Add(uvs[vert_top1]);
+
+                        // replace these for triangles 
+                        vert_bot  = verts.Length - 3 + 0;
+                        vert_top0 = verts.Length - 3 + 1;
+                        vert_top1 = verts.Length - 3 + 2;
 
                         tris.Add(vert_bot);
                         tris.Add(vert_top0);
