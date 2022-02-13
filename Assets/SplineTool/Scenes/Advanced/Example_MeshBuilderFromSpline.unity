@@ -161,14 +161,15 @@ MonoBehaviour:
   built_to_t: 1
   quality: 32
   scaleMult: {x: 1, y: 1, z: 1}
+  vertexOffset: {x: 0, y: 0, z: 0}
   uv_tile_scale: 1
   cover_ends_with_quads: 0
   uv_stretch_instead_of_tile: 1
   use_splinepoint_rotations: 0
   use_splinepoint_scale: 0
   _serializedMesh: {fileID: 4300000, guid: 00cba6f1851196c4fb7e185a003b2141, type: 2}
+  MeshNormalsMode: 0
   RepeatableMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
-  MeshLocalOffsetVertices: {x: 0, y: 0, z: 0}
   UseRepeatingMeshUVs: 1
 --- !u!33 &178276881
 MeshFilter:
@@ -490,12 +491,14 @@ MonoBehaviour:
   built_to_t: 1
   quality: 64
   scaleMult: {x: 1, y: 1, z: 1}
+  vertexOffset: {x: 0, y: 0, z: 0}
   uv_tile_scale: 2
   cover_ends_with_quads: 1
   uv_stretch_instead_of_tile: 1
   use_splinepoint_rotations: 1
   use_splinepoint_scale: 1
   _serializedMesh: {fileID: 4300000, guid: e7072bd08a17ea4449d4a57fb10ec41d, type: 2}
+  MeshNormalsMode: 0
   tube_quality: 64
   minimum_distance_between_points: 0.01
   max_distance_between_points: 2
@@ -701,12 +704,14 @@ MonoBehaviour:
   built_to_t: 1
   quality: 256
   scaleMult: {x: 1, y: 1, z: 1}
+  vertexOffset: {x: 0, y: 0, z: 0}
   uv_tile_scale: 1
   cover_ends_with_quads: 1
   uv_stretch_instead_of_tile: 0
   use_splinepoint_rotations: 0
   use_splinepoint_scale: 0
   _serializedMesh: {fileID: 0}
+  MeshNormalsMode: 0
 --- !u!33 &632944026
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -1248,14 +1253,16 @@ MonoBehaviour:
   RebuildOnEnable: 0
   AllowAsyncRebuild: 0
   built_to_t: 1
-  quality: 32
-  scaleMult: {x: 4.46, y: 3.27, z: 1}
+  quality: 128
+  scaleMult: {x: 4, y: 4, z: 1}
+  vertexOffset: {x: 0, y: 0, z: 0}
   uv_tile_scale: 1
   cover_ends_with_quads: 1
   uv_stretch_instead_of_tile: 1
   use_splinepoint_rotations: 1
   use_splinepoint_scale: 1
   _serializedMesh: {fileID: 4300000, guid: 1386f01f8f506b4409138797ea5d7acb, type: 2}
+  MeshNormalsMode: 1
 --- !u!33 &1878708212
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -1280,29 +1287,29 @@ MonoBehaviour:
   - position: {x: -50.478905, y: 0, z: 139.17517}
     rotation: {x: 0.0007148477, y: 0.9244499, z: 0.0017331311, w: -0.38129884}
     scale: {x: 1, y: 1, z: 1}
-  - position: {x: -129.10593, y: 0.0000009536743, z: 61.699074}
-    rotation: {x: -0.040419824, y: 0.9544654, z: 0.15229976, w: 0.25331175}
+  - position: {x: -129.10593, y: 0.0000009536743, z: 61.69907}
+    rotation: {x: -0.040450316, y: 0.9544181, z: 0.15230481, w: 0.2534819}
     scale: {x: 1, y: 1, z: 1}
   - position: {x: 22.467896, y: 31.171204, z: 90.2493}
     rotation: {x: -0.051953822, y: 0.753612, z: 0.060003705, w: 0.65251005}
     scale: {x: 1, y: 1, z: 1}
   - position: {x: 46.524933, y: 31.171204, z: 67.74338}
-    rotation: {x: 0.0012750276, y: 0.912346, z: -0.0028413362, w: 0.4094082}
+    rotation: {x: 0.0012750218, y: 0.9123465, z: -0.0028413318, w: 0.4094072}
     scale: {x: 1, y: 1, z: 1}
-  - position: {x: 70.581955, y: 31.171204, z: 45.237434}
-    rotation: {x: 0.08541418, y: 0.89847946, z: -0.20170878, w: 0.38046378}
+  - position: {x: 70.581955, y: 31.171204, z: 45.23743}
+    rotation: {x: 0.08541641, y: 0.89847916, z: -0.20171577, w: 0.38046038}
     scale: {x: 1, y: 1, z: 1}
   - position: {x: 127.64198, y: -32.55209, z: -0.03446579}
-    rotation: {x: 0.0024547921, y: 0.9953469, z: -0.09264454, w: 0.026373593}
+    rotation: {x: 0.002452818, y: 0.9953484, z: -0.09263343, w: 0.026355585}
     scale: {x: 1, y: 1, z: 1}
   - position: {x: 88.3759, y: -0.79387665, z: -33.88063}
     rotation: {x: 0.11137696, y: 0.87607664, z: 0.24323872, w: -0.40114814}
     scale: {x: 1, y: 1, z: 1}
   - position: {x: 49.109787, y: 30.964336, z: -67.72681}
-    rotation: {x: -0.017526107, y: -0.6520648, z: -0.015080489, w: 0.7578106}
+    rotation: {x: -0.017572964, y: -0.6521276, z: -0.015123386, w: 0.7577546}
     scale: {x: 1, y: 1, z: 1}
   - position: {x: 4.968109, y: 0, z: -17.391338}
-    rotation: {x: 0.18192123, y: -0.31889778, z: 0.06251112, w: 0.92806315}
+    rotation: {x: 0.18191777, y: -0.31887865, z: 0.06250568, w: 0.9280708}
     scale: {x: 1, y: 1, z: 1}
   - position: {x: 4.968109, y: 0, z: -16.391338}
     rotation: {x: 0.11107255, y: -0.16644159, z: 0.0188722, w: 0.97959375}

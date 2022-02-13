@@ -34,13 +34,14 @@ namespace CorgiSpline
                 width = scaleMult.x,
                 height = scaleMult.y,
                 uv_tile_scale = uv_tile_scale,
-                uv_stretch_instead_of_tile = uv_stretch_instead_of_tile,
                 minimum_distance_between_points = minimum_distance_between_points,
                 minimum_dot_between_forwards = minimum_dot_between_forwards,
                 max_distance_between_points = max_distance_between_points,
                 use_splinepoint_rotations = use_splinepoint_rotations,
                 use_splinepoint_scale = use_splinepoint_scale,
                 vertexOffset = vertexOffset,
+                normalsMode = MeshNormalsMode,
+                uvsMode = UVsMode,
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
@@ -75,13 +76,15 @@ namespace CorgiSpline
             public float uv_tile_scale;
             public float built_to_t;
             public bool cover_ends_with_quads;
-            public bool uv_stretch_instead_of_tile;
             public float minimum_distance_between_points;
             public float max_distance_between_points;
             public float minimum_dot_between_forwards;
             public bool use_splinepoint_rotations;
             public bool use_splinepoint_scale;
             public Vector3 vertexOffset;
+
+            public MeshBuilderNormals normalsMode;
+            public MeshBuilderUVs uvsMode;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -117,9 +120,6 @@ namespace CorgiSpline
                 tangents.Clear(); 
                 uvs.Clear();
                 tris.Clear();
-
-                // track
-                var current_uv_step = 0f;
 
                 // setup 
                 var start_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
@@ -180,15 +180,12 @@ namespace CorgiSpline
                         continue;
                     }
 
-                    // uvs 
-                    if (uv_stretch_instead_of_tile)
+
+                    var uv_x = t;
+
+                    if (uvsMode == MeshBuilderUVs.Tile)
                     {
-                        current_uv_step = t;
-                    }
-                    else
-                    {
-                        current_uv_step += Vector3.Distance(previousPosition, position) * uv_tile_scale;
-                        current_uv_step = current_uv_step % 1.0f;
+                        uv_x = (t * uv_tile_scale) % 1.0f;
                     }
 
                     // go around the circle.. 
@@ -218,7 +215,7 @@ namespace CorgiSpline
                         var tangent = new Vector4(tangent3.x, tangent3.y, tangent3.z, 1.0f);
                         tangents.Add(tangent);
 
-                        var uv = new Vector2((float) tube_step * tube_delta * uv_tile_scale, current_uv_step);
+                        var uv = new Vector2(uv_x, (float) tube_step * tube_delta * uv_tile_scale);
                         uvs.Add(uv);
 
                         // track bounds.. 

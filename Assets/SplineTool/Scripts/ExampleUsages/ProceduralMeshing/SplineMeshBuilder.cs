@@ -52,8 +52,11 @@ namespace CorgiSpline
         [Tooltip("If true, non-closed splines will have their ends covered with a cap, when applicable.")]
         public bool cover_ends_with_quads = true;
 
-        [Tooltip("Instead of tiling the UVs, stretch them along the spline.")]
-        public bool uv_stretch_instead_of_tile;
+        // [Tooltip("Instead of tiling the UVs, stretch them along the spline.")]
+        // public bool uv_stretch_instead_of_tile;
+
+        [Tooltip("Should the UVs of the procedural mesh stretch or tile. Note: tiled UVs can only tile as much as the mesh quality can allow (tiles can only happen at each new segment).")]
+        public MeshBuilderUVs UVsMode = MeshBuilderUVs.Stretch;
 
         [Tooltip("When calculating rotations, use the spline point data.")]
         public bool use_splinepoint_rotations = false;
@@ -69,6 +72,13 @@ namespace CorgiSpline
         {
             Smooth = 0,
             Hard = 1,
+        }
+
+        [System.Serializable]
+        public enum MeshBuilderUVs
+        {
+            Stretch     = 0,
+            Tile        = 1,
         }
 
         [Tooltip("Should the normals be smooth or hard? Note: hard normals require more vertices.")]
@@ -329,11 +339,11 @@ namespace CorgiSpline
                 width = scaleMult.x,
                 height = scaleMult.y,
                 uv_tile_scale = uv_tile_scale,
-                uv_stretch_instead_of_tile = uv_stretch_instead_of_tile,
                 use_splinepoint_rotations = use_splinepoint_rotations,
                 use_splinepoint_scale = use_splinepoint_scale,
                 vertexOffset = vertexOffset,
                 normalsMode = MeshNormalsMode,
+                uvsMode = UVsMode,
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
@@ -436,11 +446,11 @@ namespace CorgiSpline
             public float uv_tile_scale;
             public float built_to_t;
             public bool cover_ends_with_quads;
-            public bool uv_stretch_instead_of_tile;
             public bool use_splinepoint_rotations;
             public bool use_splinepoint_scale;
             public Vector3 vertexOffset;
             public MeshBuilderNormals normalsMode;
+            public MeshBuilderUVs uvsMode;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -474,14 +484,15 @@ namespace CorgiSpline
                 // track
                 var trackedBounds = new Bounds();
 
-                var current_uv_step = 0f;
-
                 // setup 
-                var start_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
-                var end_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, Mathf.Max(0f, built_to_t - 0.1f));
-
                 var firstPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
-                var lastPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, built_to_t);
+                var lastPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 1f);
+
+                var firstForward = firstPoint.rotation * Vector3.forward;
+                var firstRight = firstPoint.rotation * Vector3.right;
+                var lastForward = lastPoint.rotation * Vector3.forward;
+                var lastRight = lastPoint.rotation * Vector3.right;
+
                 var previousPosition = firstPoint.position;
 
                 // ensure even quality 
@@ -498,6 +509,8 @@ namespace CorgiSpline
                 {
                     built_to_t = Mathf.Clamp(built_to_t, 0, 0.95f);
                 }
+
+                var groupVertCount = normalsMode == MeshBuilderNormals.Hard ? 8 : 4;
 
                 // step through 
                 for (var step = 0; step < until_quality; ++step)
@@ -522,16 +535,18 @@ namespace CorgiSpline
                     {
                         up = splinePoint.rotation * Vector3.up;
                         forward = splinePoint.rotation * Vector3.forward;
-                        
                         right = Vector3.Cross(forward, up);
                     }
 
-                    var localWidth = width;
+                    var localWidth = width * 0.5f;
+                    var localHeight = height * 0.5f;
 
                     if(use_splinepoint_scale)
                     {
                         localWidth *= splinePoint.scale.x;
+                        localHeight *= splinePoint.scale.y; 
                     }
+
 
                     // skip if too close.. 
                     if(first_set && step != 0 && step != until_quality - 1 && Vector3.Distance(previousPosition, position) < 0.2f)
@@ -539,44 +554,178 @@ namespace CorgiSpline
                         continue; 
                     }
 
-                    // verts 
-                    var vert0 = position - right * localWidth;
-                    var vert1 = position + right * localWidth;
+                    // [idea from Wave Break]
+                    // note: repeating some verts so we can have hard edges (dont interpolate normals)
+                    //                  ____________
+                    //                 /           /|
+                    //                /           / |
+                    //            v0 /________v1_/  |
+                    //              |           |   |
+                    //              |           |   |
+                    //              |           |  / 
+                    //              |           | /
+                    //           v2 |________v3_|/
+                    //
+
+                    var vert0 = position + right * localWidth + up * localHeight;
+                    var vert1 = position - right * localWidth + up * localHeight; 
+                    var vert2 = position + right * localWidth - up * localHeight;
+                    var vert3 = position - right * localWidth - up * localHeight;
+                    var vert4 = vert0;
+                    var vert5 = vert2;
+                    var vert6 = vert1;
+                    var vert7 = vert3;
+
+                    var normal0 = up;
+                    var normal1 = up;
+                    var normal2 = -up;
+                    var normal3 = -up;
+                    var normal4 = -right;
+                    var normal5 = -right;
+                    var normal6 = right;
+                    var normal7 = right;
+
+                    var tangent0 = right;
+                    var tangent1 = right;
+                    var tangent2 = -right;
+                    var tangent3 = -right;
+                    var tangent4 = up;
+                    var tangent5 = up;
+                    var tangent6 = -up;
+                    var tangent7 = -up;
+
+                    var uv_x = t;
+
+                    if (uvsMode == MeshBuilderUVs.Tile)
+                    {
+                        uv_x = (t * uv_tile_scale) % 1.0f;
+                    }
+
+                    var uv0 = new Vector2(uv_x, 0f);
+                    var uv1 = new Vector2(uv_x, 1f);
+                    var uv2 = new Vector2(uv_x, 1f);
+                    var uv3 = new Vector2(uv_x, 0f);
+                    var uv4 = uv0;
+                    var uv5 = uv2;
+                    var uv6 = uv1;
+                    var uv7 = uv3;
 
                     verts.Add(vert0);
                     verts.Add(vert1);
-
-                    // normals 
-                    var normal0 = up;
-                    var normal1 = up;
+                    verts.Add(vert2);
+                    verts.Add(vert3);
 
                     normals.Add(normal0);
                     normals.Add(normal1);
-
-                    // tangents 
-                    var tangent0 = new Vector4(right.x, right.y, right.z, 1.0f);
-                    var tangent1 = new Vector4(right.x, right.y, right.z, 1.0f);
+                    normals.Add(normal2);
+                    normals.Add(normal3);
 
                     tangents.Add(tangent0);
                     tangents.Add(tangent1);
+                    tangents.Add(tangent2);
+                    tangents.Add(tangent3);
 
-                    // colors 
-                    colors.Add(Color.white);
-                    colors.Add(Color.white);
+                    uvs.Add(uv0);
+                    uvs.Add(uv1);
+                    uvs.Add(uv2);
+                    uvs.Add(uv3);
 
-                    // uvs 
-                    if (uv_stretch_instead_of_tile)
+                    if (normalsMode == MeshBuilderNormals.Hard)
                     {
-                        current_uv_step = t;
-                    }
-                    else
-                    {
-                        current_uv_step += Vector3.Distance(previousPosition, position) * uv_tile_scale;
-                        current_uv_step = current_uv_step % 1.0f;
+                        verts.Add(vert4);
+                        verts.Add(vert5);
+                        verts.Add(vert6);
+                        verts.Add(vert7);
+
+                        normals.Add(normal4);
+                        normals.Add(normal5);
+                        normals.Add(normal6);
+                        normals.Add(normal7);
+
+                        tangents.Add(tangent4);
+                        tangents.Add(tangent5);
+                        tangents.Add(tangent6);
+                        tangents.Add(tangent7);
+
+                        uvs.Add(uv4);
+                        uvs.Add(uv5);
+                        uvs.Add(uv6);
+                        uvs.Add(uv7);
                     }
 
-                    uvs.Add(new Vector2(0f, current_uv_step));
-                    uvs.Add(new Vector2(1f, current_uv_step));
+                    // connect the dots 
+                    if (step > 0)
+                    {
+                        // gather indices 
+                        var i = verts.Length - groupVertCount * 2;
+
+                        var prev_t0 = i + 0;
+                        var prev_t1 = i + 1;
+                        var prev_b0 = i + 2;
+                        var prev_b1 = i + 3;
+                        var prev_l0 = i + 0;
+                        var prev_l1 = i + 2;
+                        var prev_r0 = i + 1;
+                        var prev_r1 = i + 3;
+
+                        var curr_t0 = i + groupVertCount + 0;
+                        var curr_t1 = i + groupVertCount + 1;
+                        var curr_b0 = i + groupVertCount + 2;
+                        var curr_b1 = i + groupVertCount + 3;
+                        var curr_l0 = i + groupVertCount + 0;
+                        var curr_l1 = i + groupVertCount + 2;
+                        var curr_r0 = i + groupVertCount + 1;
+                        var curr_r1 = i + groupVertCount + 3;
+
+                        if(normalsMode == MeshBuilderNormals.Hard)
+                        {
+                            prev_l0 = i + 4;
+                            prev_l1 = i + 5;
+                            prev_r0 = i + 6;
+                            prev_r1 = i + 7;
+
+                            curr_l0 = i + groupVertCount + 4;
+                            curr_l1 = i + groupVertCount + 5;
+                            curr_r0 = i + groupVertCount + 6;
+                            curr_r1 = i + groupVertCount + 7;
+                        }
+
+                        // top quad 
+                        tris.Add(curr_t1);
+                        tris.Add(prev_t1);
+                        tris.Add(prev_t0);
+
+                        tris.Add(curr_t0);
+                        tris.Add(curr_t1);
+                        tris.Add(prev_t0);
+
+                        // bottom quad
+                        tris.Add(prev_b0);
+                        tris.Add(prev_b1);
+                        tris.Add(curr_b1);
+
+                        tris.Add(prev_b0);
+                        tris.Add(curr_b1);
+                        tris.Add(curr_b0);
+
+                        // left wall 
+                        tris.Add(prev_l0);
+                        tris.Add(prev_l1);
+                        tris.Add(curr_l1);
+
+                        tris.Add(prev_l0);
+                        tris.Add(curr_l1);
+                        tris.Add(curr_l0);
+
+                        // right wall 
+                        tris.Add(curr_r1);
+                        tris.Add(prev_r1);
+                        tris.Add(prev_r0);
+
+                        tris.Add(curr_r0);
+                        tris.Add(curr_r1);
+                        tris.Add(prev_r0);
+                    }
 
                     previousPosition = position;
                     first_set = true;
@@ -594,282 +743,121 @@ namespace CorgiSpline
                     }
                 }
 
-                // stitch
-                if(cover_ends_with_quads && full_loop)
-                {
-                    var offset_end = verts.Length - 2;
-
-                    verts.Add(verts[0]);
-                    verts.Add(verts[1]);
-
-                    normals.Add(normals[0]);
-                    normals.Add(normals[1]);
-
-                    tangents.Add(tangents[0]);
-                    tangents.Add(tangents[1]);
-
-                    colors.Add(colors[0]);
-                    colors.Add(colors[1]);
-
-                    uvs.Add(uvs[offset_end + 0]);
-                    uvs.Add(uvs[offset_end + 1]);
-                }
-
-                // generate tris 
-                for (var v = 0; v < verts.Length - 2; v += 4)
-                {
-                    tris.Add(v + 0);
-                    tris.Add(v + 1);
-                    tris.Add(v + 3);
-                    tris.Add(v + 0);
-                    tris.Add(v + 3);
-                    tris.Add(v + 2);
-
-                    if (v < verts.Length - 4)
-                    {
-                        tris.Add(v + 2);
-                        tris.Add(v + 3);
-                        tris.Add(v + 4);
-                        tris.Add(v + 4);
-                        tris.Add(v + 3);
-                        tris.Add(v + 5);
-                    }
-                }
-
-                var floor_vert_index = verts.Length;
-
-                if (height > 0f)
-                {
-
-                    // floor 
-                    for (var v = 0; v < floor_vert_index; ++v)
-                    {
-                        var new_vert = verts[v];
-                        var new_color = colors[v];
-                        var new_normal = normals[v] * -1f;
-                        var new_uv = uvs[v];
-                        var new_tagent = tangents[v] * -1f;
-                            new_tagent.w = 1.0f;
-
-                        new_uv.x = 1.0f - new_uv.x;
-                        // new_uv.y = 1.0f - new_uv.y;
-
-                        var localHeight = height;
-
-                        if(use_splinepoint_scale)
-                        {
-                            var splinePoint_t = Spline.JobSafe_ProjectOnSpline_t(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, new_vert);
-                            var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, splinePoint_t);
-                            var splineScale = splinePoint.scale;
-                            localHeight *= splineScale.y;
-                        }
-
-                        new_vert += new_normal * localHeight;
-
-                        verts.Add(new_vert);
-                        normals.Add(new_normal);
-                        tangents.Add(new_tagent);
-                        uvs.Add(new_uv);
-                        colors.Add(new_color);
-
-
-                        // track bounds.. 
-                        trackedBounds.min = Vector3.Min(trackedBounds.min, new_vert);
-                        trackedBounds.max = Vector3.Max(trackedBounds.max, new_vert);
-                    }
-
-                    // generate triangles
-                    for (var v = floor_vert_index; v < verts.Length - 2; v += 4)
-                    {
-                        tris.Add(v + 2);
-                        tris.Add(v + 3);
-                        tris.Add(v + 0);
-
-                        tris.Add(v + 3);
-                        tris.Add(v + 1);
-                        tris.Add(v + 0);
-
-                        if (v < verts.Length - 4)
-                        {
-                            tris.Add(v + 5);
-                            tris.Add(v + 3);
-                            tris.Add(v + 4);
-
-                            tris.Add(v + 4);
-                            tris.Add(v + 3);
-                            tris.Add(v + 2);
-                        }
-                    }
-
-                    // wall triangles 
-                    for (var v = 0; v < floor_vert_index - 2; v += 4)
-                    {
-                        if(normalsMode == MeshBuilderNormals.Hard)
-                        {
-                            // right wall 
-                            AddWallHardNormals(
-                                v + floor_vert_index + 1,
-                                v + 3,
-                                v + 1,
-                                v + 3,
-                                v + floor_vert_index + 1,
-                                v + floor_vert_index + 3
-                            );
-
-                            // left wall
-                            AddWallHardNormals(
-                                v + floor_vert_index + 0,
-                                v + 0,
-                                v + 2,
-                                v + floor_vert_index + 2,
-                                v + floor_vert_index + 0,
-                                v + 2
-                            );
-
-                            if (v < floor_vert_index - 4)
-                            {
-
-                                // right wall 
-                                AddWallHardNormals(
-                                    v + floor_vert_index + 1 + 2,
-                                    v + 3 + 2,
-                                    v + 1 + 2,
-                                    v + 3 + 2,
-                                    v + floor_vert_index + 1 + 2,
-                                    v + floor_vert_index + 3 + 2
-                                );
-
-                                // left wall
-                                AddWallHardNormals(
-                                    v + floor_vert_index + 0 + 2,
-                                    v + 0 + 2,
-                                    v + 2 + 2,
-                                    v + floor_vert_index + 2 + 2,
-                                    v + floor_vert_index + 0 + 2,
-                                    v + 2 + 2
-                                );
-                            }
-                        }
-                        else
-                        {
-                            // right wall 
-                            tris.Add(v + floor_vert_index + 1);
-                            tris.Add(v + 3);
-                            tris.Add(v + 1);
-
-                            tris.Add(v + 3);
-                            tris.Add(v + floor_vert_index + 1);
-                            tris.Add(v + floor_vert_index + 3);
-
-                            // left wall
-                            tris.Add(v + floor_vert_index + 0);
-                            tris.Add(v + 0);
-                            tris.Add(v + 2);
-
-                            tris.Add(v + floor_vert_index + 2);
-                            tris.Add(v + floor_vert_index + 0);
-                            tris.Add(v + 2);
-
-                            if (v < floor_vert_index - 4)
-                            {
-                        
-                                // right wall 
-                                tris.Add(v + floor_vert_index + 1 + 2);
-                                tris.Add(v + 3 + 2);
-                                tris.Add(v + 1 + 2);
-                                tris.Add(v + 3 + 2);
-                                tris.Add(v + floor_vert_index + 1 + 2);
-                                tris.Add(v + floor_vert_index + 3 + 2);
-                        
-                                // left wall
-                                tris.Add(v + floor_vert_index + 0 + 2);
-                                tris.Add(v + 0 + 2);
-                                tris.Add(v + 2 + 2);
-                                tris.Add(v + floor_vert_index + 2 + 2);
-                                tris.Add(v + floor_vert_index + 0 + 2);
-                                tris.Add(v + 2 + 2);
-                            }
-
-                        }
-
-                    }
-
-                    // end cap triangles 
-                    if(cover_ends_with_quads)
-                    {
-                        var start_index = 0;
-
-                        // left cap 
-                        tris.Add(floor_vert_index + 0);
-                        tris.Add(start_index + 1);
-                        tris.Add(start_index + 0);
-                        tris.Add(floor_vert_index + 0);
-                        tris.Add(floor_vert_index + 1);
-                        tris.Add(start_index + 1);
-
-                        // right cap 
-                        var end_cap_top = floor_vert_index - 2;
-                        var end_cap_bottom = verts.Length - 2;
-
-                        tris.Add(end_cap_top + 0);
-                        tris.Add(end_cap_top + 1);
-                        tris.Add(end_cap_bottom + 0);
-                        tris.Add(end_cap_top + 1);
-                        tris.Add(end_cap_bottom + 1);
-                        tris.Add(end_cap_bottom + 0);
-                    }
-                }
-
                 // remember bounds 
                 bounds[0] = trackedBounds;
-            }
 
-            private void AddWallHardNormals(int v0, int v1, int v2, int v3, int v4, int v5)
-            {
-                var hv_i_r0 = verts.Length;
+                var first_index = 0;
+                var last_index = verts.Length - groupVertCount;
 
-                verts.Add(verts[v0]);
-                verts.Add(verts[v1]);
-                verts.Add(verts[v2]);
-                verts.Add(verts[v3]);
-                verts.Add(verts[v4]);
-                verts.Add(verts[v5]);
+                // caps 
+                if(!ClosedSpline && cover_ends_with_quads)
+                {
+                    // start cap 
+                    var front_vertex_t0 = verts[first_index + 0];
+                    var front_vertex_t1 = verts[first_index + 1];
+                    var front_vertex_b0 = verts[first_index + 2];
+                    var front_vertex_b1 = verts[first_index + 3];
 
-                normals.Add(normals[v0]);
-                normals.Add(normals[v1]);
-                normals.Add(normals[v2]);
-                normals.Add(normals[v3]);
-                normals.Add(normals[v4]);
-                normals.Add(normals[v5]);
+                    var front_normal_0 = -firstForward;
+                    var front_normal_1 = -firstForward;
+                    var front_normal_2 = -firstForward;
+                    var front_normal_3 = -firstForward;
 
-                tangents.Add(tangents[v0]);
-                tangents.Add(tangents[v1]);
-                tangents.Add(tangents[v2]);
-                tangents.Add(tangents[v3]);
-                tangents.Add(tangents[v4]);
-                tangents.Add(tangents[v5]);
+                    var front_tangent_0 = firstRight;
+                    var front_tangent_1 = firstRight;
+                    var front_tangent_2 = firstRight;
+                    var front_tangent_3 = firstRight;
 
-                uvs.Add(uvs[v0]);
-                uvs.Add(uvs[v1]);
-                uvs.Add(uvs[v2]);
-                uvs.Add(uvs[v3]);
-                uvs.Add(uvs[v4]);
-                uvs.Add(uvs[v5]);
+                    var front_uv_0 = new Vector4(0f, 0f, 0f, 0f);
+                    var front_uv_1 = new Vector4(1f, 0f, 0f, 0f);
+                    var front_uv_2 = new Vector4(0f, 1f, 0f, 0f);
+                    var front_uv_3 = new Vector4(1f, 1f, 0f, 0f);
 
-                colors.Add(colors[v0]);
-                colors.Add(colors[v1]);
-                colors.Add(colors[v2]);
-                colors.Add(colors[v3]);
-                colors.Add(colors[v4]);
-                colors.Add(colors[v5]);
+                    var f_t0 = last_index + groupVertCount + 0;
+                    var f_t1 = last_index + groupVertCount + 1;
+                    var f_b0 = last_index + groupVertCount + 2;
+                    var f_b1 = last_index + groupVertCount + 3;
 
-                // right wall 
-                tris.Add(hv_i_r0 + 0);
-                tris.Add(hv_i_r0 + 1);
-                tris.Add(hv_i_r0 + 2);
-                tris.Add(hv_i_r0 + 3);
-                tris.Add(hv_i_r0 + 4);
-                tris.Add(hv_i_r0 + 5);
+                    verts.Add(front_vertex_t0);
+                    verts.Add(front_vertex_t1);
+                    verts.Add(front_vertex_b0);
+                    verts.Add(front_vertex_b1);
+
+                    normals.Add(front_normal_0);
+                    normals.Add(front_normal_1);
+                    normals.Add(front_normal_2);
+                    normals.Add(front_normal_3);
+
+                    tangents.Add(front_tangent_0);
+                    tangents.Add(front_tangent_1);
+                    tangents.Add(front_tangent_2);
+                    tangents.Add(front_tangent_3);
+
+                    uvs.Add(front_uv_0);
+                    uvs.Add(front_uv_1);
+                    uvs.Add(front_uv_2);
+                    uvs.Add(front_uv_3);
+
+                    tris.Add(f_b0);
+                    tris.Add(f_t1);
+                    tris.Add(f_b1);
+                    tris.Add(f_b0);
+                    tris.Add(f_t0);
+                    tris.Add(f_t1);
+
+                    // end cap 
+                    var back_vertex_t0 = verts[last_index + 0];
+                    var back_vertex_t1 = verts[last_index + 1];
+                    var back_vertex_b0 = verts[last_index + 2];
+                    var back_vertex_b1 = verts[last_index + 3];
+
+                    var back_normal_0 = lastForward;
+                    var back_normal_1 = lastForward;
+                    var back_normal_2 = lastForward;
+                    var back_normal_3 = lastForward;
+
+                    var back_tangent_0 = lastRight;
+                    var back_tangent_1 = lastRight;
+                    var back_tangent_2 = lastRight;
+                    var back_tangent_3 = lastRight;
+
+                    var back_uv_0 = new Vector4(0f, 0f, 0f, 0f);
+                    var back_uv_1 = new Vector4(1f, 0f, 0f, 0f);
+                    var back_uv_2 = new Vector4(0f, 1f, 0f, 0f);
+                    var back_uv_3 = new Vector4(1f, 1f, 0f, 0f);
+
+                    var b_t0 = last_index + groupVertCount + 4 + 0;
+                    var b_t1 = last_index + groupVertCount + 4 + 1;
+                    var b_b0 = last_index + groupVertCount + 4 + 2;
+                    var b_b1 = last_index + groupVertCount + 4 + 3;
+
+                    verts.Add(back_vertex_t0);
+                    verts.Add(back_vertex_t1);
+                    verts.Add(back_vertex_b0);
+                    verts.Add(back_vertex_b1);
+
+                    normals.Add(back_normal_0);
+                    normals.Add(back_normal_1);
+                    normals.Add(back_normal_2);
+                    normals.Add(back_normal_3);
+
+                    tangents.Add(back_tangent_0);
+                    tangents.Add(back_tangent_1);
+                    tangents.Add(back_tangent_2);
+                    tangents.Add(back_tangent_3);
+
+                    uvs.Add(back_uv_0);
+                    uvs.Add(back_uv_1);
+                    uvs.Add(back_uv_2);
+                    uvs.Add(back_uv_3);
+
+                    tris.Add(b_b1);
+                    tris.Add(b_t1);
+                    tris.Add(b_b0);
+                    tris.Add(b_t1);
+                    tris.Add(b_t0);
+                    tris.Add(b_b0);
+                }
             }
         }
     }

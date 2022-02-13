@@ -202,8 +202,9 @@ namespace CorgiSpline
                 built_to_t = built_to_t,
                 quality = quality,
                 uv_tile_scale = uv_tile_scale,
-                uv_stretch_instead_of_tile = uv_stretch_instead_of_tile,
                 scale = scaleMult,
+                normalsMode = MeshNormalsMode,
+                uvsMode = UVsMode,
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
@@ -232,8 +233,10 @@ namespace CorgiSpline
             // settings
             public int quality;
             public float built_to_t;
-            public bool uv_stretch_instead_of_tile;
             public float uv_tile_scale;
+
+            public MeshBuilderNormals normalsMode;
+            public MeshBuilderUVs uvsMode;
 
             public NativeArray<int> repeatingMesh_tris;
             public NativeArray<Vector3> repeatingMesh_verts;

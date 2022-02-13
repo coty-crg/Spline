@@ -18,11 +18,11 @@ namespace CorgiSpline
         protected SerializedProperty vertexOffset;
         protected SerializedProperty uv_tile_scale;
         protected SerializedProperty cover_ends_with_quads;
-        protected SerializedProperty uv_stretch_instead_of_tile;
         protected SerializedProperty use_splinepoint_rotations;
         protected SerializedProperty use_splinepoint_scale;
         protected SerializedProperty _serializedMesh;
         protected SerializedProperty MeshNormalsMode;
+        protected SerializedProperty UVsMode;
 
         protected virtual void OnEnable()
         {
@@ -36,11 +36,11 @@ namespace CorgiSpline
             vertexOffset                = serializedObject.FindProperty("vertexOffset");
             uv_tile_scale               = serializedObject.FindProperty("uv_tile_scale");
             cover_ends_with_quads       = serializedObject.FindProperty("cover_ends_with_quads");
-            uv_stretch_instead_of_tile  = serializedObject.FindProperty("uv_stretch_instead_of_tile");
             use_splinepoint_rotations   = serializedObject.FindProperty("use_splinepoint_rotations");
             use_splinepoint_scale       = serializedObject.FindProperty("use_splinepoint_scale");
             _serializedMesh             = serializedObject.FindProperty("_serializedMesh");
             MeshNormalsMode             = serializedObject.FindProperty("MeshNormalsMode");
+            UVsMode                     = serializedObject.FindProperty("UVsMode");
         }
 
         public override void OnInspectorGUI()
@@ -185,10 +185,15 @@ namespace CorgiSpline
                     EditorGUILayout.PropertyField(built_to_t);
                     EditorGUILayout.PropertyField(scaleMult);
                     EditorGUILayout.PropertyField(vertexOffset);
-                    EditorGUILayout.PropertyField(uv_tile_scale);
                     EditorGUILayout.PropertyField(cover_ends_with_quads);
-                    EditorGUILayout.PropertyField(uv_stretch_instead_of_tile);
                     EditorGUILayout.PropertyField(MeshNormalsMode);
+
+                    EditorGUILayout.PropertyField(UVsMode);
+
+                    if(instance.UVsMode == SplineMeshBuilder.MeshBuilderUVs.Tile)
+                    {
+                        EditorGUILayout.PropertyField(uv_tile_scale);
+                    }
 
                     EditorGUILayout.PropertyField(use_splinepoint_rotations);
                     EditorGUILayout.PropertyField(use_splinepoint_scale);
