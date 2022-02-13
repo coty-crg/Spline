@@ -505,15 +505,15 @@ namespace CorgiSpline
                 var first_set = false;
 
                 // hack for overlapping bezier when using a closed spline.. 
-                if(ClosedSpline && Mode == SplineMode.BSpline)
-                {
-                    built_to_t = Mathf.Clamp(built_to_t, 0, 0.95f);
-                }
+                // if(ClosedSpline && Mode == SplineMode.BSpline)
+                // {
+                //     built_to_t = Mathf.Clamp(built_to_t, 0, 0.95f);
+                // }
 
                 var groupVertCount = normalsMode == MeshBuilderNormals.Hard ? 8 : 4;
 
                 // step through 
-                for (var step = 0; step < until_quality; ++step)
+                for (var step = 0; step <= until_quality; ++step)
                 {
                     var t = (float) step / quality;
                     //    t *= built_to_t;
