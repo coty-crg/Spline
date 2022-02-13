@@ -22,6 +22,7 @@ namespace CorgiSpline
         protected SerializedProperty use_splinepoint_rotations;
         protected SerializedProperty use_splinepoint_scale;
         protected SerializedProperty _serializedMesh;
+        protected SerializedProperty MeshNormalsMode;
 
         protected virtual void OnEnable()
         {
@@ -39,6 +40,7 @@ namespace CorgiSpline
             use_splinepoint_rotations   = serializedObject.FindProperty("use_splinepoint_rotations");
             use_splinepoint_scale       = serializedObject.FindProperty("use_splinepoint_scale");
             _serializedMesh             = serializedObject.FindProperty("_serializedMesh");
+            MeshNormalsMode             = serializedObject.FindProperty("MeshNormalsMode");
         }
 
         public override void OnInspectorGUI()
@@ -186,6 +188,7 @@ namespace CorgiSpline
                     EditorGUILayout.PropertyField(uv_tile_scale);
                     EditorGUILayout.PropertyField(cover_ends_with_quads);
                     EditorGUILayout.PropertyField(uv_stretch_instead_of_tile);
+                    EditorGUILayout.PropertyField(MeshNormalsMode);
 
                     EditorGUILayout.PropertyField(use_splinepoint_rotations);
                     EditorGUILayout.PropertyField(use_splinepoint_scale);

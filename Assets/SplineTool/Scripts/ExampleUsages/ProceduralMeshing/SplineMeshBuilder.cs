@@ -63,6 +63,17 @@ namespace CorgiSpline
 
         [HideInInspector] public Mesh _serializedMesh;
 
+
+        [System.Serializable]
+        public enum MeshBuilderNormals
+        {
+            Smooth = 0,
+            Hard = 1,
+        }
+
+        [Tooltip("Should the normals be smooth or hard? Note: hard normals require more vertices.")]
+        public MeshBuilderNormals MeshNormalsMode = MeshBuilderNormals.Smooth;
+
         // internal 
         protected Mesh _mesh;
         protected NativeList<Vector3> _nativeVertices;
@@ -310,7 +321,7 @@ namespace CorgiSpline
         /// <returns></returns>
         protected virtual JobHandle ScheduleMeshingJob(JobHandle dependency = default)
         {
-            DetermineSplineSettings(out Space splineSpace, out Matrix4x4 localToWorldMatrix, out Matrix4x4 worldToLocalMatrix); 
+            DetermineSplineSettings(out Space splineSpace, out Matrix4x4 localToWorldMatrix, out Matrix4x4 worldToLocalMatrix);
 
             var job = new BuildMeshFromSpline()
             {
@@ -322,6 +333,7 @@ namespace CorgiSpline
                 use_splinepoint_rotations = use_splinepoint_rotations,
                 use_splinepoint_scale = use_splinepoint_scale,
                 vertexOffset = vertexOffset,
+                normalsMode = MeshNormalsMode,
 
                 verts = _nativeVertices,
                 normals = _nativeNormals,
@@ -428,6 +440,7 @@ namespace CorgiSpline
             public bool use_splinepoint_rotations;
             public bool use_splinepoint_scale;
             public Vector3 vertexOffset;
+            public MeshBuilderNormals normalsMode;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -581,7 +594,7 @@ namespace CorgiSpline
                     }
                 }
 
-                // stich
+                // stitch
                 if(cover_ends_with_quads && full_loop)
                 {
                     var offset_end = verts.Length - 2;

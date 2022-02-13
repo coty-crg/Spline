@@ -7,6 +7,7 @@ using UnityEngine;
 
 namespace CorgiSpline
 {
+
     public class SplineMeshBuilder_RepeatingMesh : SplineMeshBuilder
     {
         // [Header("RepeatingMesh")]
