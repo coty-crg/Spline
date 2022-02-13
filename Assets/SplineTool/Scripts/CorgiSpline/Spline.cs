@@ -1201,7 +1201,7 @@ namespace CorgiSpline
                     break;
 
                 case SplineMode.BSpline:
-                    Points[length - 1] = Points[0];
+                    // Points[length - 1] = Points[0];
                     break;
                 default:
                     // not implemented 
@@ -1232,7 +1232,7 @@ namespace CorgiSpline
                             ResizePointArray(Points.Length + 3);
                             break;
                         case SplineMode.BSpline:
-                            ResizePointArray(Points.Length + 1);
+                            // ResizePointArray(Points.Length + 1);
                             break;
                         default:
                             // not implemented 
@@ -1254,7 +1254,7 @@ namespace CorgiSpline
                             ResizePointArray(Points.Length - 3); // remove extra points
                             break;
                         case SplineMode.BSpline:
-                            ResizePointArray(Points.Length - 1); // remove extra point 
+                            // ResizePointArray(Points.Length - 1); // remove extra point 
                             break;
                         default:
                             // not implemented 

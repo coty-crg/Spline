@@ -1116,7 +1116,7 @@ namespace CorgiSpline
                         length -= 3;
                         break;
                     case SplineMode.BSpline:
-                        length -= 1;
+                        // length -= 1;
                         break;
                 }
             }

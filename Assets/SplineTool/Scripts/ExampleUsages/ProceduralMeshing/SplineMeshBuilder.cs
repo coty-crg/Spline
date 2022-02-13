@@ -549,10 +549,10 @@ namespace CorgiSpline
 
 
                     // skip if too close.. 
-                    if(first_set && step != 0 && step != until_quality - 1 && Vector3.Distance(previousPosition, position) < 0.2f)
-                    {
-                        continue; 
-                    }
+                    // if(first_set && step != 0 && step != until_quality - 1 && Vector3.Distance(previousPosition, position) < 0.2f)
+                    // {
+                    //     continue; 
+                    // }
 
                     // [idea from Wave Break]
                     // note: repeating some verts so we can have hard edges (dont interpolate normals)
