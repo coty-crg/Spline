@@ -181,22 +181,42 @@ namespace CorgiSpline
 
                 GUILayout.BeginVertical("GroupBox");
                 {
+                    var repeatingMeshBuilder = instance as SplineMeshBuilder_RepeatingMesh;
+                    var supportsEndCapQuads = repeatingMeshBuilder == null;
+                    var supportsMeshNormalsMode = repeatingMeshBuilder == null;
+                    var supportsUvSettings = repeatingMeshBuilder == null || !repeatingMeshBuilder.UseRepeatingMeshUVs;
+                    var supportsSplineSamplingSettings = repeatingMeshBuilder == null;
+
                     EditorGUILayout.LabelField("Visual Settings", EditorStyles.boldLabel);
                     EditorGUILayout.PropertyField(built_to_t);
                     EditorGUILayout.PropertyField(scaleMult);
                     EditorGUILayout.PropertyField(vertexOffset);
-                    EditorGUILayout.PropertyField(cover_ends_with_quads);
-                    EditorGUILayout.PropertyField(MeshNormalsMode);
 
-                    EditorGUILayout.PropertyField(UVsMode);
-
-                    if(instance.UVsMode == SplineMeshBuilder.MeshBuilderUVs.Tile)
+                    if(supportsEndCapQuads)
                     {
-                        EditorGUILayout.PropertyField(uv_tile_scale);
+                        EditorGUILayout.PropertyField(cover_ends_with_quads);
                     }
 
-                    EditorGUILayout.PropertyField(use_splinepoint_rotations);
-                    EditorGUILayout.PropertyField(use_splinepoint_scale);
+                    if (supportsMeshNormalsMode)
+                    {
+                        EditorGUILayout.PropertyField(MeshNormalsMode);
+                    }
+
+                    if(supportsUvSettings)
+                    {
+                        EditorGUILayout.PropertyField(UVsMode);
+
+                        if(instance.UVsMode == SplineMeshBuilder.MeshBuilderUVs.Tile)
+                        {
+                            EditorGUILayout.PropertyField(uv_tile_scale);
+                        }
+                    }
+
+                    if(supportsSplineSamplingSettings)
+                    {
+                        EditorGUILayout.PropertyField(use_splinepoint_rotations);
+                        EditorGUILayout.PropertyField(use_splinepoint_scale);
+                    }
                 }
                 GUILayout.EndVertical();
 

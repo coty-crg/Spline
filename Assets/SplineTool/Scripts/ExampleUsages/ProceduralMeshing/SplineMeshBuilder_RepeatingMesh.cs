@@ -283,9 +283,6 @@ namespace CorgiSpline
                 tangents.Clear();
                 colors.Clear();
 
-                // track
-                var current_uv_step = 0f;
-
                 // setup 
                 var firstPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
                 var previousPosition = firstPoint.position;
@@ -358,7 +355,14 @@ namespace CorgiSpline
                         }
                         else
                         {
-                            uvs.Add(new Vector4(current_uv_step, 0f));
+                            var uv_x = innerMesh_t;
+
+                            if (uvsMode == MeshBuilderUVs.Tile)
+                            {
+                                uv_x = (innerMesh_t * uv_tile_scale) % 1.0f;
+                            }
+
+                            uvs.Add(new Vector4(uv_x, 0f));
                         }
 
                         // track bounds.. 
