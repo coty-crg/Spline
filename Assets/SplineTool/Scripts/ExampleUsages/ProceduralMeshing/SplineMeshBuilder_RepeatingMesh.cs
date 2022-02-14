@@ -212,7 +212,7 @@ namespace CorgiSpline
                 bounds = _nativeBounds,
                 colors = _nativeColors,
                 
-                uvs = _nativeUVs,
+                uvs = _nativeUV0,
                 tris = _nativeTris,
 
                 Points = SplineReference.NativePoints,

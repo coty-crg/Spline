@@ -46,7 +46,8 @@ namespace CorgiSpline
                 verts = _nativeVertices,
                 normals = _nativeNormals,
                 tangents = _nativeTangents,
-                uvs = _nativeUVs,
+                uvs0 = _nativeUV0,
+                uvs1 = _nativeUV1,
                 tris = _nativeTris,
                 bounds = _nativeBounds,
 
@@ -90,7 +91,8 @@ namespace CorgiSpline
             public NativeList<Vector3> verts;
             public NativeList<Vector3> normals;
             public NativeList<Vector4> tangents;
-            public NativeList<Vector4> uvs;
+            public NativeList<Vector4> uvs0;
+            public NativeList<Vector4> uvs1;
             public NativeList<int> tris;
             public NativeArray<Bounds> bounds;
 
@@ -118,7 +120,8 @@ namespace CorgiSpline
                 verts.Clear();
                 normals.Clear();
                 tangents.Clear(); 
-                uvs.Clear();
+                uvs0.Clear();
+                uvs1.Clear();
                 tris.Clear();
 
                 // setup 
@@ -215,8 +218,11 @@ namespace CorgiSpline
                         var tangent = new Vector4(tangent3.x, tangent3.y, tangent3.z, 1.0f);
                         tangents.Add(tangent);
 
-                        var uv = new Vector2(uv_x, (float) tube_step * tube_delta * uv_tile_scale);
-                        uvs.Add(uv);
+                        var uv0 = new Vector2(uv_x, (float) tube_step * tube_delta * uv_tile_scale);
+                        uvs0.Add(uv0);
+
+                        var uv1 = new Vector2(t, (tube_step * tube_delta) / 2f);
+                        uvs1.Add(uv1);
 
                         // track bounds.. 
                         trackedBounds.min = Vector3.Min(trackedBounds.min, vert);
@@ -246,12 +252,14 @@ namespace CorgiSpline
                     {
                         var vert = verts[v];
                         var normal = normals[v];
-                        var uv = uvs[v + offset_end];
+                        var uv0 = uvs0[v + offset_end];
+                        var uv1 = uvs1[v + offset_end];
                         var tangent = tangents[v + offset_end];
 
                         verts.Add(vert);
                         normals.Add(normal);
-                        uvs.Add(uv);
+                        uvs0.Add(uv0);
+                        uvs1.Add(uv1);
                         tangents.Add(tangent); 
                     }
                 }
@@ -290,10 +298,15 @@ namespace CorgiSpline
                         tangents.Add(averageTangent);
                         tangents.Add(averageTangent);
 
-                        uvs.Add(uvs[vert_bot0]);
-                        uvs.Add(uvs[vert_bot1]);
-                        uvs.Add(uvs[vert_top0]);
-                        uvs.Add(uvs[vert_top1]);
+                        uvs0.Add(uvs0[vert_bot0]);
+                        uvs0.Add(uvs0[vert_bot1]);
+                        uvs0.Add(uvs0[vert_top0]);
+                        uvs0.Add(uvs0[vert_top1]);
+
+                        uvs1.Add(uvs1[vert_bot0]);
+                        uvs1.Add(uvs1[vert_bot1]);
+                        uvs1.Add(uvs1[vert_top0]);
+                        uvs1.Add(uvs1[vert_top1]);
 
                         // replace these for triangles 
                         vert_bot0 = verts.Length - 4 + 0;
@@ -319,7 +332,8 @@ namespace CorgiSpline
                     verts.Add(firstPoint.position);
                     normals.Add(start_forward);
                     tangents.Add(startTangent);
-                    uvs.Add(new Vector4(0f, 0f, 0f, 0f));
+                    uvs0.Add(new Vector4(0f, 0f, 0f, 0f));
+                    uvs1.Add(new Vector4(0f, 0.75f, 0f, 0f));
 
                     for(var v = 0; v < tube_quality - 1; ++v)
                     {
@@ -340,9 +354,13 @@ namespace CorgiSpline
                         tangents.Add(startTangent);
                         tangents.Add(startTangent);
 
-                        uvs.Add(uvs[vert_bot]);
-                        uvs.Add(uvs[vert_top0]);
-                        uvs.Add(uvs[vert_top1]);
+                        uvs0.Add(uvs0[vert_bot]);
+                        uvs0.Add(uvs0[vert_top0]);
+                        uvs0.Add(uvs0[vert_top1]);
+
+                        uvs1.Add(uvs1[vert_bot]);
+                        uvs1.Add(Vector4.Scale(uvs1[vert_top0], new Vector4(0f, 0.5f, 0f, 0f)) + new Vector4(1f, 0.5f, 0f, 0f));
+                        uvs1.Add(Vector4.Scale(uvs1[vert_top1], new Vector4(0f, 0.5f, 0f, 0f)) + new Vector4(1f, 0.5f, 0f, 0f));
 
                         // replace these for triangles 
                         vert_bot = verts.Length  - 3 + 0;
@@ -361,7 +379,8 @@ namespace CorgiSpline
                     verts.Add(lastPoint.position);
                     normals.Add(end_forward);
                     tangents.Add(endTangent);
-                    uvs.Add(new Vector4(0f, 0f, 0f, 0f));
+                    uvs0.Add(new Vector4(0f, 0f, 0f, 0f));
+                    uvs1.Add(new Vector4(0f, 1.0f, 0f, 0f));
 
                     for (var v = 0; v < tube_quality - 1; ++v)
                     {
@@ -382,9 +401,13 @@ namespace CorgiSpline
                         tangents.Add(endTangent);
                         tangents.Add(endTangent);
 
-                        uvs.Add(uvs[vert_bot]);
-                        uvs.Add(uvs[vert_top0]);
-                        uvs.Add(uvs[vert_top1]);
+                        uvs0.Add(uvs0[vert_bot]);
+                        uvs0.Add(uvs0[vert_top0]);
+                        uvs0.Add(uvs0[vert_top1]);
+
+                        uvs1.Add(uvs1[vert_bot]);
+                        uvs1.Add(Vector4.Scale(uvs1[vert_top0], new Vector4(0f, 0.5f, 0f, 0f)) + new Vector4(1f, 0.75f, 0f, 0f));
+                        uvs1.Add(Vector4.Scale(uvs1[vert_top1], new Vector4(0f, 0.5f, 0f, 0f)) + new Vector4(1f, 0.75f, 0f, 0f));
 
                         // replace these for triangles 
                         vert_bot  = verts.Length - 3 + 0;

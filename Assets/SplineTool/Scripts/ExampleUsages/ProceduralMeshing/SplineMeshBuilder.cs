@@ -89,7 +89,8 @@ namespace CorgiSpline
         protected NativeList<Vector3> _nativeVertices;
         protected NativeList<Vector3> _nativeNormals;
         protected NativeList<Vector4> _nativeTangents;
-        protected NativeList<Vector4> _nativeUVs;
+        protected NativeList<Vector4> _nativeUV0;
+        protected NativeList<Vector4> _nativeUV1;
         protected NativeArray<Bounds> _nativeBounds;
         protected NativeList<Vector4> _nativeColors;
         protected NativeList<int> _nativeTris;
@@ -121,7 +122,8 @@ namespace CorgiSpline
             _nativeVertices = new NativeList<Vector3>(Allocator.Persistent);
             _nativeNormals = new NativeList<Vector3>(Allocator.Persistent);
             _nativeTangents = new NativeList<Vector4>(Allocator.Persistent);
-            _nativeUVs = new NativeList<Vector4>(Allocator.Persistent);
+            _nativeUV0 = new NativeList<Vector4>(Allocator.Persistent);
+            _nativeUV1 = new NativeList<Vector4>(Allocator.Persistent);
             _nativeTris = new NativeList<int>(Allocator.Persistent);
             _nativeBounds = new NativeArray<Bounds>(1, Allocator.Persistent);
             _nativeColors = new NativeList<Vector4>(Allocator.Persistent);
@@ -142,7 +144,8 @@ namespace CorgiSpline
                 _nativeVertices.Dispose();
                 _nativeNormals.Dispose();
                 _nativeTangents.Dispose(); 
-                _nativeUVs.Dispose();
+                _nativeUV0.Dispose();
+                _nativeUV1.Dispose();
                 _nativeTris.Dispose();
                 _nativeBounds.Dispose();
                 _nativeColors.Dispose();
@@ -278,12 +281,17 @@ namespace CorgiSpline
                 _mesh.SetTangents(_nativeTangents.AsArray()); 
                 _mesh.SetIndices(_nativeTris.AsArray(), MeshTopology.Triangles, 0);
 
-                if(_nativeUVs.Length > 0)
+                if (_nativeUV0.Length > 0)
                 {
-                    _mesh.SetUVs(0, _nativeUVs.AsArray());
+                    _mesh.SetUVs(0, _nativeUV0.AsArray());
                 }
 
-                if(_nativeColors.Length > 0)
+                if (_nativeUV1.Length > 0)
+                {
+                    _mesh.SetUVs(1, _nativeUV1.AsArray());
+                }
+
+                if (_nativeColors.Length > 0)
                 {
                     _mesh.SetColors(_nativeColors.AsArray());
                 }
@@ -348,7 +356,8 @@ namespace CorgiSpline
                 verts = _nativeVertices,
                 normals = _nativeNormals,
                 tangents = _nativeTangents,
-                uvs = _nativeUVs,
+                uvs0 = _nativeUV0,
+                uvs1 = _nativeUV1,
                 tris = _nativeTris,
                 bounds = _nativeBounds,
                 colors = _nativeColors,
@@ -456,7 +465,8 @@ namespace CorgiSpline
             public NativeList<Vector3> verts;
             public NativeList<Vector3> normals;
             public NativeList<Vector4> tangents;
-            public NativeList<Vector4> uvs;
+            public NativeList<Vector4> uvs0;
+            public NativeList<Vector4> uvs1;
             public NativeList<int> tris;
             public NativeList<Vector4> colors;
 
@@ -477,7 +487,8 @@ namespace CorgiSpline
                 verts.Clear();
                 normals.Clear();
                 tangents.Clear(); 
-                uvs.Clear();
+                uvs0.Clear();
+                uvs1.Clear();
                 tris.Clear();
                 colors.Clear();
 
@@ -601,14 +612,23 @@ namespace CorgiSpline
                         uv_x = (t * uv_tile_scale) % 1.0f;
                     }
 
-                    var uv0 = new Vector2(uv_x, 0f);
-                    var uv1 = new Vector2(uv_x, 1f);
-                    var uv2 = new Vector2(uv_x, 1f);
-                    var uv3 = new Vector2(uv_x, 0f);
-                    var uv4 = uv0;
-                    var uv5 = uv2;
-                    var uv6 = uv1;
-                    var uv7 = uv3;
+                    var uv0_0 = new Vector2(uv_x, 0f);
+                    var uv0_1 = new Vector2(uv_x, 1f);
+                    var uv0_2 = new Vector2(uv_x, 1f);
+                    var uv0_3 = new Vector2(uv_x, 0f);
+                    var uv0_4 = uv0_0;
+                    var uv0_5 = uv0_2;
+                    var uv0_6 = uv0_1;
+                    var uv0_7 = uv0_3;
+
+                    var uv1_0 = new Vector2(t, 0f / 6f);
+                    var uv1_1 = new Vector2(t, 1f / 6f);
+                    var uv1_2 = new Vector2(t, 1f / 6f);
+                    var uv1_3 = new Vector2(t, 2f / 6f);
+                    var uv1_4 = new Vector2(t, 2f / 6f);
+                    var uv1_5 = new Vector2(t, 3f / 6f);
+                    var uv1_6 = new Vector2(t, 3f / 6f);
+                    var uv1_7 = new Vector2(t, 4f / 6f);
 
                     verts.Add(vert0);
                     verts.Add(vert1);
@@ -625,10 +645,15 @@ namespace CorgiSpline
                     tangents.Add(tangent2);
                     tangents.Add(tangent3);
 
-                    uvs.Add(uv0);
-                    uvs.Add(uv1);
-                    uvs.Add(uv2);
-                    uvs.Add(uv3);
+                    uvs0.Add(uv0_0);
+                    uvs0.Add(uv0_1);
+                    uvs0.Add(uv0_2);
+                    uvs0.Add(uv0_3);
+
+                    uvs1.Add(uv1_0);
+                    uvs1.Add(uv1_1);
+                    uvs1.Add(uv1_2);
+                    uvs1.Add(uv1_3);
 
                     if (normalsMode == MeshBuilderNormals.Hard)
                     {
@@ -647,10 +672,15 @@ namespace CorgiSpline
                         tangents.Add(tangent6);
                         tangents.Add(tangent7);
 
-                        uvs.Add(uv4);
-                        uvs.Add(uv5);
-                        uvs.Add(uv6);
-                        uvs.Add(uv7);
+                        uvs0.Add(uv0_4);
+                        uvs0.Add(uv0_5);
+                        uvs0.Add(uv0_6);
+                        uvs0.Add(uv0_7);
+
+                        uvs1.Add(uv1_4);
+                        uvs1.Add(uv1_5);
+                        uvs1.Add(uv1_6);
+                        uvs1.Add(uv1_7);
                     }
 
                     // connect the dots 
@@ -768,10 +798,15 @@ namespace CorgiSpline
                     var front_tangent_2 = firstRight;
                     var front_tangent_3 = firstRight;
 
-                    var front_uv_0 = new Vector4(0f, 0f, 0f, 0f);
-                    var front_uv_1 = new Vector4(1f, 0f, 0f, 0f);
-                    var front_uv_2 = new Vector4(0f, 1f, 0f, 0f);
-                    var front_uv_3 = new Vector4(1f, 1f, 0f, 0f);
+                    var front_uv0_0 = new Vector4(0f, 0f, 0f, 0f);
+                    var front_uv0_1 = new Vector4(1f, 0f, 0f, 0f);
+                    var front_uv0_2 = new Vector4(0f, 1f, 0f, 0f);
+                    var front_uv0_3 = new Vector4(1f, 1f, 0f, 0f);
+
+                    var front_uv1_0 = new Vector4(0f, 4f / 6f, 0f, 0f);
+                    var front_uv1_1 = new Vector4(1f, 4f / 6f, 0f, 0f);
+                    var front_uv1_2 = new Vector4(0f, 5f / 6f, 0f, 0f);
+                    var front_uv1_3 = new Vector4(1f, 5f / 6f, 0f, 0f);
 
                     var f_t0 = last_index + groupVertCount + 0;
                     var f_t1 = last_index + groupVertCount + 1;
@@ -793,10 +828,15 @@ namespace CorgiSpline
                     tangents.Add(front_tangent_2);
                     tangents.Add(front_tangent_3);
 
-                    uvs.Add(front_uv_0);
-                    uvs.Add(front_uv_1);
-                    uvs.Add(front_uv_2);
-                    uvs.Add(front_uv_3);
+                    uvs0.Add(front_uv0_0);
+                    uvs0.Add(front_uv0_1);
+                    uvs0.Add(front_uv0_2);
+                    uvs0.Add(front_uv0_3);
+
+                    uvs1.Add(front_uv1_0);
+                    uvs1.Add(front_uv1_1);
+                    uvs1.Add(front_uv1_2);
+                    uvs1.Add(front_uv1_3);
 
                     tris.Add(f_b0);
                     tris.Add(f_t1);
@@ -821,10 +861,15 @@ namespace CorgiSpline
                     var back_tangent_2 = lastRight;
                     var back_tangent_3 = lastRight;
 
-                    var back_uv_0 = new Vector4(0f, 0f, 0f, 0f);
-                    var back_uv_1 = new Vector4(1f, 0f, 0f, 0f);
-                    var back_uv_2 = new Vector4(0f, 1f, 0f, 0f);
-                    var back_uv_3 = new Vector4(1f, 1f, 0f, 0f);
+                    var back_uv0_0 = new Vector4(0f, 0f, 0f, 0f);
+                    var back_uv0_1 = new Vector4(1f, 0f, 0f, 0f);
+                    var back_uv0_2 = new Vector4(0f, 1f, 0f, 0f);
+                    var back_uv0_3 = new Vector4(1f, 1f, 0f, 0f);
+
+                    var back_uv1_0 = new Vector4(0f, 5f / 6f, 0f, 0f);
+                    var back_uv1_1 = new Vector4(1f, 5f / 6f, 0f, 0f);
+                    var back_uv1_2 = new Vector4(0f, 6f / 6f, 0f, 0f);
+                    var back_uv1_3 = new Vector4(1f, 6f / 6f, 0f, 0f);
 
                     var b_t0 = last_index + groupVertCount + 4 + 0;
                     var b_t1 = last_index + groupVertCount + 4 + 1;
@@ -846,10 +891,15 @@ namespace CorgiSpline
                     tangents.Add(back_tangent_2);
                     tangents.Add(back_tangent_3);
 
-                    uvs.Add(back_uv_0);
-                    uvs.Add(back_uv_1);
-                    uvs.Add(back_uv_2);
-                    uvs.Add(back_uv_3);
+                    uvs0.Add(back_uv0_0);
+                    uvs0.Add(back_uv0_1);
+                    uvs0.Add(back_uv0_2);
+                    uvs0.Add(back_uv0_3);
+
+                    uvs1.Add(back_uv1_0);
+                    uvs1.Add(back_uv1_1);
+                    uvs1.Add(back_uv1_2);
+                    uvs1.Add(back_uv1_3); 
 
                     tris.Add(b_b1);
                     tris.Add(b_t1);
