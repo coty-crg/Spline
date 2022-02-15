@@ -18,18 +18,24 @@ namespace CorgiSpline
         protected SerializedProperty PositionOffset;
         protected SerializedProperty ScaleOffset;
         protected SerializedProperty RotationEulorOffset;
+        protected SerializedProperty RandomizedOffsetRange;
+        protected SerializedProperty RandomizedScaleRange;
+        protected SerializedProperty RandomizedRotationEulorRange;
 
         private void OnEnable()
         {
-            SplineReference     = serializedObject.FindProperty("SplineReference");
-            PrefabToRepeat      = serializedObject.FindProperty("PrefabToRepeat");
-            RepeatCount         = serializedObject.FindProperty("RepeatCount");
-            RepeatPercentage    = serializedObject.FindProperty("RepeatPercentage");
-            RefreshOnEnable     = serializedObject.FindProperty("RefreshOnEnable");
-            RefreshOnUpdate     = serializedObject.FindProperty("RefreshOnUpdate");
-            PositionOffset      = serializedObject.FindProperty("PositionOffset");
-            ScaleOffset         = serializedObject.FindProperty("ScaleOffset");
-            RotationEulorOffset = serializedObject.FindProperty("RotationEulorOffset");
+            SplineReference                 = serializedObject.FindProperty("SplineReference");
+            PrefabToRepeat                  = serializedObject.FindProperty("PrefabToRepeat");
+            RepeatCount                     = serializedObject.FindProperty("RepeatCount");
+            RepeatPercentage                = serializedObject.FindProperty("RepeatPercentage");
+            RefreshOnEnable                 = serializedObject.FindProperty("RefreshOnEnable");
+            RefreshOnUpdate                 = serializedObject.FindProperty("RefreshOnUpdate");
+            PositionOffset                  = serializedObject.FindProperty("PositionOffset");
+            ScaleOffset                     = serializedObject.FindProperty("ScaleOffset");
+            RotationEulorOffset             = serializedObject.FindProperty("RotationEulorOffset");
+            RandomizedOffsetRange           = serializedObject.FindProperty("RandomizedOffsetRange");
+            RandomizedScaleRange            = serializedObject.FindProperty("RandomizedScaleRange");
+            RandomizedRotationEulorRange    = serializedObject.FindProperty("RandomizedRotationEulorRange");
         }
 
         public override void OnInspectorGUI()
@@ -75,13 +81,19 @@ namespace CorgiSpline
 
             GUILayout.BeginVertical("GroupBox");
             {
-                EditorGUILayout.LabelField("Settings", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("Repeater Settings", EditorStyles.boldLabel);
                 EditorGUILayout.PropertyField(RepeatCount);
                 EditorGUILayout.PropertyField(RepeatPercentage);
 
+                EditorGUILayout.LabelField("Offsets", EditorStyles.boldLabel);
                 EditorGUILayout.PropertyField(PositionOffset);
                 EditorGUILayout.PropertyField(ScaleOffset);
                 EditorGUILayout.PropertyField(RotationEulorOffset);
+
+                EditorGUILayout.LabelField("Randomness", EditorStyles.boldLabel);
+                EditorGUILayout.PropertyField(RandomizedOffsetRange);
+                EditorGUILayout.PropertyField(RandomizedScaleRange);
+                EditorGUILayout.PropertyField(RandomizedRotationEulorRange);
 
                 EditorGUILayout.PropertyField(RefreshOnEnable);
                 EditorGUILayout.PropertyField(RefreshOnUpdate);

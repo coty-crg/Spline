@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace CorgiSpline
 {
+    [ExecuteAlways]
     public class PrefabRepeater : MonoBehaviour
     {
         [Tooltip("Spline to use for prefab repeating.")] 
@@ -30,12 +31,29 @@ namespace CorgiSpline
         [Tooltip("Scale offset for the prefab from the spline.")]
         public Vector3 ScaleOffset = new Vector3(1, 1, 1);
 
-        [Tooltip("Rotation offset for the prefab from the spline.")] 
+        [Tooltip("Rotation offset, in eulor angles, for the prefab from the spline.")] 
         public Vector3 RotationEulorOffset;
+
+        [Tooltip("Randomized positional offset range. (0,0,0) means no randomness.")] 
+        public Vector3 RandomizedOffsetRange;
+
+        [Tooltip("Randomized scale range. (0,0,0) means no randomness.")]
+        public Vector3 RandomizedScaleRange;
+
+        [Tooltip("Randomized rotation range in eulor angles. (0,0,0) means no randomness.")]
+        public Vector3 RandomizedRotationEulorRange;
 
         private void OnEnable()
         {
-            if(RefreshOnEnable)
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                Refresh();
+                return; 
+            }
+#endif
+
+            if (RefreshOnEnable)
             {
                 Refresh();   
             }
@@ -43,6 +61,18 @@ namespace CorgiSpline
 
         private void Update()
         {
+#if UNITY_EDITOR
+            if(!Application.isPlaying)
+            {
+                if(UnityEditor.Selection.activeGameObject == gameObject)
+                {
+                    Refresh(); 
+                }
+
+                return;
+            }
+#endif
+
             if (RefreshOnUpdate)
             {
                 Refresh();
@@ -60,6 +90,8 @@ namespace CorgiSpline
 
             var parent = transform;
 
+            var random = new System.Random(transform.position.GetHashCode()); 
+
             for(var s = 0; s < RepeatCount; ++s)
             {
                 var t = (float) s / RepeatCount;
@@ -72,10 +104,31 @@ namespace CorgiSpline
                 var up = splinePoint.rotation * Vector3.up;
                 var offset = PositionOffset.x * right + PositionOffset.y * up + PositionOffset.z * forward;
 
+                var randomValuePos_x = (float) (random.NextDouble() * 2.0d - 1.0d);
+                var randomValuePos_y = (float) (random.NextDouble() * 2.0d - 1.0d);
+                var randomValuePos_z = (float) (random.NextDouble() * 2.0d - 1.0d);
+                var randomValueRot   = (float) (random.NextDouble() * 2.0d - 1.0d);
+                var randomValueScale = (float) (random.NextDouble() * 2.0d - 1.0d);
+
+                offset += randomValuePos_x * RandomizedOffsetRange.x * right + randomValuePos_y * RandomizedOffsetRange.y * up + randomValuePos_z * RandomizedOffsetRange.z * forward;
+
+
+#if UNITY_EDITOR
+                GameObject go; 
+                if(Application.isPlaying)
+                {
+                    go = GameObject.Instantiate(PrefabToRepeat, parent);
+                }
+                else
+                {
+                    go = (GameObject) UnityEditor.PrefabUtility.InstantiatePrefab(PrefabToRepeat, parent);
+                }
+#else
                 var go = GameObject.Instantiate(PrefabToRepeat, parent);
+#endif
                 var transform = go.transform;
-                    transform.SetPositionAndRotation(splinePoint.position + offset, splinePoint.rotation * Quaternion.Euler(RotationEulorOffset));
-                    transform.localScale = Vector3.Scale(splinePoint.scale, ScaleOffset);
+                    transform.SetPositionAndRotation(splinePoint.position + offset, splinePoint.rotation * Quaternion.Euler(RotationEulorOffset) * Quaternion.Euler(RandomizedRotationEulorRange * randomValueRot));
+                    transform.localScale = Vector3.Scale(splinePoint.scale, ScaleOffset + RandomizedScaleRange * randomValueScale);
             }
         }
 
@@ -94,29 +147,19 @@ namespace CorgiSpline
             for (var t = 0; t < childCount; ++t)
             {
                 var go = toDestroy[t];
+
+#if UNITY_EDITOR
+                if(Application.isPlaying)
+                {
+                    GameObject.Destroy(go); 
+                }
+                else
+                {
+                    GameObject.DestroyImmediate(go); 
+                }
+#else
                 GameObject.Destroy(go); 
-            }
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            if (SplineReference == null) return;
-
-            Gizmos.color = new Color(1, 1, 1, 0.75f);
-
-            for (var s = 0; s < RepeatCount; ++s)
-            {
-                var t = (float)s / RepeatCount;
-                if (t > RepeatPercentage) break;
-
-                var splinePoint = SplineReference.GetPoint(t);
-
-                var forward = splinePoint.rotation * Vector3.forward;
-                var right = splinePoint.rotation * Vector3.right;
-                var up = splinePoint.rotation * Vector3.up;
-                var offset = PositionOffset.x * right + PositionOffset.y * up + PositionOffset.z * forward;
-
-                Gizmos.DrawSphere(splinePoint.position + offset, splinePoint.scale.magnitude * ScaleOffset.magnitude); 
+#endif
             }
         }
     }
