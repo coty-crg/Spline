@@ -353,7 +353,7 @@ namespace CorgiSpline
 
                 int lowest_index;
 
-                if (closestIndex <= 0)
+                if (!ClosedSpline && closestIndex <= 0)
                 {
                     lowest_index = closestIndex;
 
@@ -364,7 +364,7 @@ namespace CorgiSpline
                     point1 = Points[index_b];
                 }
 
-                else if (closestIndex == Points.Length - 1)
+                else if (!ClosedSpline && closestIndex == Points.Length - 1)
                 {
                     lowest_index = closestIndex - 1;
 
@@ -379,6 +379,14 @@ namespace CorgiSpline
                     var index_a = closestIndex;
                     var index_b = closestIndex - 1;
                     var index_c = closestIndex + 1;
+
+                    if(ClosedSpline)
+                    {
+                        var mod_value = Points.Length - 1;
+                        index_a = ((index_a % mod_value) + mod_value) % mod_value;
+                        index_b = ((index_b % mod_value) + mod_value) % mod_value;
+                        index_c = ((index_c % mod_value) + mod_value) % mod_value;
+                    }
 
                     var point_a = Points[index_a];
                     var point_b = Points[index_b];
@@ -409,6 +417,8 @@ namespace CorgiSpline
                 var projectedPosition = ProjectLinear(point0, point1, position);
                 var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
                 var total_t = (float) lowest_index / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+
+                // Debug.Log($"{lowest_index}, {percentageBetweenPoints}, {total_t}");
 
                 return total_t;
             }
@@ -555,7 +565,7 @@ namespace CorgiSpline
 
                 int lowest_index;
 
-                if (closestIndex <= 0)
+                if (!ClosedSpline && closestIndex <= 0)
                 {
                     var index_a = closestIndex;
                     var index_b = closestIndex + 1;
@@ -566,7 +576,7 @@ namespace CorgiSpline
                     lowest_index = index_a;
                 }
 
-                else if (closestIndex == Points.Length - 1)
+                else if (!ClosedSpline && closestIndex == Points.Length - 1)
                 {
                     var index_a = closestIndex - 1;
                     var index_b = closestIndex ;
@@ -582,6 +592,14 @@ namespace CorgiSpline
                     var index_a = closestIndex;
                     var index_b = closestIndex - 1;
                     var index_c = closestIndex + 1;
+
+                    if (ClosedSpline)
+                    {
+                        var mod_value = Points.Length - 1;
+                        index_a = ((index_a % mod_value) + mod_value) % mod_value;
+                        index_b = ((index_b % mod_value) + mod_value) % mod_value;
+                        index_c = ((index_c % mod_value) + mod_value) % mod_value;
+                    }
 
                     var point_a = Points[index_a];
                     var point_b = Points[index_b];
@@ -1765,7 +1783,7 @@ namespace CorgiSpline
 
                 int lowest_index;
 
-                if (closestIndex <= 0)
+                if (!ClosedSpline && closestIndex <= 0)
                 {
                     lowest_index = closestIndex;
 
@@ -1776,7 +1794,7 @@ namespace CorgiSpline
                     point1 = Points[index_b];
                 }
 
-                else if (closestIndex == Points.Length - 1)
+                else if (!ClosedSpline && closestIndex == Points.Length - 1)
                 {
                     lowest_index = closestIndex - 1;
 
@@ -1791,6 +1809,14 @@ namespace CorgiSpline
                     var index_a = closestIndex;
                     var index_b = closestIndex - 1;
                     var index_c = closestIndex + 1;
+
+                    if (ClosedSpline)
+                    {
+                        var mod_value = Points.Length - 1;
+                        index_a = ((index_a % mod_value) + mod_value) % mod_value;
+                        index_b = ((index_b % mod_value) + mod_value) % mod_value;
+                        index_c = ((index_c % mod_value) + mod_value) % mod_value;
+                    }
 
                     var point_a = Points[index_a];
                     var point_b = Points[index_b];
