@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace CorgiSpline
@@ -212,7 +213,8 @@ namespace CorgiSpline
                 bounds = _nativeBounds,
                 colors = _nativeColors,
                 
-                uvs = _nativeUV0,
+                uv0s = _nativeUV0,
+                uv1s = _nativeUV1,
                 tris = _nativeTris,
 
                 Points = SplineReference.NativePoints,
@@ -256,7 +258,8 @@ namespace CorgiSpline
             public NativeList<Vector3> verts;
             public NativeList<Vector3> normals;
             public NativeList<Vector4> tangents;
-            public NativeList<Vector4> uvs;
+            public NativeList<Vector4> uv0s;
+            public NativeList<Vector4> uv1s;
             public NativeList<int> tris;
             public NativeList<Vector4> colors;
             public NativeArray<Bounds> bounds;
@@ -271,6 +274,18 @@ namespace CorgiSpline
             public Matrix4x4 localToWorldMatrix;
             public bool ClosedSpline;
 
+            private int2 Get1Dto2D(int index, int width)
+            {
+                var x = index % width;
+                var y = index / width;
+                return new int2(x, y); 
+            }
+
+            private int Get2Dto1D(int2 pos, int width)
+            {
+                return pos.y * width + pos.x; 
+            }
+
             public void Execute()
             {
                 var trackedBounds = new Bounds();
@@ -278,7 +293,8 @@ namespace CorgiSpline
                 // reset data 
                 verts.Clear();
                 normals.Clear();
-                uvs.Clear();
+                uv0s.Clear();
+                uv1s.Clear();
                 tris.Clear();
                 tangents.Clear();
                 colors.Clear();
@@ -304,16 +320,22 @@ namespace CorgiSpline
                 var boundsDistance = Vector3.Distance(repeatingBoundsMin, repeatingBoundsMax);
                 var repeatCount = 0;
 
-                    var meshBoundsZ = (repeatingMesh_bounds.max.z - repeatingMesh_bounds.min.z);
-                    var totalMeshZ = meshBoundsZ * quality;
+                var meshBoundsZ = (repeatingMesh_bounds.max.z - repeatingMesh_bounds.min.z);
+                var totalMeshZ = meshBoundsZ * quality;
 
                 for (var meshIndex = 0; meshIndex < quality; ++meshIndex)
                 {
                     var currentMeshZ = meshIndex * meshBoundsZ;
 
-                    var brokenEarly = false;
+                    // lightmap chunk data 
+                    var lightmapGridSize = Mathf.Max(1, Mathf.RoundToInt(Mathf.Sqrt(quality)));
+                    var lightmapChunk = Get1Dto2D(meshIndex, lightmapGridSize); 
+                    var lightmapInverseWidth = 1f / lightmapGridSize;
+                    var lightmapOffset = new Vector4(lightmapInverseWidth * lightmapChunk.x, lightmapInverseWidth * lightmapChunk.y, 0f, 0f);
+                    var lightmapScale = new Vector4(lightmapInverseWidth, lightmapInverseWidth, 0f, 0f);
 
                     // pasted the mesh over and over, bending the verts to be along the spline 
+                    var brokenEarly = false;
                     for (var ri = 0; ri < repeatingMesh_verts.Length; ++ri)
                     {
                         var repeating_vertex = repeatingMesh_verts[ri];
@@ -339,7 +361,8 @@ namespace CorgiSpline
                         var trs = Matrix4x4.TRS(
                             vertex_splinePoint.position + MeshLocalOffsetVertices, 
                             vertex_splinePoint.rotation, 
-                            Vector3.Scale(vertex_splinePoint.scale, scale));
+                            Vector3.Scale(vertex_splinePoint.scale, scale)
+                        );
 
                         var vertex = trs.MultiplyPoint(new Vector3(repeating_vertex.x, repeating_vertex.y, 0));
                         normal = trs.MultiplyVector(normal);
@@ -351,18 +374,22 @@ namespace CorgiSpline
 
                         if (UseRepeatingMeshUVs && repeatingMesh_has_uv0)
                         {
-                            uvs.Add(repeatingMesh_uv0[ri]);
+                            var repeatingMeshUv0 = repeatingMesh_uv0[ri];
+                            uv0s.Add(repeatingMeshUv0);
+                            uv1s.Add(Vector4.Scale(repeatingMeshUv0, lightmapScale) + lightmapOffset);
                         }
                         else
                         {
                             var uv_x = innerMesh_t;
+                            var uv_y = (repeating_vertex.y - repeatingBoundsMin.y) / (repeatingBoundsMax.y - repeatingBoundsMin.y);
 
                             if (uvsMode == MeshBuilderUVs.Tile)
                             {
-                                uv_x = (innerMesh_t * uv_tile_scale) % 1.0f;
+                                uv_x = (innerMesh_t * uv_tile_scale);
                             }
 
-                            uvs.Add(new Vector4(uv_x, 0f));
+                            uv0s.Add(new Vector4(uv_x, uv_y));
+                            uv1s.Add(Vector4.Scale(new Vector4(innerMesh_t, uv_y), lightmapScale) + lightmapOffset);
                         }
 
                         // track bounds.. 

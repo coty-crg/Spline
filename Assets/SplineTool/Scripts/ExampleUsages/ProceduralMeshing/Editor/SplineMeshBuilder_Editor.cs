@@ -23,6 +23,8 @@ namespace CorgiSpline
         protected SerializedProperty _serializedMesh;
         protected SerializedProperty MeshNormalsMode;
         protected SerializedProperty UVsMode;
+        protected SerializedProperty unity_generate_lightmap_uvs;
+        protected SerializedProperty unity_lightmap_params;
 
         protected virtual void OnEnable()
         {
@@ -41,6 +43,8 @@ namespace CorgiSpline
             _serializedMesh             = serializedObject.FindProperty("_serializedMesh");
             MeshNormalsMode             = serializedObject.FindProperty("MeshNormalsMode");
             UVsMode                     = serializedObject.FindProperty("UVsMode");
+            unity_generate_lightmap_uvs = serializedObject.FindProperty("unity_generate_lightmap_uvs");
+            unity_lightmap_params       = serializedObject.FindProperty("unity_lightmap_params");
         }
 
         public override void OnInspectorGUI()
@@ -176,6 +180,12 @@ namespace CorgiSpline
                 {
                     EditorGUILayout.LabelField("Quality Settings", EditorStyles.boldLabel);
                     EditorGUILayout.PropertyField(quality);
+                    EditorGUILayout.PropertyField(unity_generate_lightmap_uvs);
+
+                    if(instance.unity_generate_lightmap_uvs)
+                    {
+                        EditorGUILayout.PropertyField(unity_lightmap_params);
+                    }
                 }
                 GUILayout.EndVertical();
 

@@ -64,8 +64,13 @@ namespace CorgiSpline
         [Tooltip("When calculating scale, use the spline point data.")]
         public bool use_splinepoint_scale = false;
 
-        [HideInInspector] public Mesh _serializedMesh;
+        [Tooltip("Let the Unity editor generate Lightmap UVs. (editor only)")]
+        public bool unity_generate_lightmap_uvs;
 
+        [Tooltip("Unity's lightmapping unwrap parameters. (editor only)")]
+        public UnwrapParam unity_lightmap_params;
+
+        [HideInInspector] public Mesh _serializedMesh;
 
         [System.Serializable]
         public enum MeshBuilderNormals
@@ -79,6 +84,23 @@ namespace CorgiSpline
         {
             Stretch     = 0,
             Tile        = 1,
+        }
+
+        // note: we need to make our own copy here, so things can be serialized in builds without any warnings about editor only serialization 
+        [System.Serializable]
+        public class UnwrapParam
+        {
+            [Tooltip("Maximum allowed angle distortion (0..1).")]
+            [Range(0.01f, 1f)] public float angleError = 0.1f;
+
+            [Tooltip("Maximum allowed area distortion (0..1).")]
+            [Range(0.01f, 1f)] public float areaError = 0.1f;
+
+            [Tooltip("This angle (in degrees) or greater between triangles will cause seam to be created.")]
+            [Range(0.01f, 180f)] public float hardAngle = 50f;
+
+            [Tooltip("How much uv-islands will be padded. (uv, 0-1)")]
+            [Range(0f, 1f)] public float packMargin = 1f / 512f;
         }
 
         [Tooltip("Should the normals be smooth or hard? Note: hard normals require more vertices.")]
@@ -300,6 +322,20 @@ namespace CorgiSpline
                 // _mesh.RecalculateTangents();
 
                 _mesh.bounds = _nativeBounds[0];
+
+
+#if UNITY_EDITOR
+                if(unity_generate_lightmap_uvs)
+                {
+                    UnityEditor.Unwrapping.GenerateSecondaryUVSet(_mesh, new UnityEditor.UnwrapParam()
+                    {
+                        angleError = unity_lightmap_params.angleError,
+                        areaError = unity_lightmap_params.areaError,
+                        hardAngle = unity_lightmap_params.hardAngle,
+                        packMargin = unity_lightmap_params.packMargin,
+                    });
+                }
+#endif
             }
 
             var meshFilter = GetComponent<MeshFilter>();
