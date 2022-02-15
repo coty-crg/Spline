@@ -351,8 +351,12 @@ namespace CorgiSpline
                 SplinePoint point0;
                 SplinePoint point1;
 
+                int lowest_index;
+
                 if (closestIndex <= 0)
                 {
+                    lowest_index = closestIndex;
+
                     var index_a = closestIndex;
                     var index_b = closestIndex + 1;
 
@@ -362,13 +366,14 @@ namespace CorgiSpline
 
                 else if (closestIndex == Points.Length - 1)
                 {
+                    lowest_index = closestIndex - 1;
+
                     var index_a = closestIndex;
                     var index_b = closestIndex - 1;
 
-                    point0 = Points[index_a];
-                    point1 = Points[index_b];
+                    point0 = Points[index_b];
+                    point1 = Points[index_a];
                 }
-
                 else
                 {
                     var index_a = closestIndex;
@@ -379,19 +384,23 @@ namespace CorgiSpline
                     var point_b = Points[index_b];
                     var point_c = Points[index_c];
 
-                    var projected_ab = ProjectLinear(point_a, point_b, position);
+                    var projected_ba = ProjectLinear(point_b, point_a, position);
                     var projected_ac = ProjectLinear(point_a, point_c, position);
 
-                    var distance_ab = Vector3.Distance(position, projected_ab);
+                    var distance_ba = Vector3.Distance(position, projected_ba);
                     var distance_ac = Vector3.Distance(position, projected_ac);
 
-                    if (distance_ab < distance_ac)
+                    if (distance_ba < distance_ac)
                     {
+                        lowest_index = index_b;
+
                         point0 = point_b;
                         point1 = point_a;
                     }
                     else
                     {
+                        lowest_index = index_a; 
+
                         point0 = point_a;
                         point1 = point_c;
                     }
@@ -399,7 +408,9 @@ namespace CorgiSpline
 
                 var projectedPosition = ProjectLinear(point0, point1, position);
                 var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-                return (float)closestIndex / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+                var total_t = (float) lowest_index / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+
+                return total_t;
             }
             else if (Mode == SplineMode.Bezier)
             {
@@ -542,6 +553,8 @@ namespace CorgiSpline
                 SplinePoint point0;
                 SplinePoint point1;
 
+                int lowest_index;
+
                 if (closestIndex <= 0)
                 {
                     var index_a = closestIndex;
@@ -549,6 +562,8 @@ namespace CorgiSpline
 
                     point0 = Points[index_a];
                     point1 = Points[index_b];
+
+                    lowest_index = index_a;
                 }
 
                 else if (closestIndex == Points.Length - 1)
@@ -558,6 +573,8 @@ namespace CorgiSpline
 
                     point0 = Points[index_a];
                     point1 = Points[index_b];
+
+                    lowest_index = index_a;
                 }
 
                 else
@@ -590,17 +607,17 @@ namespace CorgiSpline
 
                     if (distance_ab < distance_ac)
                     {
-                        closestIndex = index_b;
-
                         point0 = point_b;
                         point1 = point_a;
+
+                        lowest_index = index_b;
                     }
                     else
                     {
-                        closestIndex = index_a;
-
                         point0 = point_a;
                         point1 = point_c;
+
+                        lowest_index = index_a;
                     }
                 }
 
@@ -609,7 +626,7 @@ namespace CorgiSpline
 
                 var projectedPosition = ProjectLinear(point0, point1, screenPosition);
                 var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-                return (float)closestIndex / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+                return (float)lowest_index / Points.Length + percentageBetweenPoints * (1f / Points.Length);
             }
             else if (Mode == SplineMode.Bezier)
             {
@@ -795,6 +812,12 @@ namespace CorgiSpline
                 var delta_t = 1f / Points.Length;
                 var mod_t = Mathf.Repeat(t, delta_t);
                 var inner_t = mod_t / delta_t;
+
+                // sometimes inner_t will not quite reach 1 (0), so if we reach some threshold just force it over ourselves (to avoid spline jumping around) 
+                if (inner_t > 0.9999f)
+                {
+                    inner_t = 0.0f;
+                }
 
                 var index0 = Mathf.FloorToInt(t * Points.Length);
                 var index1 = index0 + 1;
@@ -1586,16 +1609,23 @@ namespace CorgiSpline
         /// <returns></returns>
         public static Vector3 VectorProject(Vector3 a, Vector3 b)
         {
-            return (math.dot(a, b) / math.length(b)) * b;
+            var d = math.dot(b, b);
+            if (d < 0.0001f) return Vector3.zero;
+
+            return b * math.dot(a, b) / d; 
         }
 
         private static Vector3 ProjectLinear(SplinePoint a, SplinePoint b, Vector3 point)
         {
             var direction = b.position - a.position;
-            var toPoint = point - a.position;
 
-            // var dot = Vector3.Dot(direction, toPoint);
-            // if (dot < 0) return a.position;
+            var toPointA = point - a.position;
+            var dotA = Vector3.Dot(direction, toPointA);
+            if (dotA < 0) return a.position;
+
+            var toPointB = point - b.position;
+            var dotB = Vector3.Dot(direction, toPointB);
+            if (dotB > 0) return b.position;
 
             direction = direction.normalized;
 
@@ -1730,11 +1760,15 @@ namespace CorgiSpline
                     }
                 }
 
-                SplinePoint point0 = default;
-                SplinePoint point1 = default;
+                SplinePoint point0;
+                SplinePoint point1;
+
+                int lowest_index;
 
                 if (closestIndex <= 0)
                 {
+                    lowest_index = closestIndex;
+
                     var index_a = closestIndex;
                     var index_b = closestIndex + 1;
 
@@ -1744,11 +1778,13 @@ namespace CorgiSpline
 
                 else if (closestIndex == Points.Length - 1)
                 {
+                    lowest_index = closestIndex - 1;
+
                     var index_a = closestIndex;
                     var index_b = closestIndex - 1;
 
-                    point0 = Points[index_a];
-                    point1 = Points[index_b];
+                    point0 = Points[index_b];
+                    point1 = Points[index_a];
                 }
                 else
                 {
@@ -1760,19 +1796,23 @@ namespace CorgiSpline
                     var point_b = Points[index_b];
                     var point_c = Points[index_c];
 
-                    var projected_ab = ProjectLinear(point_a, point_b, position);
+                    var projected_ba = ProjectLinear(point_b, point_a, position);
                     var projected_ac = ProjectLinear(point_a, point_c, position);
 
-                    var distance_ab = Vector3.Distance(position, projected_ab);
+                    var distance_ba = Vector3.Distance(position, projected_ba);
                     var distance_ac = Vector3.Distance(position, projected_ac);
 
-                    if (distance_ab < distance_ac)
+                    if (distance_ba < distance_ac)
                     {
+                        lowest_index = index_b;
+
                         point0 = point_b;
                         point1 = point_a;
                     }
                     else
                     {
+                        lowest_index = index_a;
+
                         point0 = point_a;
                         point1 = point_c;
                     }
@@ -1780,7 +1820,9 @@ namespace CorgiSpline
 
                 var projectedPosition = ProjectLinear(point0, point1, position);
                 var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-                return (float)closestIndex / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+                var total_t = (float)lowest_index / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+
+                return total_t;
 
             }
             else if (Mode == SplineMode.Bezier)
@@ -1898,6 +1940,12 @@ namespace CorgiSpline
                 var delta_t = 1f / Points.Length;
                 var mod_t = Mathf.Repeat(t, delta_t);
                 var inner_t = mod_t / delta_t;
+
+                // sometimes inner_t will not quite reach 1 (0), so if we reach some threshold just force it over ourselves (to avoid spline jumping around) 
+                if (inner_t > 0.9999f)
+                {
+                    inner_t = 0.0f;
+                }
 
                 var index0 = Mathf.FloorToInt(t * Points.Length);
                 var index1 = index0 + 1;
