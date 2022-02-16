@@ -121,6 +121,19 @@ namespace CorgiSpline
         public bool EditorAlwaysFacePointsForwardAndUp;
         public float EditorGizmosScale = 1.0f;
 
+#if UNITY_EDITOR
+        public delegate void EditorSplineUpdatedEvent(Spline spline);
+        [System.NonSerialized] public EditorSplineUpdatedEvent onEditorSplineUpdated;
+
+        public void SendEditorSplineUpdatedEvent()
+        {
+            if(onEditorSplineUpdated != null)
+            {
+                onEditorSplineUpdated.Invoke(this); 
+            }
+        }
+#endif
+
         private void OnEnable()
         {
             if(UpdateNativeArrayOnEnable)

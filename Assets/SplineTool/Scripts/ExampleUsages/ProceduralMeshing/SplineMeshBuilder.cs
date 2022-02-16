@@ -125,6 +125,19 @@ namespace CorgiSpline
         private bool _asyncReadyToRebuild = true;
         private bool _hasScheduledJob;
 
+#if UNITY_EDITOR
+        public void EditorOnSplineUpdated(Spline spline)
+        {
+            if(spline != SplineReference)
+            {
+                return;
+            }
+
+            Rebuild_Jobified();
+            CompleteJob();
+        }
+#endif
+
         protected virtual void OnEnable()
         {
             Debug.Assert(!(Application.isPlaying && SplineReference == null), "SplineReference is null", gameObject);
@@ -158,6 +171,13 @@ namespace CorgiSpline
                 Rebuild_Jobified();
                 CompleteJob();
             }
+
+#if UNITY_EDITOR
+            if(SplineReference != null)
+            {
+                SplineReference.onEditorSplineUpdated += EditorOnSplineUpdated;
+            }
+#endif
         }
 
         protected virtual void OnDisable()
@@ -190,6 +210,14 @@ namespace CorgiSpline
                     }
                 }
             }
+
+
+#if UNITY_EDITOR
+            if (SplineReference != null)
+            {
+                SplineReference.onEditorSplineUpdated -= EditorOnSplineUpdated;
+            }
+#endif
         }
 
         protected virtual void Update()
@@ -197,12 +225,6 @@ namespace CorgiSpline
 #if UNITY_EDITOR
             if(!Application.isPlaying)
             {
-                if(UnityEditor.Selection.activeGameObject == gameObject)
-                {
-                    Rebuild_Jobified();
-                    CompleteJob(); 
-                }
-
                 return;
             }
 #endif

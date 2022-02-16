@@ -162,6 +162,7 @@ namespace CorgiSpline
 
                     instance.SetSplineClosed(false);
                     instance.UpdateNative();
+                    instance.SendEditorSplineUpdatedEvent();
                 }
             }
             else
@@ -177,6 +178,7 @@ namespace CorgiSpline
 
                         instance.SetSplineClosed(true);
                         instance.UpdateNative();
+                        instance.SendEditorSplineUpdatedEvent();
                     }
 
                     if (GUILayout.Button("Start Placing Points"))
@@ -229,6 +231,7 @@ namespace CorgiSpline
 
                     instance.SetSplinePointsRotationForward();
                     instance.UpdateNative();
+                    instance.SendEditorSplineUpdatedEvent();
 
                     EditorUtility.SetDirty(instance);
                 }
@@ -304,6 +307,7 @@ namespace CorgiSpline
                         }
 
                         instance.UpdateNative();
+                        instance.SendEditorSplineUpdatedEvent();
                     }
 
                     if (instance.EditorAlwaysFacePointsForwardAndUp || GUILayout.Button("Rotations: Force Forward & Up"))
@@ -312,6 +316,7 @@ namespace CorgiSpline
 
                         instance.SetSplinePointsRotationForward();
                         instance.UpdateNative();
+                        instance.SendEditorSplineUpdatedEvent();
 
                         EditorUtility.SetDirty(instance);
                     }
@@ -408,7 +413,8 @@ namespace CorgiSpline
 
                     // update original points with modified list 
                     instance.Points = pointList.ToArray();
-                    instance.UpdateNative(); 
+                    instance.UpdateNative();
+                    instance.SendEditorSplineUpdatedEvent();
 
                     // deselect all points 
                     SelectedPoints.Clear();
@@ -467,6 +473,7 @@ namespace CorgiSpline
             // update native every frame, to catch stuff like undo/redo or anything else weird that can happen.. 
             // note: this means no jobs can be async when in editor mode; although this was true even before this change
             instance.UpdateNative();
+            instance.SendEditorSplineUpdatedEvent();
         }
 
         private void OnPointSelected(object index)
@@ -610,6 +617,7 @@ namespace CorgiSpline
             }
 
             instance.UpdateNative();
+            instance.SendEditorSplineUpdatedEvent();
         }
 
         private void DrawPlacePlane()
@@ -900,6 +908,7 @@ namespace CorgiSpline
         {
             instance.InsertPoint(placingPoint);
             instance.UpdateNative();
+            instance.SendEditorSplineUpdatedEvent();
         }
 
         private bool IsLeftMouseClicked()
@@ -1017,6 +1026,7 @@ namespace CorgiSpline
                 }
 
                 instance.UpdateNative();
+                instance.SendEditorSplineUpdatedEvent();
             }
         }
 

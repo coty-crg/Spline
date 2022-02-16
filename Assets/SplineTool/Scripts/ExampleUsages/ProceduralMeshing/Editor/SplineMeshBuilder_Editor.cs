@@ -56,6 +56,7 @@ namespace CorgiSpline
             #endif
 
             var instance = (SplineMeshBuilder) target;
+            var prevSplineReference = instance.SplineReference;
 
             if(instance.GetPreviousMeshingDurationMs() > 0f)
             {
@@ -239,6 +240,20 @@ namespace CorgiSpline
             if(GUI.changed)
             {
                 serializedObject.ApplyModifiedProperties();
+            }
+
+            // update callback registration.. 
+            if(instance.SplineReference != prevSplineReference)
+            {
+                if(prevSplineReference != null)
+                {
+                    prevSplineReference.onEditorSplineUpdated -= instance.EditorOnSplineUpdated;
+                }
+
+                if(instance.SplineReference != null)
+                {
+                    instance.SplineReference.onEditorSplineUpdated += instance.EditorOnSplineUpdated;
+                }
             }
 
             // uncomment to draw the normal inspector.. 

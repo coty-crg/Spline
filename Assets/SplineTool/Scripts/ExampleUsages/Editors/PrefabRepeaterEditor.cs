@@ -41,6 +41,7 @@ namespace CorgiSpline
         public override void OnInspectorGUI()
         {
             var instance = (PrefabRepeater) target;
+            var prevSplineReference = instance.SplineReference;
 
             GUILayout.BeginVertical("GroupBox");
             {
@@ -103,6 +104,20 @@ namespace CorgiSpline
             if (GUI.changed)
             {
                 serializedObject.ApplyModifiedProperties();
+            }
+
+            // update callback registration.. 
+            if (instance.SplineReference != prevSplineReference)
+            {
+                if (prevSplineReference != null)
+                {
+                    prevSplineReference.onEditorSplineUpdated -= instance.EditorOnSplineUpdated;
+                }
+
+                if (instance.SplineReference != null)
+                {
+                    instance.SplineReference.onEditorSplineUpdated += instance.EditorOnSplineUpdated;
+                }
             }
 
             // draw default inspector.. 

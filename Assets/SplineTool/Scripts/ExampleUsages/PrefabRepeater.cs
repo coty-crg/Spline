@@ -43,13 +43,30 @@ namespace CorgiSpline
         [Tooltip("Randomized rotation range in eulor angles. (0,0,0) means no randomness.")]
         public Vector3 RandomizedRotationEulorRange;
 
+
+#if UNITY_EDITOR
+        public void EditorOnSplineUpdated(Spline spline)
+        {
+            if (spline != SplineReference)
+            {
+                return;
+            }
+
+            Refresh(); 
+        }
+#endif
+
         private void OnEnable()
         {
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
                 Refresh();
-                return; 
+            }
+
+            if (SplineReference != null)
+            {
+                SplineReference.onEditorSplineUpdated += EditorOnSplineUpdated;
             }
 #endif
 
@@ -59,16 +76,21 @@ namespace CorgiSpline
             }
         }
 
+        private void OnDisable()
+        {
+#if UNITY_EDITOR
+            if (SplineReference != null)
+            {
+                SplineReference.onEditorSplineUpdated -= EditorOnSplineUpdated;
+            }
+#endif
+        }
+
         private void Update()
         {
 #if UNITY_EDITOR
             if(!Application.isPlaying)
             {
-                if(UnityEditor.Selection.activeGameObject == gameObject)
-                {
-                    Refresh(); 
-                }
-
                 return;
             }
 #endif
