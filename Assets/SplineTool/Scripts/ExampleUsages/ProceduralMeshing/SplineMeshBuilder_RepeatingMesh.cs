@@ -204,6 +204,7 @@ namespace CorgiSpline
                 quality = quality,
                 uv_tile_scale = uv_tile_scale,
                 scale = scaleMult,
+                rotationEulorOffset = rotationEulorOffset,
                 normalsMode = MeshNormalsMode,
                 uvsMode = UVsMode,
 
@@ -253,6 +254,7 @@ namespace CorgiSpline
 
             public bool UseRepeatingMeshUVs;
             public Vector3 scale;
+            public Vector3 rotationEulorOffset;
 
             // mesh data 
             public NativeList<Vector3> verts;
@@ -306,6 +308,7 @@ namespace CorgiSpline
                 // closed splines overlap a bit so we dont have to stitch 
                 var full_loop = ClosedSpline  && built_to_t >= 1f;
 
+                var rotation = quaternion.Euler(rotationEulorOffset); 
 
                 var repeatingBoundsMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
                 var repeatingBoundsMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
@@ -360,7 +363,7 @@ namespace CorgiSpline
                         
                         var trs = Matrix4x4.TRS(
                             vertex_splinePoint.position + MeshLocalOffsetVertices, 
-                            vertex_splinePoint.rotation, 
+                            vertex_splinePoint.rotation * rotation, 
                             Vector3.Scale(vertex_splinePoint.scale, scale)
                         );
 

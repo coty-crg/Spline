@@ -46,6 +46,9 @@ namespace CorgiSpline
         [Tooltip("Offset all vertices from the spline locally by this offset")]
         public Vector3 vertexOffset = Vector3.zero;
 
+        [Tooltip("Rotate all vertices from the spline locally by this offset. Most useful for rotating around the local z axis of the spline. Rotating x and y are possible but usually not very useful.")]
+        public Vector3 rotationEulorOffset = Vector3.zero;
+
         [Tooltip("UV tiling scale of the mesh along the spline, if applicable.")]
         public float uv_tile_scale = 1f;
 
@@ -386,6 +389,7 @@ namespace CorgiSpline
                 use_splinepoint_rotations = use_splinepoint_rotations,
                 use_splinepoint_scale = use_splinepoint_scale,
                 vertexOffset = vertexOffset,
+                rotationEulorOffset = rotationEulorOffset,
                 normalsMode = MeshNormalsMode,
                 uvsMode = UVsMode,
 
@@ -494,6 +498,7 @@ namespace CorgiSpline
             public bool use_splinepoint_rotations;
             public bool use_splinepoint_scale;
             public Vector3 vertexOffset;
+            public Vector3 rotationEulorOffset;
             public MeshBuilderNormals normalsMode;
             public MeshBuilderUVs uvsMode;
 
@@ -557,6 +562,14 @@ namespace CorgiSpline
                 //     built_to_t = Mathf.Clamp(built_to_t, 0, 0.95f);
                 // }
 
+                var rotationQuaternion = Quaternion.Euler(rotationEulorOffset);
+
+                // rotate these first 
+                firstForward = rotationQuaternion * firstForward;
+                firstRight = rotationQuaternion * firstRight;
+                lastForward = rotationQuaternion * lastForward;
+                lastRight = rotationQuaternion * lastRight;
+                
                 var groupVertCount = normalsMode == MeshBuilderNormals.Hard ? 8 : 4;
 
                 // step through 
@@ -584,6 +597,9 @@ namespace CorgiSpline
                         forward = splinePoint.rotation * Vector3.forward;
                         right = Vector3.Cross(forward, up);
                     }
+
+                    up = rotationQuaternion * up;
+                    right = rotationQuaternion * right;
 
                     var localWidth = width * 0.5f;
                     var localHeight = height * 0.5f;

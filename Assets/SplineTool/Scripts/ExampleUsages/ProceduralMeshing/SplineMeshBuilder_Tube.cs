@@ -40,6 +40,7 @@ namespace CorgiSpline
                 use_splinepoint_rotations = use_splinepoint_rotations,
                 use_splinepoint_scale = use_splinepoint_scale,
                 vertexOffset = vertexOffset,
+                rotationEulorOffset = rotationEulorOffset,
                 normalsMode = MeshNormalsMode,
                 uvsMode = UVsMode,
 
@@ -83,6 +84,7 @@ namespace CorgiSpline
             public bool use_splinepoint_rotations;
             public bool use_splinepoint_scale;
             public Vector3 vertexOffset;
+            public Vector3 rotationEulorOffset;
 
             public MeshBuilderNormals normalsMode;
             public MeshBuilderUVs uvsMode;
@@ -133,6 +135,14 @@ namespace CorgiSpline
                 var end_up = Vector3.right; 
                 var lastPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, built_to_t);
 
+                var rotation = Quaternion.Euler(rotationEulorOffset);
+
+                start_forward = rotation * start_forward;
+                start_up = rotation * start_up;
+
+                end_forward = rotation * end_forward;
+                end_up = rotation * end_up;
+
                 var previousPosition = firstPoint.position;
                 var previousForward = start_forward;
 
@@ -169,6 +179,9 @@ namespace CorgiSpline
                         up = splinePoint.rotation * Vector3.up;
                         forward = splinePoint.rotation * Vector3.forward;
                     }
+
+                    up = rotation * up;
+                    forward = rotation * forward;
 
                     var right = Vector3.Cross(forward, up);
 
