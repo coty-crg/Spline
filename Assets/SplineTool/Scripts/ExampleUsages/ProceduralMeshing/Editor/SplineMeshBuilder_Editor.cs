@@ -14,8 +14,9 @@ namespace CorgiSpline
         protected SerializedProperty AllowAsyncRebuild;
         protected SerializedProperty built_to_t;
         protected SerializedProperty quality;
-        protected SerializedProperty scaleMult;
         protected SerializedProperty vertexOffset;
+        protected SerializedProperty scaleMult;
+        protected SerializedProperty rotationEulorOffset;
         protected SerializedProperty uv_tile_scale;
         protected SerializedProperty cover_ends_with_quads;
         protected SerializedProperty use_splinepoint_rotations;
@@ -34,8 +35,9 @@ namespace CorgiSpline
             AllowAsyncRebuild           = serializedObject.FindProperty("AllowAsyncRebuild");
             built_to_t                  = serializedObject.FindProperty("built_to_t");
             quality                     = serializedObject.FindProperty("quality");
-            scaleMult                   = serializedObject.FindProperty("scaleMult");
             vertexOffset                = serializedObject.FindProperty("vertexOffset");
+            scaleMult                   = serializedObject.FindProperty("scaleMult");
+            rotationEulorOffset         = serializedObject.FindProperty("rotationEulorOffset");
             uv_tile_scale               = serializedObject.FindProperty("uv_tile_scale");
             cover_ends_with_quads       = serializedObject.FindProperty("cover_ends_with_quads");
             use_splinepoint_rotations   = serializedObject.FindProperty("use_splinepoint_rotations");
@@ -199,8 +201,9 @@ namespace CorgiSpline
 
                     EditorGUILayout.LabelField("Visual Settings", EditorStyles.boldLabel);
                     EditorGUILayout.PropertyField(built_to_t);
-                    EditorGUILayout.PropertyField(scaleMult);
                     EditorGUILayout.PropertyField(vertexOffset);
+                    EditorGUILayout.PropertyField(rotationEulorOffset);
+                    EditorGUILayout.PropertyField(scaleMult);
 
                     if(supportsEndCapQuads)
                     {
@@ -231,7 +234,7 @@ namespace CorgiSpline
                 GUILayout.EndVertical();
 
             }
-            GUILayout.EndVertical();
+            GUILayout.EndVertical(); 
 
             if(GUI.changed)
             {
