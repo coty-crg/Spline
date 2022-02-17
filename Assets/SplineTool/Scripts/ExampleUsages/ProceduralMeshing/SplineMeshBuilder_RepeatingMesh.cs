@@ -58,6 +58,7 @@ namespace CorgiSpline
             native_verts.Dispose();
             native_normals.Dispose();
             native_tangents.Dispose();
+            native_uv0.Dispose();
             native_colors.Dispose();
         }
 
