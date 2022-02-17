@@ -239,6 +239,7 @@ namespace CorgiSpline
 
             if(GUI.changed)
             {
+                instance.EditorOnSplineUpdated(instance.SplineReference); 
                 serializedObject.ApplyModifiedProperties();
             }
 

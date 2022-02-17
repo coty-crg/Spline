@@ -28,6 +28,8 @@ namespace CorgiSpline
         {
             base.OnInspectorGUI();
 
+            var instance = (SplineMeshBuilder_Tube) target;
+
             GUILayout.BeginVertical("GroupBox");
             {
                 EditorGUILayout.LabelField("Tube Quality Settings", EditorStyles.boldLabel);
@@ -40,6 +42,7 @@ namespace CorgiSpline
 
             if (GUI.changed)
             {
+                instance.EditorOnSplineUpdated(instance.SplineReference);
                 serializedObject.ApplyModifiedProperties();
             }
         }

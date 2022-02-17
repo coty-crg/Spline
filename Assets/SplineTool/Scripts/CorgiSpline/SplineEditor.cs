@@ -42,6 +42,8 @@ namespace CorgiSpline
         [SerializeField] private Quaternion PlacePlaneNormalRotation;
         [SerializeField] public bool SnapToNearestVert;
 
+        
+
         public override void OnInspectorGUI()
         {
             var instance = (Spline)target;
@@ -308,9 +310,18 @@ namespace CorgiSpline
 
                         instance.UpdateNative();
                         instance.SendEditorSplineUpdatedEvent();
+
+                        if (instance.EditorAlwaysFacePointsForwardAndUp)
+                        {
+                            instance.SetSplinePointsRotationForward();
+                            instance.UpdateNative();
+                            instance.SendEditorSplineUpdatedEvent();
+
+                            EditorUtility.SetDirty(instance);
+                        }
                     }
 
-                    if (instance.EditorAlwaysFacePointsForwardAndUp || GUILayout.Button("Rotations: Force Forward & Up"))
+                    if (!instance.EditorAlwaysFacePointsForwardAndUp && GUILayout.Button("Rotations: Force Forward & Up"))
                     {
                         Undo.RecordObject(instance, "Forced Rotation");
 
@@ -413,6 +424,12 @@ namespace CorgiSpline
 
                     // update original points with modified list 
                     instance.Points = pointList.ToArray();
+
+                    if (instance.EditorAlwaysFacePointsForwardAndUp)
+                    {
+                        instance.SetSplinePointsRotationForward();
+                    }
+
                     instance.UpdateNative();
                     instance.SendEditorSplineUpdatedEvent();
 
@@ -472,8 +489,8 @@ namespace CorgiSpline
 
             // update native every frame, to catch stuff like undo/redo or anything else weird that can happen.. 
             // note: this means no jobs can be async when in editor mode; although this was true even before this change
-            instance.UpdateNative();
-            instance.SendEditorSplineUpdatedEvent();
+            // instance.UpdateNative();
+            // instance.SendEditorSplineUpdatedEvent();
         }
 
         private void OnPointSelected(object index)
@@ -893,8 +910,14 @@ namespace CorgiSpline
                 {
                     Undo.RegisterCompleteObjectUndo(instance, "AppendPoint");
                     AppendPoint(instance, placingPoint.position, placingPoint.rotation, placingPoint.scale);
-                    EditorUtility.SetDirty(instance);
                 }
+
+                if (instance.EditorAlwaysFacePointsForwardAndUp)
+                {
+                    instance.SetSplinePointsRotationForward();
+                }
+
+                EditorUtility.SetDirty(instance);
 
                 Event.current.Use();
                 Repaint();
@@ -1023,6 +1046,11 @@ namespace CorgiSpline
                     }
 
                     Repaint();
+                }
+
+                if (instance.EditorAlwaysFacePointsForwardAndUp)
+                {
+                    instance.SetSplinePointsRotationForward();
                 }
 
                 instance.UpdateNative();

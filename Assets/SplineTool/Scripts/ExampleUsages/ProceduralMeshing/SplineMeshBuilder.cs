@@ -128,13 +128,18 @@ namespace CorgiSpline
 #if UNITY_EDITOR
         public void EditorOnSplineUpdated(Spline spline)
         {
-            if(spline != SplineReference)
+            if(SplineReference != null && spline != SplineReference)
             {
                 return;
             }
 
             Rebuild_Jobified();
             CompleteJob();
+        }
+
+        public void EditorOnUndoRedoPerformed()
+        {
+            EditorOnSplineUpdated(SplineReference); 
         }
 #endif
 
@@ -177,6 +182,8 @@ namespace CorgiSpline
             {
                 SplineReference.onEditorSplineUpdated += EditorOnSplineUpdated;
             }
+
+            UnityEditor.Undo.undoRedoPerformed += EditorOnUndoRedoPerformed;
 #endif
         }
 
@@ -217,6 +224,8 @@ namespace CorgiSpline
             {
                 SplineReference.onEditorSplineUpdated -= EditorOnSplineUpdated;
             }
+
+            UnityEditor.Undo.undoRedoPerformed -= EditorOnUndoRedoPerformed;
 #endif
         }
 
