@@ -567,7 +567,7 @@ namespace CorgiSpline
                 var lastForward = lastPoint.rotation * Vector3.forward;
                 var lastRight = lastPoint.rotation * Vector3.right;
 
-                var previousPosition = firstPoint.position;
+                // var previousPosition = firstPoint.position;
 
                 // ensure even quality 
                 quality = quality - quality % 2;
@@ -575,8 +575,8 @@ namespace CorgiSpline
                 // closed splines overlap a bit so we dont have to stitch 
                 var until_quality = quality;
 
-                var full_loop = ClosedSpline && built_to_t >= 1f;
-                var first_set = false;
+                // var full_loop = ClosedSpline && built_to_t >= 1f;
+                // var first_set = false;
 
                 // hack for overlapping bezier when using a closed spline.. 
                 // if(ClosedSpline && Mode == SplineMode.BSpline)
@@ -831,8 +831,8 @@ namespace CorgiSpline
                         tris.Add(prev_r0);
                     }
 
-                    previousPosition = position;
-                    first_set = true;
+                    // previousPosition = position;
+                    // first_set = true;
 
                     // track bounds.. 
                     trackedBounds.min = Vector3.Min(trackedBounds.min, vert0);
