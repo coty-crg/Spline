@@ -359,7 +359,7 @@ namespace CorgiSpline
 
 
 #if UNITY_EDITOR
-                if(unity_generate_lightmap_uvs)
+                if(unity_generate_lightmap_uvs && !Application.isPlaying && _serializedMesh != null)
                 {
                     UnityEditor.Unwrapping.GenerateSecondaryUVSet(_mesh, new UnityEditor.UnwrapParam()
                     {

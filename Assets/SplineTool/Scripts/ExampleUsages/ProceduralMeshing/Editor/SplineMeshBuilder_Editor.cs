@@ -124,9 +124,20 @@ namespace CorgiSpline
                     {
                         EditorGUI.BeginDisabledGroup(true); 
                         EditorGUILayout.PropertyField(_serializedMesh);
-                        EditorGUI.EndDisabledGroup(); 
+                        EditorGUI.EndDisabledGroup();
 
-                        if(GUILayout.Button("Unlink Serialized Mesh"))
+                        EditorGUILayout.Space();
+
+                        EditorGUILayout.PropertyField(unity_generate_lightmap_uvs);
+
+                        if (instance.unity_generate_lightmap_uvs)
+                        {
+                            EditorGUILayout.PropertyField(unity_lightmap_params);
+                        }
+
+                        EditorGUILayout.Space();
+                        
+                        if (GUILayout.Button("Unlink Serialized Mesh"))
                         {
                             Undo.RecordObject(instance, "unlink"); 
                             instance._serializedMesh = null;
@@ -135,6 +146,12 @@ namespace CorgiSpline
                     }
                     else
                     {
+                        if (instance.unity_generate_lightmap_uvs)
+                        {
+                            instance.unity_generate_lightmap_uvs = false;
+                            EditorUtility.SetDirty(instance);
+                        }
+
                         EditorGUILayout.PropertyField(RebuildEveryFrame);
                         EditorGUILayout.PropertyField(RebuildOnEnable);
                         EditorGUILayout.PropertyField(AllowAsyncRebuild);
@@ -183,12 +200,6 @@ namespace CorgiSpline
                 {
                     EditorGUILayout.LabelField("Quality Settings", EditorStyles.boldLabel);
                     EditorGUILayout.PropertyField(quality);
-                    EditorGUILayout.PropertyField(unity_generate_lightmap_uvs);
-
-                    if(instance.unity_generate_lightmap_uvs)
-                    {
-                        EditorGUILayout.PropertyField(unity_lightmap_params);
-                    }
                 }
                 GUILayout.EndVertical();
 
