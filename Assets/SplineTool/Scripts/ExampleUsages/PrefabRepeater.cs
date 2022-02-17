@@ -54,6 +54,11 @@ namespace CorgiSpline
 
             Refresh(); 
         }
+
+        public void EditorOnUndoRedo()
+        {
+            EditorOnSplineUpdated(SplineReference); 
+        }
 #endif
 
         private void OnEnable()
@@ -68,6 +73,8 @@ namespace CorgiSpline
             {
                 SplineReference.onEditorSplineUpdated += EditorOnSplineUpdated;
             }
+
+            UnityEditor.Undo.undoRedoPerformed += EditorOnUndoRedo;
 #endif
 
             if (RefreshOnEnable)
@@ -83,6 +90,8 @@ namespace CorgiSpline
             {
                 SplineReference.onEditorSplineUpdated -= EditorOnSplineUpdated;
             }
+
+            UnityEditor.Undo.undoRedoPerformed -= EditorOnUndoRedo;
 #endif
         }
 
