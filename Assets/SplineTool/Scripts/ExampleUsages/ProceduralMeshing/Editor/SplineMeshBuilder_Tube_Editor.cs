@@ -70,6 +70,8 @@ namespace CorgiSpline
             {
                 newGameobject.transform.SetParent(Selection.activeTransform);
             }
+
+            Selection.activeGameObject = newGameobject;
         }
     }
 }
