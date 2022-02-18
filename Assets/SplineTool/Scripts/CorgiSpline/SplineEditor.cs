@@ -61,6 +61,10 @@ namespace CorgiSpline
             {
                 Undo.RecordObject(instance, "Changed Spline Mode");
                 instance.SetSplineMode(newSplineMode);
+
+                instance.UpdateNative();
+                instance.SendEditorSplineUpdatedEvent();
+
                 EditorUtility.SetDirty(instance);
             }
 
@@ -90,10 +94,11 @@ namespace CorgiSpline
                 {
                     Undo.RecordObject(instance, "Changed Spline Space");
                     instance.SetSplineSpace(newSplineSpace, true);
+                    instance.UpdateNative();
+                    instance.SendEditorSplineUpdatedEvent();
                     EditorUtility.SetDirty(instance);
                 }
             }
-
 
             var newUpdateNativeArrayOnEnable = EditorGUILayout.Toggle(new GUIContent("Update NativeArray OnEnable",
                 "Only necessary if you care about using Splines in the Job System. Some of the example scripts use this."), instance.UpdateNativeArrayOnEnable);

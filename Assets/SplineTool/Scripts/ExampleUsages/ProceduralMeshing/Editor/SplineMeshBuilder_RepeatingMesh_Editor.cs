@@ -215,9 +215,13 @@ namespace CorgiSpline
 
             var spline = newGameobject.AddComponent<Spline>();
                 spline.SetSplineSpace(Space.Self, false);
+                spline.EditorAlwaysFacePointsForwardAndUp = true;
 
             var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_RepeatingMesh>();
                 meshBuilder.SplineReference = spline;
+                meshBuilder.UseRepeatingMeshUVs = true;
+                meshBuilder.use_splinepoint_rotations = true;
+                meshBuilder.use_splinepoint_scale = true;
 
             var newMeshRenderer = newGameobject.AddComponent<MeshRenderer>();
                 newMeshRenderer.sharedMaterial = editorConfig.defaultMaterialForRenderers;

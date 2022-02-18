@@ -133,10 +133,11 @@ namespace CorgiSpline
 
             var spline = newGameobject.AddComponent<Spline>();
                 spline.SetSplineSpace(Space.Self, false);
+                spline.EditorAlwaysFacePointsForwardAndUp = true;
 
             var meshBuilder = newGameobject.AddComponent<PrefabRepeater>();
                 meshBuilder.SplineReference = spline;
-
+            
             // toggle to force register 
             meshBuilder.enabled = false;
             meshBuilder.enabled = true;

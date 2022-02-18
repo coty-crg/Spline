@@ -55,12 +55,16 @@ namespace CorgiSpline
 
             var spline = newGameobject.AddComponent<Spline>();
                 spline.SetSplineSpace(Space.Self, false);
+                spline.EditorAlwaysFacePointsForwardAndUp = true;
 
             var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_Tube>();
                 meshBuilder.SplineReference = spline;
 
             var newMeshRenderer = newGameobject.AddComponent<MeshRenderer>();
                 newMeshRenderer.sharedMaterial = editorConfig.defaultMaterialForRenderers;
+
+            meshBuilder.use_splinepoint_rotations = true;
+            meshBuilder.use_splinepoint_scale = true;
 
             // toggle to force register 
             meshBuilder.enabled = false;
