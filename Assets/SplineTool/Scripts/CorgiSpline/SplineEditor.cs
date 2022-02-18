@@ -632,9 +632,6 @@ namespace CorgiSpline
             {
                 instance.ReversePoints();
             }
-
-            instance.UpdateNative();
-            instance.SendEditorSplineUpdatedEvent();
         }
 
         private void DrawPlacePlane()
@@ -917,8 +914,10 @@ namespace CorgiSpline
                     instance.SetSplinePointsRotationForward();
                 }
 
-                EditorUtility.SetDirty(instance);
+                instance.UpdateNative();
+                instance.SendEditorSplineUpdatedEvent();
 
+                EditorUtility.SetDirty(instance);
                 Event.current.Use();
                 Repaint();
             }

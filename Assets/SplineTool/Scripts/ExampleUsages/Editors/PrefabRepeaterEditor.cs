@@ -137,6 +137,10 @@ namespace CorgiSpline
             var meshBuilder = newGameobject.AddComponent<PrefabRepeater>();
                 meshBuilder.SplineReference = spline;
 
+            // toggle to force register 
+            meshBuilder.enabled = false;
+            meshBuilder.enabled = true;
+
             if (Selection.activeTransform != null)
             {
                 newGameobject.transform.SetParent(Selection.activeTransform);

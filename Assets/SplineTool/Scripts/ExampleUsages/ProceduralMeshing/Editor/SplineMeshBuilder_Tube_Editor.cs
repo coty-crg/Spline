@@ -62,6 +62,10 @@ namespace CorgiSpline
             var newMeshRenderer = newGameobject.AddComponent<MeshRenderer>();
                 newMeshRenderer.sharedMaterial = editorConfig.defaultMaterialForRenderers;
 
+            // toggle to force register 
+            meshBuilder.enabled = false;
+            meshBuilder.enabled = true;
+
             if (Selection.activeTransform != null)
             {
                 newGameobject.transform.SetParent(Selection.activeTransform);
