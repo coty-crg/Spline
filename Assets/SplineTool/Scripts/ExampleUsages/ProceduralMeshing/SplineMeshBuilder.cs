@@ -139,7 +139,11 @@ namespace CorgiSpline
 
         public void EditorOnUndoRedoPerformed()
         {
-            EditorOnSplineUpdated(SplineReference); 
+            if (SplineReference != null)
+            {
+                SplineReference.UpdateNative();
+                EditorOnSplineUpdated(SplineReference);
+            }
         }
 #endif
 

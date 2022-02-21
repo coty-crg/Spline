@@ -127,6 +127,8 @@ namespace CorgiSpline
 
         public void SendEditorSplineUpdatedEvent()
         {
+            UpdateNative();
+
             if(onEditorSplineUpdated != null)
             {
                 onEditorSplineUpdated.Invoke(this); 
