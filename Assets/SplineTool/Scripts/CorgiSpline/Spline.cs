@@ -132,6 +132,11 @@ namespace CorgiSpline
                 onEditorSplineUpdated.Invoke(this); 
             }
         }
+
+        public void EditorOnUndoRedoPerformed()
+        {
+            SendEditorSplineUpdatedEvent(); 
+        }
 #endif
 
         private void OnEnable()
@@ -140,11 +145,20 @@ namespace CorgiSpline
             {
                 UpdateNative();
             }
+
+#if UNITY_EDITOR
+            UnityEditor.Undo.undoRedoPerformed += EditorOnUndoRedoPerformed;
+#endif
+
         }
 
         private void OnDisable()
         {
-            DisposeNativePoints();  
+            DisposeNativePoints();
+
+#if UNITY_EDITOR
+            UnityEditor.Undo.undoRedoPerformed -= EditorOnUndoRedoPerformed;
+#endif
         }
 
         public void DisposeNativePoints()
