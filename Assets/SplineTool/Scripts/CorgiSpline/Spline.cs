@@ -2253,6 +2253,7 @@ namespace CorgiSpline
 
             return length;
         }
+
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {

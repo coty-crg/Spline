@@ -124,6 +124,7 @@ namespace CorgiSpline
         private float _prevCompleteMs;
         private bool _asyncReadyToRebuild = true;
         private bool _hasScheduledJob;
+        private bool _needsNativeUpdate;
 
 #if UNITY_EDITOR
         public void EditorOnSplineUpdated(Spline spline)
@@ -300,6 +301,12 @@ namespace CorgiSpline
             if (!SplineReference.NativePoints.IsCreated)
             {
                 return;
+            }
+
+            if(_needsNativeUpdate)
+            {
+                _needsNativeUpdate = false;
+                SplineReference.UpdateNative(); 
             }
 
             _previousHandle = ScheduleMeshingJob();
@@ -518,6 +525,15 @@ namespace CorgiSpline
 
             RebuildEveryFrame = false;
             RebuildOnEnable = false; 
+        }
+
+        /// <summary>
+        /// When updating Spline points from code, you can call this after on associated SplineMeshBuilder instances in order to automatically update the NativeArray used for meshing. 
+        /// If not called, mesh updates will not use updated data. This is mostly useful for async mesh builders. If you are using syncronous mesh builders, simply update the native array directly. 
+        /// </summary>
+        public void SetDirty()
+        {
+            _needsNativeUpdate = true;
         }
 
         [BurstCompile]
