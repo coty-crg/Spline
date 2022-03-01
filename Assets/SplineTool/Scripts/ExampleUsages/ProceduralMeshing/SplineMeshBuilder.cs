@@ -10,7 +10,6 @@ namespace CorgiSpline
 {
     [ExecuteInEditMode]
     [RequireComponent(typeof(MeshFilter))]
-    [DefaultExecutionOrder(1000)] // intended to execute AFTER spline executes 
     public class SplineMeshBuilder : MonoBehaviour
     {
         // references 
@@ -148,6 +147,12 @@ namespace CorgiSpline
         }
 #endif
 
+        private void RuntimeOnSplineDisabled(Spline spline)
+        {
+            // wrap up any ongoing jobs 
+            CompleteJob();
+        }
+
         protected virtual void OnEnable()
         {
             Debug.Assert(!(Application.isPlaying && SplineReference == null), "SplineReference is null", gameObject);
@@ -182,8 +187,13 @@ namespace CorgiSpline
                 CompleteJob();
             }
 
+            if (SplineReference != null)
+            {
+                SplineReference.onRuntimeSplineDisabled += RuntimeOnSplineDisabled;
+            }
+
 #if UNITY_EDITOR
-            if(SplineReference != null)
+            if (SplineReference != null)
             {
                 SplineReference.onEditorSplineUpdated += EditorOnSplineUpdated;
             }
@@ -223,6 +233,10 @@ namespace CorgiSpline
                 }
             }
 
+            if (SplineReference != null)
+            {
+                SplineReference.onRuntimeSplineDisabled -= RuntimeOnSplineDisabled;
+            }
 
 #if UNITY_EDITOR
             if (SplineReference != null)

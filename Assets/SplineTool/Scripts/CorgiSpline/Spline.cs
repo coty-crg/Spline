@@ -121,6 +121,14 @@ namespace CorgiSpline
         public bool EditorAlwaysFacePointsForwardAndUp;
         public float EditorGizmosScale = 1.0f;
 
+        public delegate void RuntimeSplineDisabledEvent(Spline spline);
+
+        /// <summary>
+        /// Register to this if you are scheduling a job that requires access to this spline's NativeArrays. 
+        /// If the spline is disabled, the NativeArray will be cleared, so you'll want to clean up any ongoing dependencies.
+        /// </summary>
+        [System.NonSerialized] public RuntimeSplineDisabledEvent onRuntimeSplineDisabled;
+
 #if UNITY_EDITOR
         public delegate void EditorSplineUpdatedEvent(Spline spline);
         [System.NonSerialized] public EditorSplineUpdatedEvent onEditorSplineUpdated;
@@ -156,6 +164,11 @@ namespace CorgiSpline
 
         private void OnDisable()
         {
+            if(onRuntimeSplineDisabled != null)
+            {
+                onRuntimeSplineDisabled.Invoke(this);
+            }
+
             DisposeNativePoints();
 
 #if UNITY_EDITOR

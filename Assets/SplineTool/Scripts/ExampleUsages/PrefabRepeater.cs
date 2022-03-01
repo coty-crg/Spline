@@ -61,6 +61,11 @@ namespace CorgiSpline
         }
 #endif
 
+        private void RuntimeOnSplineDisabled(Spline spline)
+        {
+            // wrap up any ongoing jobs? 
+        }
+
         private void OnEnable()
         {
 #if UNITY_EDITOR
@@ -74,8 +79,14 @@ namespace CorgiSpline
                 SplineReference.onEditorSplineUpdated += EditorOnSplineUpdated;
             }
 
+
             UnityEditor.Undo.undoRedoPerformed += EditorOnUndoRedo;
 #endif
+
+            if (SplineReference != null)
+            {
+                SplineReference.onRuntimeSplineDisabled += RuntimeOnSplineDisabled;
+            }
 
             if (RefreshOnEnable)
             {
@@ -85,11 +96,17 @@ namespace CorgiSpline
 
         private void OnDisable()
         {
+            if (SplineReference != null)
+            {
+                SplineReference.onRuntimeSplineDisabled -= RuntimeOnSplineDisabled;
+            }
+
 #if UNITY_EDITOR
             if (SplineReference != null)
             {
                 SplineReference.onEditorSplineUpdated -= EditorOnSplineUpdated;
             }
+            
 
             UnityEditor.Undo.undoRedoPerformed -= EditorOnUndoRedo;
 #endif
