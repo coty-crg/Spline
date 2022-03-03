@@ -41,8 +41,7 @@ namespace CorgiSpline
         [SerializeField] private Vector3 PlacePlaneOffset;
         [SerializeField] private Quaternion PlacePlaneNormalRotation;
         [SerializeField] public bool SnapToNearestVert;
-
-        
+        private bool _showModifiedProperties;
 
         public override void OnInspectorGUI()
         {
@@ -344,6 +343,53 @@ namespace CorgiSpline
             }
 
             GUILayout.EndVertical();
+
+            var prefabAssetType = PrefabUtility.GetPrefabAssetType(instance.gameObject);
+            if(prefabAssetType != PrefabAssetType.NotAPrefab)
+            {
+                EditorGUILayout.BeginVertical("GroupBox");
+
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("You are editing the instance of a prefab!");
+                EditorGUILayout.Space();
+
+                if (PrefabUtility.HasPrefabInstanceAnyOverrides(instance.gameObject, false))
+                {
+                    _showModifiedProperties = EditorGUILayout.Foldout(_showModifiedProperties, $"Modified properties", true);
+
+                    if(_showModifiedProperties)
+                    {
+                        var modifications = PrefabUtility.GetPropertyModifications(instance);
+
+                        foreach (var modified in modifications)
+                        {
+                            if (modified.target is Spline)
+                            {
+                                EditorGUILayout.BeginHorizontal();
+
+                                GUILayout.Label($"{modified.propertyPath}: {modified.value}");
+
+                                if (GUILayout.Button("apply", GUILayout.Width(64f)))
+                                {
+                                    var property = serializedObject.FindProperty(modified.propertyPath);
+                                    var assetPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(instance.gameObject);
+                                    PrefabUtility.ApplyPropertyOverride(property, assetPath, InteractionMode.UserAction);
+                                }
+
+                                if (GUILayout.Button("revert", GUILayout.Width(64f)))
+                                {
+                                    var property = serializedObject.FindProperty(modified.propertyPath);
+                                    var assetPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(instance.gameObject);
+                                    PrefabUtility.RevertPropertyOverride(property, InteractionMode.UserAction);
+                                }
+
+                                EditorGUILayout.EndHorizontal();
+                            }
+                        }
+                    }
+                }
+                EditorGUILayout.EndVertical();
+            }
 
             if (GUI.changed)
             {
