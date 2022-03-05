@@ -12,6 +12,7 @@ namespace CorgiSpline
         [Header("Settings")]
         public float FollowSpeed = 1f;
         public bool FollowRotation;
+        public bool FollowScale;
         public bool UpdateSplineEveryFrame;
 
         [System.NonSerialized] private float d;
@@ -45,7 +46,12 @@ namespace CorgiSpline
 
             if (FollowRotation)
             {
-                transform.rotation = transform.rotation;
+                transform.rotation = projectedPoint.rotation;
+            }
+
+            if (FollowScale)
+            {
+                transform.localScale = projectedPoint.scale;
             }
         }
     }
