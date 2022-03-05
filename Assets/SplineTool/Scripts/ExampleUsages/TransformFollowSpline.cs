@@ -6,9 +6,22 @@ namespace CorgiSpline
 {
     public class TransformFollowSpline : MonoBehaviour
     {
+        [Header("References")]
         public Spline FollowSpline;
+
+        [Header("Settings")]
         public float FollowSpeed = 1f;
         public bool FollowRotation;
+        public bool UpdateSplineEveryFrame;
+
+        [System.NonSerialized] private float d;
+        [System.NonSerialized] private float _splineLength;
+
+        private void Start()
+        {
+            d = 0f;
+            _splineLength = FollowSpline.UpdateDistanceProjectionsData(); 
+        }
 
         private void Update()
         {
@@ -17,18 +30,22 @@ namespace CorgiSpline
                 return;
             }
 
-            var t = FollowSpline.ProjectOnSpline_t(transform.position);
+            if (UpdateSplineEveryFrame)
+            {
+                _splineLength = FollowSpline.UpdateDistanceProjectionsData();
+            }
 
-            var projectedForward = FollowSpline.GetForward(t);
+            d += FollowSpeed * Time.deltaTime;
+            d = Mathf.Repeat(d, _splineLength);
+
+            var t = FollowSpline.ProjectDistance(d);
             var projectedPoint = FollowSpline.GetPoint(t);
-            projectedPoint.position += projectedForward * (FollowSpeed * Time.deltaTime);
 
             transform.position = projectedPoint.position;
 
             if (FollowRotation)
             {
-                var up = projectedPoint.rotation * Vector3.up;
-                transform.rotation = Quaternion.LookRotation(projectedForward, up);
+                transform.rotation = transform.rotation;
             }
         }
     }

@@ -123,6 +123,10 @@ namespace CorgiSpline
 
         public delegate void RuntimeSplineDisabledEvent(Spline spline);
 
+        private const int _projectionDistanceCacheResolution = 1000;
+        [System.NonSerialized] private float[] _projectionDistanceCache;
+        [System.NonSerialized] private float _projectionDistanceLength;
+
         /// <summary>
         /// Register to this if you are scheduling a job that requires access to this spline's NativeArrays. 
         /// If the spline is disabled, the NativeArray will be cleared, so you'll want to clean up any ongoing dependencies.
@@ -553,6 +557,64 @@ namespace CorgiSpline
             }
 
             return 0f;
+        }
+
+        /// <summary>
+        /// Updates a non-jobified internal data structure used in the non-jobified ProjectDistance() function.
+        /// Returns the distance calculated. Note: this is not going to be exactly the same as CalculateSplineLength()'s result. 
+        /// </summary>
+        /// <returns></returns>
+        public float UpdateDistanceProjectionsData()
+        {
+            if(_projectionDistanceCache == null || _projectionDistanceCache.Length < _projectionDistanceCacheResolution)
+            {
+                _projectionDistanceCache = new float[_projectionDistanceCacheResolution]; 
+            }
+
+            _projectionDistanceLength = 0f;
+            var prevPosition = GetPoint(0).position;
+
+            for (var r = 0; r < _projectionDistanceCacheResolution; ++r)
+            {
+                var resT = (float)r / _projectionDistanceCacheResolution;
+                var point = GetPoint(resT);
+
+                _projectionDistanceLength += Vector3.Distance(point.position, prevPosition);
+                _projectionDistanceCache[r] = _projectionDistanceLength;
+
+                prevPosition = point.position;
+            }
+
+            return _projectionDistanceLength; 
+        }
+
+        /// <summary>
+        /// For moving over the spline based on distance rather than time. Useful to move along a spline with a constant velocity. 
+        /// For this non-jobified function, you must first call UpdateDistanceProjectionsData() at least once. 
+        /// Call UpdateDistanceProjectionsData() again any time the spline may have been updated.
+        /// </summary>
+        /// <param name="d"></param>
+        /// <returns></returns>
+        public float ProjectDistance(float d)
+        {
+            // find out our closest d 
+            for (var r = 1; r < _projectionDistanceCacheResolution; ++r)
+            {
+                // one found, lerp 
+                if(_projectionDistanceCache[r] > d)
+                {
+                    var d0 = _projectionDistanceCache[r - 1];
+                    var d1 = _projectionDistanceCache[r - 0];
+
+                    var t0 = (float) (r - 1) / _projectionDistanceCacheResolution;
+                    var t1 = (float) (r - 0) / _projectionDistanceCacheResolution;
+
+                    var tt = Mathf.InverseLerp(d0, d1, d);
+                    return Mathf.Lerp(t0, t1, tt);
+                }
+            }
+
+            return 1.0f; 
         }
 
         /// <summary>
@@ -1348,18 +1410,28 @@ namespace CorgiSpline
 
         }
 
+        /// <summary>
+        /// Returns true if this spline is closed. 
+        /// </summary>
+        /// <returns></returns>
         public bool GetSplineClosed()
         {
             return ClosedSpline;
         }
 
+        /// <summary>
+        /// Returns true if spline type has handles. True for bezier type splines. 
+        /// </summary>
+        /// <returns></returns>
         public bool GetHasHandles()
         {
             var splineMode = GetSplineMode();
             return splineMode == SplineMode.Bezier;
         }
 
-        // helpers 
+        /// <summary>
+        /// Helper function to automatically set rotations of all spline points, such that the points are each facing their next point. 
+        /// </summary>
         public void SetSplinePointsRotationForward()
         {
             var isLocalSpace = GetSplineSpace() == Space.Self;
