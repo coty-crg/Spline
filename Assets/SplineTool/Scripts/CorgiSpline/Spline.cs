@@ -125,6 +125,7 @@ namespace CorgiSpline
 
         [System.NonSerialized] private float[] _projectionDistanceCache;
         [System.NonSerialized] private float _projectionDistanceLength;
+        [System.NonSerialized] private NativeArray<float> _nativeDistanceCache;
 
         /// <summary>
         /// Register to this if you are scheduling a job that requires access to this spline's NativeArrays. 
@@ -173,6 +174,7 @@ namespace CorgiSpline
             }
 
             DisposeNativePoints();
+            DisposeNativeDistanceProjectionCache(); 
 
 #if UNITY_EDITOR
             UnityEditor.Undo.undoRedoPerformed -= EditorOnUndoRedoPerformed;
@@ -185,6 +187,15 @@ namespace CorgiSpline
             {
                 NativePoints.Dispose();
             }
+
+        }
+
+        public void DisposeNativeDistanceProjectionCache()
+        {
+            if (_nativeDistanceCache.IsCreated)
+            {
+                _nativeDistanceCache.Dispose();
+            }
         }
 
         public void UpdateNative()
@@ -194,12 +205,28 @@ namespace CorgiSpline
             if (NativePoints.Length != point_count || !NativePoints.IsCreated)
             {
                 DisposeNativePoints(); 
-                NativePoints = new NativeArray<SplinePoint>(point_count, Allocator.Persistent);
+                NativePoints = new NativeArray<SplinePoint>(point_count, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             }
 
             for (var i = 0; i < point_count; ++i)
             {
                 NativePoints[i] = Points[i];
+            }
+
+            if(_projectionDistanceCache != null)
+            {
+                var projectionCacheRes = _projectionDistanceCache.Length;
+
+                if (!_nativeDistanceCache.IsCreated || _nativeDistanceCache.Length != projectionCacheRes)
+                {
+                    DisposeNativeDistanceProjectionCache(); 
+                    _nativeDistanceCache = new NativeArray<float>(projectionCacheRes, Allocator.Persistent, NativeArrayOptions.UninitializedMemory); 
+                }
+
+                for(var i = 0; i < projectionCacheRes; ++i)
+                {
+                    _nativeDistanceCache[i] = _projectionDistanceCache[i];
+                }
             }
         }
 
@@ -2340,6 +2367,30 @@ namespace CorgiSpline
             }
 
             return length;
+        }
+
+        public static float JobSafe_ProjectDistance(NativeArray<float> projectionDistanceCache, float d)
+        {
+            // find out our closest d 
+            var resolution = projectionDistanceCache.Length;
+
+            for (var r = 1; r < resolution; ++r)
+            {
+                // one found, lerp 
+                if (projectionDistanceCache[r] > d)
+                {
+                    var d0 = projectionDistanceCache[r - 1];
+                    var d1 = projectionDistanceCache[r - 0];
+
+                    var t0 = (float)(r - 1) / resolution;
+                    var t1 = (float)(r - 0) / resolution;
+
+                    var tt = Mathf.InverseLerp(d0, d1, d);
+                    return Mathf.Lerp(t0, t1, tt);
+                }
+            }
+
+            return 1.0f;
         }
 
 #if UNITY_EDITOR
