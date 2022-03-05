@@ -123,7 +123,6 @@ namespace CorgiSpline
 
         public delegate void RuntimeSplineDisabledEvent(Spline spline);
 
-        private const int _projectionDistanceCacheResolution = 1000;
         [System.NonSerialized] private float[] _projectionDistanceCache;
         [System.NonSerialized] private float _projectionDistanceLength;
 
@@ -561,22 +560,24 @@ namespace CorgiSpline
 
         /// <summary>
         /// Updates a non-jobified internal data structure used in the non-jobified ProjectDistance() function.
-        /// Returns the distance calculated. Note: this is not going to be exactly the same as CalculateSplineLength()'s result. 
+        /// <br/> Returns the distance calculated. Note: this is not going to be exactly the same as CalculateSplineLength()'s result. 
+        /// resolution can be set, if the default value is not high enough (for very complex splines). 
+        /// <br/> Note: changing the resolution will re-allocate managed memory (generating garbage), so avoid changing it frequently. 
         /// </summary>
         /// <returns></returns>
-        public float UpdateDistanceProjectionsData()
+        public float UpdateDistanceProjectionsData(int resolution = 1000)
         {
-            if(_projectionDistanceCache == null || _projectionDistanceCache.Length < _projectionDistanceCacheResolution)
+            if(_projectionDistanceCache == null || _projectionDistanceCache.Length != resolution)
             {
-                _projectionDistanceCache = new float[_projectionDistanceCacheResolution]; 
+                _projectionDistanceCache = new float[resolution]; 
             }
 
             _projectionDistanceLength = 0f;
             var prevPosition = GetPoint(0).position;
 
-            for (var r = 0; r < _projectionDistanceCacheResolution; ++r)
+            for (var r = 0; r < resolution; ++r)
             {
-                var resT = (float)r / _projectionDistanceCacheResolution;
+                var resT = (float)r / resolution;
                 var point = GetPoint(resT);
 
                 _projectionDistanceLength += Vector3.Distance(point.position, prevPosition);
@@ -598,7 +599,9 @@ namespace CorgiSpline
         public float ProjectDistance(float d)
         {
             // find out our closest d 
-            for (var r = 1; r < _projectionDistanceCacheResolution; ++r)
+            var resolution = _projectionDistanceCache.Length;
+
+            for (var r = 1; r < resolution; ++r)
             {
                 // one found, lerp 
                 if(_projectionDistanceCache[r] > d)
@@ -606,8 +609,8 @@ namespace CorgiSpline
                     var d0 = _projectionDistanceCache[r - 1];
                     var d1 = _projectionDistanceCache[r - 0];
 
-                    var t0 = (float) (r - 1) / _projectionDistanceCacheResolution;
-                    var t1 = (float) (r - 0) / _projectionDistanceCacheResolution;
+                    var t0 = (float) (r - 1) / resolution;
+                    var t1 = (float) (r - 0) / resolution;
 
                     var tt = Mathf.InverseLerp(d0, d1, d);
                     return Mathf.Lerp(t0, t1, tt);
