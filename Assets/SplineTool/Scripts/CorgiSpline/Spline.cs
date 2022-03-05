@@ -105,7 +105,8 @@ namespace CorgiSpline
         /// <summary>
         /// Used at runtime for burstable jobs. Does not automatically update, aside from on OnEnable. 
         /// </summary>
-        public NativeArray<SplinePoint> NativePoints;
+        [System.NonSerialized] public NativeArray<SplinePoint> NativePoints;
+        [System.NonSerialized] public NativeArray<float> NativeDistanceCache;
 
         // settings
         [Tooltip("Only necessary if you care about using Splines in the Job System. Some of the example scripts use this.")] 
@@ -125,7 +126,6 @@ namespace CorgiSpline
 
         [System.NonSerialized] private float[] _projectionDistanceCache;
         [System.NonSerialized] private float _projectionDistanceLength;
-        [System.NonSerialized] private NativeArray<float> _nativeDistanceCache;
 
         /// <summary>
         /// Register to this if you are scheduling a job that requires access to this spline's NativeArrays. 
@@ -192,9 +192,9 @@ namespace CorgiSpline
 
         public void DisposeNativeDistanceProjectionCache()
         {
-            if (_nativeDistanceCache.IsCreated)
+            if (NativeDistanceCache.IsCreated)
             {
-                _nativeDistanceCache.Dispose();
+                NativeDistanceCache.Dispose();
             }
         }
 
@@ -217,15 +217,15 @@ namespace CorgiSpline
             {
                 var projectionCacheRes = _projectionDistanceCache.Length;
 
-                if (!_nativeDistanceCache.IsCreated || _nativeDistanceCache.Length != projectionCacheRes)
+                if (!NativeDistanceCache.IsCreated || NativeDistanceCache.Length != projectionCacheRes)
                 {
                     DisposeNativeDistanceProjectionCache(); 
-                    _nativeDistanceCache = new NativeArray<float>(projectionCacheRes, Allocator.Persistent, NativeArrayOptions.UninitializedMemory); 
+                    NativeDistanceCache = new NativeArray<float>(projectionCacheRes, Allocator.Persistent, NativeArrayOptions.UninitializedMemory); 
                 }
 
                 for(var i = 0; i < projectionCacheRes; ++i)
                 {
-                    _nativeDistanceCache[i] = _projectionDistanceCache[i];
+                    NativeDistanceCache[i] = _projectionDistanceCache[i];
                 }
             }
         }
@@ -645,6 +645,36 @@ namespace CorgiSpline
             }
 
             return 1.0f; 
+        }
+
+        /// <summary>
+        /// ProjectOnSpline will give you a percentage. This will give you a distance from a percentage. 
+        /// Useful for getting the starting distance, for then moving along the spline via ProjectDistance().
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public float ProjectPercentToDistance(float t)
+        {
+            var resolution = _projectionDistanceCache.Length;
+
+            for (var r = 1; r < resolution; ++r)
+            {
+                var d0 = _projectionDistanceCache[r - 1];
+                var d1 = _projectionDistanceCache[r - 0];
+
+                var t0 = (float)(r - 1) / resolution;
+                var t1 = (float)(r - 0) / resolution;
+
+                if(t1 > t)
+                {
+                    var tt = Mathf.InverseLerp(t0, t1, t);
+                    var dt = Mathf.Lerp(d0, d1, tt);
+
+                    return dt; 
+                }
+            }
+
+            return _projectionDistanceLength;
         }
 
         /// <summary>
@@ -2391,6 +2421,30 @@ namespace CorgiSpline
             }
 
             return 1.0f;
+        }
+
+        public static float JobSafe_ProjectPercentToDistance(NativeArray<float> projectionDistanceCache, float projectionDistanceCacheLength, float t)
+        {
+            var resolution = projectionDistanceCache.Length;
+
+            for (var r = 1; r < resolution; ++r)
+            {
+                var d0 = projectionDistanceCache[r - 1];
+                var d1 = projectionDistanceCache[r - 0];
+
+                var t0 = (float)(r - 1) / resolution;
+                var t1 = (float)(r - 0) / resolution;
+
+                if (t1 > t)
+                {
+                    var tt = Mathf.InverseLerp(t0, t1, t);
+                    var dt = Mathf.Lerp(d0, d1, tt);
+
+                    return dt;
+                }
+            }
+
+            return projectionDistanceCacheLength;
         }
 
 #if UNITY_EDITOR
