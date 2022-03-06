@@ -105,9 +105,13 @@ namespace CorgiSpline
         /// <summary>
         /// Junction dependency. If this is not null this spline begins as a junction. 
         /// </summary>
-        [SerializeField, HideInInspector] private Spline _junctionSpline;
-        [SerializeField, HideInInspector, Range(0f, 1f)] private float _junction_t;
-        [SerializeField, HideInInspector, Range(0f, 10f)] private float _junctionTightness = 1.0f;
+        [SerializeField, HideInInspector] private Spline _junctionSplineBegin;
+        [SerializeField, HideInInspector, Range(0f, 1f)] private float _junctionBegin_t;
+        [SerializeField, HideInInspector, Range(0f, 10f)] private float _junctionBeginTightness = 1.0f;
+
+        [SerializeField, HideInInspector] private Spline _junctionSplineEnd;
+        [SerializeField, HideInInspector, Range(0f, 1f)] private float _junctionEnd_t;
+        [SerializeField, HideInInspector, Range(0f, 10f)] private float _junctionEndTightness = 1.0f;
 
         /// <summary>
         /// Used at runtime for burstable jobs. Does not automatically update, aside from on OnEnable. 
@@ -156,9 +160,10 @@ namespace CorgiSpline
 
         public void EditorOnUndoRedoPerformed()
         {
-            if(GetIsJunction())
+            if(GetHasAnyJunction())
             {
-                UpdateJunction();
+                UpdateStartJunction();
+                UpdateEndJunction();
                 UpdateNative(); 
             }
 
@@ -252,9 +257,9 @@ namespace CorgiSpline
         /// <param name="otherSplinePercentage"></param>
         public void ConfigureAsJunction(Spline otherSpline, float otherSplinePercentage, float junctionTightness)
         {
-            _junctionSpline = otherSpline;
-            _junction_t = otherSplinePercentage;
-            _junctionTightness = junctionTightness;
+            _junctionSplineBegin = otherSpline;
+            _junctionBegin_t = otherSplinePercentage;
+            _junctionBeginTightness = junctionTightness;
 
             SetSplineClosed(false);
         }
@@ -262,42 +267,63 @@ namespace CorgiSpline
         /// <summary>
         /// For dynamic splines, the junction point will need to be updated. 
         /// </summary>
-        public void UpdateJunction()
+        public void UpdateStartJunction()
         {
-            if(_junctionSpline == null)
+            if(_junctionSplineBegin == null || Points.Length < 1)
             {
                 return;
             }
 
-            var junctionSplinePoint = _junctionSpline.GetPoint(_junction_t);
-            Points[0] = junctionSplinePoint;
+            var beginJunctionSplinePoint = _junctionSplineBegin.GetPoint(_junctionBegin_t);
+            Points[0] = beginJunctionSplinePoint;
 
             switch (GetSplineMode())
             {
                 case SplineMode.Linear:
+                    break;
+                case SplineMode.BSpline:
+                case SplineMode.Bezier:
+                    if (Points.Length > 1)
+                    {
+                        var junctionSplineForward = _junctionSplineBegin.GetForward(_junctionBegin_t);
+                        var junctionHandle = beginJunctionSplinePoint;
+                        junctionHandle.position += junctionSplineForward * _junctionBeginTightness;
+
+                        Points[1] = junctionHandle;
+                    }
                     break; 
+            }
+        }
+
+        /// <summary>
+        /// For dynamic splines, the junction point will need to be updated. 
+        /// </summary>
+        public void UpdateEndJunction()
+        {
+            if (_junctionSplineEnd == null || Points.Length < 1)
+            {
+                return;
+            }
+
+            var endJunctionSplinePoint = _junctionSplineEnd.GetPoint(_junctionEnd_t);
+            Points[Points.Length - 1] = endJunctionSplinePoint;
+
+            switch (GetSplineMode())
+            {
+                case SplineMode.Linear:
+                    break;
 
                 case SplineMode.BSpline:
-
-                    if(Points.Length > 1)
-                    {
-                        var junctionSplineForward = _junctionSpline.GetForward(_junction_t);
-                        var junctionHandle = junctionSplinePoint;
-                        junctionHandle.position += junctionSplineForward * _junctionTightness;
-
-                        Points[1] = junctionHandle;
-                    }
-
-                    break;
                 case SplineMode.Bezier:
+                    if (Points.Length > 2)
                     {
-                        var junctionSplineForward = _junctionSpline.GetForward(_junction_t);
-                        var junctionHandle = junctionSplinePoint;
-                        junctionHandle.position += junctionSplineForward * _junctionTightness;
+                        var junctionSplineForward = _junctionSplineEnd.GetForward(_junctionEnd_t);
+                        var junctionHandle = endJunctionSplinePoint;
+                        junctionHandle.position += junctionSplineForward * _junctionEndTightness;
 
-                        Points[1] = junctionHandle;
+                        Points[Points.Length - 1 - 1] = junctionHandle;
                     }
-                    break; 
+                    break;
             }
         }
 
@@ -1607,39 +1633,66 @@ namespace CorgiSpline
         }
 
         /// <summary>
-        /// Returns true if the start of this spline is a junction to another spline. 
+        /// Returns true if the start or end of this spline is a junction to another spline. 
         /// </summary>
         /// <returns></returns>
-        public bool GetIsJunction()
+        public bool GetHasAnyJunction()
         {
-            return _junctionSpline != null; 
+            return _junctionSplineBegin != null || _junctionSplineEnd != null; 
         }
 
         /// <summary>
         /// Returns the percentage for the attachment position to our parent junctioned spline. 
         /// </summary>
         /// <returns></returns>
-        public float GetSplineJunctionPercent()
+        public float GetStartSplineJunctionPercent()
         {
-            return _junction_t;
+            return _junctionBegin_t;
         }
 
         /// <summary>
-        /// Returns the spline we are junctioned to. 
+        /// Returns the spline we are junctioned to at our start. 
         /// </summary>
         /// <returns></returns>
-        public Spline GetSplineJunction()
+        public Spline GetStartSplineJunction()
         {
-            return _junctionSpline;
+            return _junctionSplineBegin;
         }
 
         /// <summary>
-        /// Returns the tightness of a junction. This is just the distance between the first two handles for Bezier and BSpline types. 
+        /// Returns the tightness of the starting junction. This is just the distance between the first two handles for Bezier and BSpline types. 
         /// </summary>
         /// <returns></returns>
-        public float GetJunctionTightness()
+        public float GetStartJunctionTightness()
         {
-            return _junctionTightness;
+            return _junctionBeginTightness;
+        }
+
+        /// <summary>
+        /// Returns the percentage for the attachment position to our parent junctioned spline at our end. 
+        /// </summary>
+        /// <returns></returns>
+        public float GetEndSplineJunctionPercent()
+        {
+            return _junctionEnd_t;
+        }
+
+        /// <summary>
+        /// Returns the spline we are junctioned to at our end. 
+        /// </summary>
+        /// <returns></returns>
+        public Spline GetEndSplineJunction()
+        {
+            return _junctionSplineEnd;
+        }
+
+        /// <summary>
+        /// Returns the tightness of the ending junction. This is just the distance between the first two handles for Bezier and BSpline types. 
+        /// </summary>
+        /// <returns></returns>
+        public float GetEndJunctionTightness()
+        {
+            return _junctionEndTightness;
         }
 
         private static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)

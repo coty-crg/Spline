@@ -44,9 +44,12 @@ namespace CorgiSpline
         private bool _showModifiedProperties;
 
 
-        private SerializedProperty _junctionSpline;
-        private SerializedProperty _junction_t;
-        private SerializedProperty _junctionTightness;
+        private SerializedProperty _junctionSplineBegin;
+        private SerializedProperty _junctionBegin_t;
+        private SerializedProperty _junctionBeginTightness;
+        private SerializedProperty _junctionEndTightness;
+        private SerializedProperty _junctionSplineEnd;
+        private SerializedProperty _junctionEnd_t;
 
         // helper gui draw functions
         // https://forum.unity.com/threads/draw-a-simple-rectangle-filled-with-a-color.116348/#post-2751340
@@ -55,9 +58,12 @@ namespace CorgiSpline
 
         private void OnEnable()
         {
-            _junctionSpline = serializedObject.FindProperty("_junctionSpline");
-            _junction_t = serializedObject.FindProperty("_junction_t");
-            _junctionTightness = serializedObject.FindProperty("_junctionTightness");
+            _junctionSplineBegin = serializedObject.FindProperty("_junctionSplineBegin");
+            _junctionBegin_t = serializedObject.FindProperty("_junctionBegin_t");
+            _junctionBeginTightness = serializedObject.FindProperty("_junctionBeginTightness");
+            _junctionEndTightness = serializedObject.FindProperty("_junctionEndTightness");
+            _junctionSplineEnd = serializedObject.FindProperty("_junctionSplineEnd");
+            _junctionEnd_t = serializedObject.FindProperty("_junctionEnd_t");
 
             backgroundTexture = Texture2D.whiteTexture;
             textureStyle = new GUIStyle { normal = new GUIStyleState { background = backgroundTexture } };
@@ -72,17 +78,29 @@ namespace CorgiSpline
                 EditorGUILayout.HelpBox("This GameObject is disabled, so placing points will not be available.", MessageType.Warning); 
             }
 
-            if(instance.GetIsJunction())
+            if(instance.GetHasAnyJunction())
             {
                 GUILayout.BeginVertical("GroupBox");
 
-                EditorGUILayout.LabelField("Spline Junction", EditorStyles.boldLabel);
-                
-                EditorGUILayout.PropertyField(_junctionSpline, new GUIContent("Junction Spline"));
-                EditorGUILayout.PropertyField(_junction_t, new GUIContent("Junction Percent"));
-                EditorGUILayout.PropertyField(_junctionTightness, new GUIContent("Junction Tightness"));
 
-                instance.UpdateJunction();
+                EditorGUILayout.LabelField("Start Spline Junction", EditorStyles.boldLabel);
+                EditorGUILayout.PropertyField(_junctionSplineBegin, new GUIContent("Start Junction Spline"));
+                if(instance.GetStartSplineJunction() != null)
+                {
+                    EditorGUILayout.PropertyField(_junctionBegin_t, new GUIContent("Start Junction Percent"));
+                    EditorGUILayout.PropertyField(_junctionBeginTightness, new GUIContent("Start Junction Tightness"));
+                }
+
+                EditorGUILayout.LabelField("End Spline Junction", EditorStyles.boldLabel);
+                EditorGUILayout.PropertyField(_junctionSplineEnd, new GUIContent("End Junction Spline"));
+                if(instance.GetEndSplineJunction() != null)
+                {
+                    EditorGUILayout.PropertyField(_junctionEnd_t, new GUIContent("End Junction Percent"));
+                    EditorGUILayout.PropertyField(_junctionEndTightness, new GUIContent("End Junction Tightness"));
+                }
+
+                instance.UpdateStartJunction();
+                instance.UpdateEndJunction();
                 instance.UpdateNative();
 
                 GUILayout.EndVertical();
@@ -394,7 +412,8 @@ namespace CorgiSpline
                                 newSpline.SetSplineSpace(Space.World, false);
                                 newSpline.ConfigureAsJunction(instance, junction_t, 2.0f);
                                 newSpline.AppendPoint(selectedPoint.position, selectedPoint.rotation, selectedPoint.scale);
-                                newSpline.UpdateJunction(); 
+                                newSpline.UpdateStartJunction();
+                                newSpline.UpdateEndJunction();
                                 newSpline.UpdateNative();
 
                             Selection.activeObject = newSplineGo;
@@ -460,9 +479,10 @@ namespace CorgiSpline
             var childSplines = instance.transform.root.GetComponentsInChildren<Spline>();
             foreach (var childSpline in childSplines)
             {
-                if (childSpline.GetIsJunction())
+                if (childSpline.GetHasAnyJunction())
                 {
-                    childSpline.UpdateJunction();
+                    childSpline.UpdateStartJunction();
+                    childSpline.UpdateEndJunction();
                     childSpline.UpdateNative();
                 }
             }
