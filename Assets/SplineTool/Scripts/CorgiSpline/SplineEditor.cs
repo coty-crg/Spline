@@ -43,6 +43,26 @@ namespace CorgiSpline
         [SerializeField] public bool SnapToNearestVert;
         private bool _showModifiedProperties;
 
+
+        private SerializedProperty _junctionSpline;
+        private SerializedProperty _junction_t;
+        private SerializedProperty _junctionTightness;
+
+        // helper gui draw functions
+        // https://forum.unity.com/threads/draw-a-simple-rectangle-filled-with-a-color.116348/#post-2751340
+        private static Texture2D backgroundTexture;
+        private static GUIStyle textureStyle;
+
+        private void OnEnable()
+        {
+            _junctionSpline = serializedObject.FindProperty("_junctionSpline");
+            _junction_t = serializedObject.FindProperty("_junction_t");
+            _junctionTightness = serializedObject.FindProperty("_junctionTightness");
+
+            backgroundTexture = Texture2D.whiteTexture;
+            textureStyle = new GUIStyle { normal = new GUIStyleState { background = backgroundTexture } };
+        }
+
         public override void OnInspectorGUI()
         {
             var instance = (Spline)target;
@@ -50,6 +70,22 @@ namespace CorgiSpline
             if(!instance.gameObject.activeInHierarchy)
             {
                 EditorGUILayout.HelpBox("This GameObject is disabled, so placing points will not be available.", MessageType.Warning); 
+            }
+
+            if(instance.GetIsJunction())
+            {
+                GUILayout.BeginVertical("GroupBox");
+
+                EditorGUILayout.LabelField("Spline Junction", EditorStyles.boldLabel);
+                
+                EditorGUILayout.PropertyField(_junctionSpline, new GUIContent("Junction Spline"));
+                EditorGUILayout.PropertyField(_junction_t, new GUIContent("Junction Percent"));
+                EditorGUILayout.PropertyField(_junctionTightness, new GUIContent("Junction Tightness"));
+
+                instance.UpdateJunction();
+                instance.UpdateNative();
+
+                GUILayout.EndVertical();
             }
 
             GUILayout.BeginVertical("GroupBox");
@@ -66,7 +102,6 @@ namespace CorgiSpline
 
                 EditorUtility.SetDirty(instance);
             }
-
 
             var splineGameobjectHasMeshBuilder = instance.GetComponent<SplineMeshBuilder>() != null;
             if (splineGameobjectHasMeshBuilder)
@@ -268,7 +303,6 @@ namespace CorgiSpline
                     GUILayout.EndVertical(); 
                 }
 
-
                 DrawPointSelectorInspector(instance);
 
                 if (SelectedPoints.Count > 0)
@@ -336,6 +370,37 @@ namespace CorgiSpline
                         EditorUtility.SetDirty(instance);
                     }
 
+                    if(SelectedPoints.Count == 1)
+                    {
+                        EditorGUILayout.Space();
+
+                        if(GUILayout.Button("Create Junction"))
+                        {
+                            var selectedPointIndex = SelectedPoints[0];
+                            var selectedPoint = instance.Points[selectedPointIndex];
+
+                            var junction_t = instance.GetPercentageOfPointIndex(selectedPointIndex); 
+                            var junctionParent = instance.transform;
+
+                            var newSplineGo = MenuItemCreateSpline();
+                            var newSplineTransform = newSplineGo.transform;
+                                newSplineTransform.SetParent(junctionParent);
+                                newSplineTransform.localPosition = Vector3.zero;
+                                newSplineTransform.localRotation = Quaternion.identity;
+                                newSplineTransform.localScale = Vector3.one;
+
+                            var newSpline = newSplineGo.GetComponent<Spline>();
+                                newSpline.SetSplineMode(instance.GetSplineMode());
+                                newSpline.SetSplineSpace(Space.World, false);
+                                newSpline.ConfigureAsJunction(instance, junction_t, 2.0f);
+                                newSpline.AppendPoint(selectedPoint.position, selectedPoint.rotation, selectedPoint.scale);
+                                newSpline.UpdateJunction(); 
+                                newSpline.UpdateNative();
+
+                            Selection.activeObject = newSplineGo;
+                        }
+                    }
+
                     GUILayout.EndVertical();
                 }
 
@@ -391,11 +456,19 @@ namespace CorgiSpline
                 EditorGUILayout.EndVertical();
             }
 
-            if (GUI.changed)
+            // update child spline junctions 
+            var childSplines = instance.transform.root.GetComponentsInChildren<Spline>();
+            foreach (var childSpline in childSplines)
             {
-                serializedObject.ApplyModifiedProperties();
-                EditorUtility.SetDirty(instance);
+                if (childSpline.GetIsJunction())
+                {
+                    childSpline.UpdateJunction();
+                    childSpline.UpdateNative();
+                }
             }
+
+            // apply modified stuff 
+            serializedObject.ApplyModifiedProperties();
         }
 
         private bool _rightMouseHeld;
@@ -1132,7 +1205,6 @@ namespace CorgiSpline
                     Handles.color = Color.gray;
                     Handles.DrawLine(splinePoint.position, anchorPoint.position);
 
-
                     if (MirrorAnchors && point_index != 1 && point_index != instance.Points.Length - 2)
                     {
                         var otherHandleIndex = index == pointIndex0
@@ -1443,17 +1515,6 @@ namespace CorgiSpline
 
         }
 
-        // helper gui draw functions
-        // https://forum.unity.com/threads/draw-a-simple-rectangle-filled-with-a-color.116348/#post-2751340
-        private static Texture2D backgroundTexture;
-        private static GUIStyle textureStyle;
-
-        private void OnEnable()
-        {
-            backgroundTexture = Texture2D.whiteTexture;
-            textureStyle = new GUIStyle { normal = new GUIStyleState { background = backgroundTexture } };
-        }
-
         public static void DrawRect(Rect position, Color color, GUIContent content = null)
         {
             // EditorGUI.DrawRect(position, color);
@@ -1473,7 +1534,7 @@ namespace CorgiSpline
         }
 
         [MenuItem("GameObject/CorgiSpline/Spline (standalone)", priority = 10)]
-        public static void MenuItemCreateSpline() 
+        public static GameObject MenuItemCreateSpline() 
         {
             var newGameobject = new GameObject("NewSpline", typeof(Spline));
 
@@ -1481,6 +1542,8 @@ namespace CorgiSpline
             {
                 newGameobject.transform.SetParent(Selection.activeTransform); 
             }
+
+            return newGameobject;
         }
     }
 }

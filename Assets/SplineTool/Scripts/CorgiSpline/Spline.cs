@@ -103,6 +103,13 @@ namespace CorgiSpline
         public SplinePoint[] Points = new SplinePoint[0];
 
         /// <summary>
+        /// Junction dependency. If this is not null this spline begins as a junction. 
+        /// </summary>
+        [SerializeField, HideInInspector] private Spline _junctionSpline;
+        [SerializeField, HideInInspector, Range(0f, 1f)] private float _junction_t;
+        [SerializeField, HideInInspector, Range(0f, 10f)] private float _junctionTightness = 1.0f;
+
+        /// <summary>
         /// Used at runtime for burstable jobs. Does not automatically update, aside from on OnEnable. 
         /// </summary>
         [System.NonSerialized] public NativeArray<SplinePoint> NativePoints;
@@ -149,6 +156,12 @@ namespace CorgiSpline
 
         public void EditorOnUndoRedoPerformed()
         {
+            if(GetIsJunction())
+            {
+                UpdateJunction();
+                UpdateNative(); 
+            }
+
             SendEditorSplineUpdatedEvent(); 
         }
 #endif
@@ -231,6 +244,67 @@ namespace CorgiSpline
         }
 
         // api 
+
+        /// <summary>
+        /// Configures this spline with a dependency on another spline, so we can junction from it. 
+        /// </summary>
+        /// <param name="otherSpline"></param>
+        /// <param name="otherSplinePercentage"></param>
+        public void ConfigureAsJunction(Spline otherSpline, float otherSplinePercentage, float junctionTightness)
+        {
+            _junctionSpline = otherSpline;
+            _junction_t = otherSplinePercentage;
+            _junctionTightness = junctionTightness;
+
+            SetSplineClosed(false);
+        }
+
+        /// <summary>
+        /// For dynamic splines, the junction point will need to be updated. 
+        /// </summary>
+        public void UpdateJunction()
+        {
+            if(_junctionSpline == null)
+            {
+                return;
+            }
+
+            var junctionSplinePoint = _junctionSpline.GetPoint(_junction_t);
+            Points[0] = junctionSplinePoint;
+
+            switch (GetSplineMode())
+            {
+                case SplineMode.Linear:
+                    break; 
+
+                case SplineMode.BSpline:
+
+                    if(Points.Length > 1)
+                    {
+                        var junctionSplineForward = _junctionSpline.GetForward(_junction_t);
+                        var junctionHandle = junctionSplinePoint;
+                        junctionHandle.position += junctionSplineForward * _junctionTightness;
+
+                        Points[1] = junctionHandle;
+                    }
+
+                    break;
+                case SplineMode.Bezier:
+                    {
+                        var junctionSplineForward = _junctionSpline.GetForward(_junction_t);
+                        var junctionHandle = junctionSplinePoint;
+                        junctionHandle.position += junctionSplineForward * _junctionTightness;
+
+                        Points[1] = junctionHandle;
+                    }
+                    break; 
+            }
+        }
+
+        /// <summary>
+        /// Returns the spline's curve type. 
+        /// </summary>
+        /// <returns></returns>
         public SplineMode GetSplineMode()
         {
             return Mode;
@@ -1520,6 +1594,54 @@ namespace CorgiSpline
             }
         }
 
+        /// <summary>
+        /// Helper function to get the percentage of a spline at a given raw point index. 
+        /// By raw, I mean it does not need to account for handles in the Points[] array. 
+        /// </summary>
+        /// <param name="rawPointIndex"></param>
+        /// <returns></returns>
+        public float GetPercentageOfPointIndex(int rawPointIndex)
+        {
+            var splinePoint = Points[rawPointIndex];
+            return ProjectOnSpline_t(splinePoint.position); 
+        }
+
+        /// <summary>
+        /// Returns true if the start of this spline is a junction to another spline. 
+        /// </summary>
+        /// <returns></returns>
+        public bool GetIsJunction()
+        {
+            return _junctionSpline != null; 
+        }
+
+        /// <summary>
+        /// Returns the percentage for the attachment position to our parent junctioned spline. 
+        /// </summary>
+        /// <returns></returns>
+        public float GetSplineJunctionPercent()
+        {
+            return _junction_t;
+        }
+
+        /// <summary>
+        /// Returns the spline we are junctioned to. 
+        /// </summary>
+        /// <returns></returns>
+        public Spline GetSplineJunction()
+        {
+            return _junctionSpline;
+        }
+
+        /// <summary>
+        /// Returns the tightness of a junction. This is just the distance between the first two handles for Bezier and BSpline types. 
+        /// </summary>
+        /// <returns></returns>
+        public float GetJunctionTightness()
+        {
+            return _junctionTightness;
+        }
+
         private static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
         {
             var oneMinusT = 1f - t;
@@ -1838,11 +1960,13 @@ namespace CorgiSpline
         }
 
         /// <summary>
-        /// Helper function to automatically calculate the length of the spline. 
-        /// This may be slow to calculate, so it is recommended you cache this value, if possible.
+        /// <br/>Helper function to automatically calculate the length of the spline. 
+        /// <br/>This may be slow to calculate, so it is recommended you cache this value, if possible.
+        /// <br/>For linear splines, this is mathematically accurate. For Bezier and BSpline, this is an estimate of finite resolution. 
+        /// <br/>So, resolution is not used with linear splines. 
         /// </summary>
         /// <returns></returns>
-        public float CalculateSplineLength()
+        public float CalculateSplineLength(int resolution = 256)
         {
             var length = 0f;
 
@@ -1872,12 +1996,10 @@ namespace CorgiSpline
                 // for bezier and bspline, just iterate to estimate 
                 case SplineMode.Bezier:
                 case SplineMode.BSpline:
-
-                    var quality = 256;
-                    for(var s = 0; s < quality; ++s)
+                    for(var s = 0; s < resolution; ++s)
                     {
-                        var t = (float) s / quality;
-                        var delta = 1f / quality;
+                        var t = (float) s / resolution;
+                        var delta = 1f / resolution;
 
                         var point0 = GetPoint(t - delta);
                         var point1 = GetPoint(t);
