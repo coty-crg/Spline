@@ -1193,7 +1193,7 @@ namespace CorgiSpline
 
                 // update junctions 
                 if (instance.GetStartSplineJunction() != null && point_index == 0) instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(instance.Points[point_index].position));
-                if (instance.GetStartSplineJunction() != null && point_index == instance.Points.Length - 1) instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(instance.Points[point_index].position));
+                if (instance.GetEndSplineJunction() != null && point_index == instance.Points.Length - 1) instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(instance.Points[point_index].position));
 
                 if (anyMoved)
                 {
@@ -1210,7 +1210,7 @@ namespace CorgiSpline
 
                         // update junctions 
                         if (instance.GetStartSplineJunction() != null && other_index == 0) instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(instance.Points[other_index].position));
-                        if (instance.GetStartSplineJunction() != null && other_index == instance.Points.Length - 1) instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(instance.Points[other_index].position));
+                        if (instance.GetEndSplineJunction() != null && other_index == instance.Points.Length - 1) instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(instance.Points[other_index].position));
                     }
 
                     Repaint();
