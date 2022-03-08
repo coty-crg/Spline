@@ -78,7 +78,343 @@ namespace CorgiSpline
                 EditorGUILayout.HelpBox("This GameObject is disabled, so placing points will not be available.", MessageType.Warning); 
             }
 
-            if(instance.GetHasAnyJunction())
+            DrawInspectorSplineSettings(instance); 
+            DrawInspectorSplineJunctions(instance);
+            DrawInspectorPrefabOverrides(instance); 
+
+            // apply modified stuff 
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        private void DrawInspectorSplineSettings(Spline instance)
+        {
+            GUILayout.BeginVertical("GroupBox");
+            {
+                var splineMode = instance.GetSplineMode();
+                var newSplineMode = (SplineMode)EditorGUILayout.EnumPopup("Curve Type", splineMode);
+                if (splineMode != newSplineMode)
+                {
+                    Undo.RecordObject(instance, "Changed Spline Mode");
+                    instance.SetSplineMode(newSplineMode);
+
+                    instance.UpdateNative();
+                    instance.SendEditorSplineUpdatedEvent();
+
+                    EditorUtility.SetDirty(instance);
+                }
+
+                var splineGameobjectHasMeshBuilder = instance.GetComponent<SplineMeshBuilder>() != null;
+                if (splineGameobjectHasMeshBuilder)
+                {
+                    EditorGUI.BeginDisabledGroup(true);
+
+                    var splineSpace = instance.GetSplineSpace();
+                    var newSplineSpace = (Space)EditorGUILayout.EnumPopup(new GUIContent("Spline Space", "Currently being overriden by a SplineMeshBuilder instance."), splineSpace);
+                    newSplineSpace = Space.Self;
+
+                    if (splineSpace != newSplineSpace)
+                    {
+                        Undo.RecordObject(instance, "Changed Spline Space");
+                        instance.SetSplineSpace(newSplineSpace, true);
+                        EditorUtility.SetDirty(instance);
+                    }
+                    EditorGUI.EndDisabledGroup();
+                }
+                else
+                {
+                    var splineSpace = instance.GetSplineSpace();
+                    var newSplineSpace = (Space)EditorGUILayout.EnumPopup("Spline Space", splineSpace);
+                    if (splineSpace != newSplineSpace)
+                    {
+                        Undo.RecordObject(instance, "Changed Spline Space");
+                        instance.SetSplineSpace(newSplineSpace, true);
+                        instance.UpdateNative();
+                        instance.SendEditorSplineUpdatedEvent();
+                        EditorUtility.SetDirty(instance);
+                    }
+                }
+
+                var newUpdateNativeArrayOnEnable = EditorGUILayout.Toggle(new GUIContent("Update NativeArray OnEnable",
+                    "Only necessary if you care about using Splines in the Job System. Some of the example scripts use this."), instance.UpdateNativeArrayOnEnable);
+                if (newUpdateNativeArrayOnEnable != instance.UpdateNativeArrayOnEnable)
+                {
+                    Undo.RecordObject(instance, "UpdateNativeArrayOnEnable");
+                    instance.UpdateNativeArrayOnEnable = newUpdateNativeArrayOnEnable;
+                    EditorUtility.SetDirty(instance);
+                }
+
+                GUILayout.BeginVertical("GroupBox");
+                EditorGUILayout.LabelField("Editor Only Settings");
+
+                var newEditorAlwaysDraw = EditorGUILayout.Toggle(new GUIContent("Always Draw Spline (Editor)",
+                    "If enabled, the gizmos drawing this spline will continue to draw, even when the GameObject is not selected."), instance.EditorAlwaysDraw);
+                if (newEditorAlwaysDraw != instance.EditorAlwaysDraw)
+                {
+                    Undo.RecordObject(instance, "EditorAlwaysDraw");
+                    instance.EditorAlwaysDraw = newEditorAlwaysDraw;
+                    EditorUtility.SetDirty(instance);
+                }
+
+                var newEditorDrawThickness = EditorGUILayout.Toggle(new GUIContent("Draw Thickness (Editor)",
+                    "If enabled, the gizmos drawing this spline will include scale.x while rendering the spline preview."), instance.EditorDrawThickness);
+
+                if (newEditorDrawThickness != instance.EditorDrawThickness)
+                {
+                    Undo.RecordObject(instance, "EditorDrawThickness");
+                    instance.EditorDrawThickness = newEditorDrawThickness;
+                    EditorUtility.SetDirty(instance);
+                }
+
+                var newEditorAlwaysFacePointsForwardAndUp = EditorGUILayout.Toggle(new GUIContent("Force Points Forward&Up (Editor)",
+                    "If enabled, when editing a spline, points will automatically face forward relative to the points around them, with a y up vector."), instance.EditorAlwaysFacePointsForwardAndUp);
+
+                if (newEditorAlwaysFacePointsForwardAndUp != instance.EditorAlwaysFacePointsForwardAndUp)
+                {
+                    Undo.RecordObject(instance, "Force Points Forward&Up");
+                    instance.EditorAlwaysFacePointsForwardAndUp = newEditorAlwaysFacePointsForwardAndUp;
+                    EditorUtility.SetDirty(instance);
+                }
+
+                var newEditorGizmosScale = EditorGUILayout.FloatField(new GUIContent("Point Gizmos Scale (Editor)", "Scale of the gizmos points"), instance.EditorGizmosScale);
+
+                if (Mathf.Abs(newEditorGizmosScale - instance.EditorGizmosScale) > 0.0001f)
+                {
+                    if (newEditorGizmosScale < 0.01f) newEditorGizmosScale = 0.01f;
+
+                    Undo.RecordObject(instance, "Point Gizmos Scale");
+                    instance.EditorGizmosScale = newEditorGizmosScale;
+                    EditorUtility.SetDirty(instance);
+                }
+
+                GUILayout.EndVertical();
+
+                EditorGUILayout.Space();
+                GUILayout.EndVertical();
+                GUILayout.BeginVertical("GroupBox");
+
+                if (instance.GetSplineClosed())
+                {
+                    if (GUILayout.Button("Open Spline"))
+                    {
+                        Undo.RecordObjects(new UnityEngine.Object[] { instance, this }, "Open Spline");
+
+                        PlacingPoint = false;
+                        SelectedPoints.Clear();
+
+                        instance.SetSplineClosed(false);
+                        instance.UpdateNative();
+                        instance.SendEditorSplineUpdatedEvent();
+                    }
+                }
+                else
+                {
+                    if (!PlacingPoint)
+                    {
+                        if (GUILayout.Button("Close Spline"))
+                        {
+                            Undo.RecordObjects(new UnityEngine.Object[] { instance, this }, "Close Spline");
+
+                            PlacingPoint = false;
+                            SelectedPoints.Clear();
+
+                            instance.SetSplineClosed(true);
+                            instance.UpdateNative();
+                            instance.SendEditorSplineUpdatedEvent();
+                        }
+
+                        if (GUILayout.Button("Start Placing Points"))
+                        {
+                            SelectedPoints.Clear();
+                            PlacingPoint = !PlacingPoint;
+                        }
+                    }
+                    else if (PlacingPoint)
+                    {
+                        if (GUILayout.Button("Stop Placing Points"))
+                        {
+                            PlacingPoint = !PlacingPoint;
+                        }
+
+                        EditorGUILayout.HelpBox("You can stop placing points by pressing ESCAPE with the Scene view focused, " +
+                            "or by holding right-click and then pressing left-click on your mouse.", MessageType.Info);
+                    }
+
+                }
+
+                if (PlacingPoint)
+                {
+                    PlaceMode = (SplinePlacePointMode)EditorGUILayout.EnumPopup("Place Point Mode", PlaceMode);
+                    PlacePosition = (SplinePlacePosition)EditorGUILayout.EnumPopup("Append To Side", PlacePosition);
+
+                    if (PlaceMode != SplinePlacePointMode.InsertBetweenPoints)
+                    {
+                        PlaceOffsetFromSurface = EditorGUILayout.FloatField(new GUIContent("Offset From Surface",
+                            "Will offset the placed point by its normal. The normal chosen depends on the current SplinePlacePointMode."), PlaceOffsetFromSurface);
+                    }
+
+                    if (PlaceMode == SplinePlacePointMode.CollisionSurface)
+                    {
+                        LayerMask tempMask = EditorGUILayout.MaskField("Surface Layers", InternalEditorUtility.LayerMaskToConcatenatedLayersMask(PlaceLayerMask), InternalEditorUtility.layers);
+                        PlaceLayerMask = InternalEditorUtility.ConcatenatedLayersMaskToLayerMask(tempMask);
+
+                        SnapToNearestVert = EditorGUILayout.Toggle("Snap To Nearest Vertex", SnapToNearestVert);
+                    }
+
+                    if (PlaceMode == SplinePlacePointMode.Plane)
+                    {
+                        PlacePlaneOffset = EditorGUILayout.Vector3Field("Plane Offset", PlacePlaneOffset);
+                        PlacePlaneNormalRotation.eulerAngles = EditorGUILayout.Vector3Field("Plane Rotation", PlacePlaneNormalRotation.eulerAngles);
+                    }
+
+                    if (instance.EditorAlwaysFacePointsForwardAndUp)
+                    {
+                        Undo.RecordObject(instance, "Forced Rotation");
+
+                        instance.SetSplinePointsRotationForward();
+                        instance.UpdateNative();
+                        instance.SendEditorSplineUpdatedEvent();
+
+                        EditorUtility.SetDirty(instance);
+                    }
+                }
+                else
+                {
+                    GUILayout.BeginVertical("GroupBox");
+
+                    GUILayout.Label("Point Editor", UnityEditor.EditorStyles.largeLabel);
+
+                    if (instance.GetHasHandles())
+                    {
+                        GUILayout.BeginVertical("GroupBox");
+                        EditorGUILayout.LabelField("Handle Settings");
+
+                        MirrorAnchors = EditorGUILayout.Toggle(new GUIContent("Mirror Anchors",
+                            "If enabled, any handles moved around an anchor point using the spline editor will automatically mirror the DIRECTION of the moved handle to the adjacent handle."), MirrorAnchors);
+
+                        LockHandleLength = EditorGUILayout.Toggle(new GUIContent("Lock Handles Length",
+                            "If enabled, any handles moved around an anchor point using the spline editor will be locked to a specified distance from their anchor, defined below."), LockHandleLength);
+
+                        if (LockHandleLength)
+                        {
+                            LockedHandleLength = EditorGUILayout.FloatField(new GUIContent("Locked Handles Length",
+                                "The length to lock handles around anchor points when moving with the spline editor."), LockedHandleLength);
+                        }
+
+                        GUILayout.EndVertical();
+                    }
+
+                    DrawPointSelectorInspector(instance);
+
+                    if (SelectedPoints.Count > 0)
+                    {
+                        GUILayout.BeginVertical("GroupBox");
+
+                        var first_point_index = SelectedPoints[0];
+                        var point = instance.Points[first_point_index];
+
+                        var editPoint = point;
+                        editPoint.position = EditorGUILayout.Vector3Field("point position", editPoint.position);
+                        editPoint.rotation.eulerAngles = EditorGUILayout.Vector3Field("point rotation", editPoint.rotation.eulerAngles);
+                        editPoint.scale = EditorGUILayout.Vector3Field("point scale", editPoint.scale);
+
+                        if (!point.Equals(editPoint))
+                        {
+                            Undo.RecordObject(instance, "Points Edited");
+
+                            for (var i = 0; i < SelectedPoints.Count; ++i)
+                            {
+                                var other_index = SelectedPoints[i];
+                                var other_point = instance.Points[other_index];
+
+                                // find modified components, only match them 
+                                if (point.position.x != editPoint.position.x) other_point.position.x = editPoint.position.x;
+                                if (point.position.y != editPoint.position.y) other_point.position.y = editPoint.position.y;
+                                if (point.position.z != editPoint.position.z) other_point.position.z = editPoint.position.z;
+
+                                if (point.rotation.x != editPoint.rotation.x) other_point.rotation.x = editPoint.rotation.x;
+                                if (point.rotation.y != editPoint.rotation.y) other_point.rotation.y = editPoint.rotation.y;
+                                if (point.rotation.z != editPoint.rotation.z) other_point.rotation.z = editPoint.rotation.z;
+                                if (point.rotation.w != editPoint.rotation.w) other_point.rotation.w = editPoint.rotation.w;
+
+                                if (point.scale.x != editPoint.scale.x) other_point.scale.x = editPoint.scale.x;
+                                if (point.scale.y != editPoint.scale.y) other_point.scale.y = editPoint.scale.y;
+                                if (point.scale.z != editPoint.scale.z) other_point.scale.z = editPoint.scale.z;
+
+                                instance.Points[other_index] = other_point;
+
+                                // update handles if necessary 
+                                UpdateHandlesWhenPointMoved(instance, other_index, other_point.position - point.position);
+                            }
+
+                            instance.UpdateNative();
+                            instance.SendEditorSplineUpdatedEvent();
+
+                            if (instance.EditorAlwaysFacePointsForwardAndUp)
+                            {
+                                instance.SetSplinePointsRotationForward();
+                                instance.UpdateNative();
+                                instance.SendEditorSplineUpdatedEvent();
+
+                                EditorUtility.SetDirty(instance);
+                            }
+                        }
+
+                        if (!instance.EditorAlwaysFacePointsForwardAndUp && GUILayout.Button("Rotations: Force Forward & Up"))
+                        {
+                            Undo.RecordObject(instance, "Forced Rotation");
+
+                            instance.SetSplinePointsRotationForward();
+                            instance.UpdateNative();
+                            instance.SendEditorSplineUpdatedEvent();
+
+                            EditorUtility.SetDirty(instance);
+                        }
+
+                        if (SelectedPoints.Count == 1)
+                        {
+                            EditorGUILayout.Space();
+
+                            if (GUILayout.Button("Create Junction"))
+                            {
+                                var selectedPointIndex = SelectedPoints[0];
+                                var selectedPoint = instance.Points[selectedPointIndex];
+
+                                var junction_t = instance.GetPercentageOfPointIndex(selectedPointIndex);
+                                var junctionParent = instance.transform;
+
+                                var newSplineGo = MenuItemCreateSpline();
+                                var newSplineTransform = newSplineGo.transform;
+                                newSplineTransform.SetParent(junctionParent);
+                                newSplineTransform.localPosition = Vector3.zero;
+                                newSplineTransform.localRotation = Quaternion.identity;
+                                newSplineTransform.localScale = Vector3.one;
+
+                                var newSpline = newSplineGo.GetComponent<Spline>();
+                                newSpline.SetSplineMode(instance.GetSplineMode());
+                                newSpline.SetSplineSpace(Space.World, false);
+                                newSpline.ConfigureAsJunction(instance, junction_t, 2.0f, null, 1.0f, 2.0f);
+                                newSpline.AppendPoint(selectedPoint.position, selectedPoint.rotation, selectedPoint.scale);
+                                newSpline.UpdateStartJunction();
+                                newSpline.UpdateEndJunction();
+                                newSpline.UpdateNative();
+
+                                Selection.activeObject = newSplineGo;
+                            }
+                        }
+
+                        GUILayout.EndVertical();
+                    }
+
+                    GUILayout.EndVertical();
+                }
+
+            }
+            GUILayout.EndVertical();
+        }
+
+        private void DrawInspectorSplineJunctions(Spline instance)
+        {
+            if (instance.GetHasAnyJunction())
             {
                 GUILayout.BeginVertical("GroupBox");
 
@@ -87,20 +423,24 @@ namespace CorgiSpline
                 GUILayout.BeginHorizontal();
                 {
                     EditorGUILayout.PropertyField(_junctionSplineBegin, new GUIContent("Start Junction Spline"));
-                    if(instance.GetStartSplineJunction() != null && GUILayout.Button("x", GUILayout.Width(32f)))
+                    if (instance.GetStartSplineJunction() != null && GUILayout.Button("x", GUILayout.Width(32f)))
                     {
                         Undo.RecordObject(instance, "removed start junction");
 
-                        instance.ConfigureAsJunction(null, instance.GetStartSplineJunctionPercent(), instance.GetStartJunctionTightness(), 
-                            instance.GetEndSplineJunction(), instance.GetEndSplineJunctionPercent(), instance.GetEndJunctionTightness()); 
+                        instance.ConfigureAsJunction(null, instance.GetStartSplineJunctionPercent(), instance.GetStartJunctionTightness(),
+                            instance.GetEndSplineJunction(), instance.GetEndSplineJunctionPercent(), instance.GetEndJunctionTightness());
                     }
                 }
 
                 GUILayout.EndHorizontal();
-                if(instance.GetStartSplineJunction() != null)
+                if (instance.GetStartSplineJunction() != null)
                 {
                     EditorGUILayout.PropertyField(_junctionBegin_t, new GUIContent("Start Junction Percent"));
-                    EditorGUILayout.PropertyField(_junctionBeginTightness, new GUIContent("Start Junction Tightness"));
+
+                    if (instance.GetSplineJunctionsSupportTightness())
+                    {
+                        EditorGUILayout.PropertyField(_junctionBeginTightness, new GUIContent("Start Junction Tightness"));
+                    }
                 }
 
                 EditorGUILayout.LabelField("End Spline Junction", EditorStyles.boldLabel);
@@ -116,10 +456,14 @@ namespace CorgiSpline
                     }
                 }
                 GUILayout.EndHorizontal();
-                if(instance.GetEndSplineJunction() != null)
+                if (instance.GetEndSplineJunction() != null)
                 {
                     EditorGUILayout.PropertyField(_junctionEnd_t, new GUIContent("End Junction Percent"));
-                    EditorGUILayout.PropertyField(_junctionEndTightness, new GUIContent("End Junction Tightness"));
+
+                    if (instance.GetSplineJunctionsSupportTightness())
+                    {
+                        EditorGUILayout.PropertyField(_junctionEndTightness, new GUIContent("End Junction Tightness"));
+                    }
                 }
 
                 instance.UpdateStartJunction();
@@ -129,330 +473,23 @@ namespace CorgiSpline
                 GUILayout.EndVertical();
             }
 
-            GUILayout.BeginVertical("GroupBox");
-
-            var splineMode = instance.GetSplineMode();
-            var newSplineMode = (SplineMode)EditorGUILayout.EnumPopup("Curve Type", splineMode);
-            if(splineMode != newSplineMode)
+            // update child spline junctions 
+            var childSplines = instance.transform.root.GetComponentsInChildren<Spline>();
+            foreach (var childSpline in childSplines)
             {
-                Undo.RecordObject(instance, "Changed Spline Mode");
-                instance.SetSplineMode(newSplineMode);
-
-                instance.UpdateNative();
-                instance.SendEditorSplineUpdatedEvent();
-
-                EditorUtility.SetDirty(instance);
-            }
-
-            var splineGameobjectHasMeshBuilder = instance.GetComponent<SplineMeshBuilder>() != null;
-            if (splineGameobjectHasMeshBuilder)
-            {
-                EditorGUI.BeginDisabledGroup(true);
-
-                var splineSpace = instance.GetSplineSpace();
-                var newSplineSpace = (Space)EditorGUILayout.EnumPopup(new GUIContent("Spline Space", "Currently being overriden by a SplineMeshBuilder instance.") , splineSpace);
-                    newSplineSpace = Space.Self;
-
-                if (splineSpace != newSplineSpace)
+                if (childSpline.GetHasAnyJunction())
                 {
-                    Undo.RecordObject(instance, "Changed Spline Space");
-                    instance.SetSplineSpace(newSplineSpace, true);
-                    EditorUtility.SetDirty(instance);
-                }
-                EditorGUI.EndDisabledGroup();
-            }
-            else
-            {
-                var splineSpace = instance.GetSplineSpace();
-                var newSplineSpace = (Space)EditorGUILayout.EnumPopup("Spline Space", splineSpace);
-                if (splineSpace != newSplineSpace)
-                {
-                    Undo.RecordObject(instance, "Changed Spline Space");
-                    instance.SetSplineSpace(newSplineSpace, true);
-                    instance.UpdateNative();
-                    instance.SendEditorSplineUpdatedEvent();
-                    EditorUtility.SetDirty(instance);
+                    childSpline.UpdateStartJunction();
+                    childSpline.UpdateEndJunction();
+                    childSpline.UpdateNative();
                 }
             }
+        }
 
-            var newUpdateNativeArrayOnEnable = EditorGUILayout.Toggle(new GUIContent("Update NativeArray OnEnable",
-                "Only necessary if you care about using Splines in the Job System. Some of the example scripts use this."), instance.UpdateNativeArrayOnEnable);
-            if(newUpdateNativeArrayOnEnable != instance.UpdateNativeArrayOnEnable)
-            {
-                Undo.RecordObject(instance, "UpdateNativeArrayOnEnable");
-                instance.UpdateNativeArrayOnEnable = newUpdateNativeArrayOnEnable;
-                EditorUtility.SetDirty(instance);
-            }
-
-            GUILayout.BeginVertical("GroupBox");
-            EditorGUILayout.LabelField("Editor Only Settings");
-
-            var newEditorAlwaysDraw = EditorGUILayout.Toggle(new GUIContent("Always Draw Spline (Editor)", 
-                "If enabled, the gizmos drawing this spline will continue to draw, even when the GameObject is not selected."), instance.EditorAlwaysDraw);
-            if(newEditorAlwaysDraw != instance.EditorAlwaysDraw)
-            {
-                Undo.RecordObject(instance, "EditorAlwaysDraw");
-                instance.EditorAlwaysDraw = newEditorAlwaysDraw;
-                EditorUtility.SetDirty(instance);
-            }
-
-            var newEditorDrawThickness = EditorGUILayout.Toggle(new GUIContent("Draw Thickness (Editor)", 
-                "If enabled, the gizmos drawing this spline will include scale.x while rendering the spline preview."), instance.EditorDrawThickness);
-
-            if(newEditorDrawThickness != instance.EditorDrawThickness)
-            {
-                Undo.RecordObject(instance, "EditorDrawThickness");
-                instance.EditorDrawThickness = newEditorDrawThickness;
-                EditorUtility.SetDirty(instance);
-            }
-
-            var newEditorAlwaysFacePointsForwardAndUp = EditorGUILayout.Toggle(new GUIContent("Force Points Forward&Up (Editor)", 
-                "If enabled, when editing a spline, points will automatically face forward relative to the points around them, with a y up vector."), instance.EditorAlwaysFacePointsForwardAndUp);
-
-            if(newEditorAlwaysFacePointsForwardAndUp != instance.EditorAlwaysFacePointsForwardAndUp)
-            {
-                Undo.RecordObject(instance, "Force Points Forward&Up");
-                instance.EditorAlwaysFacePointsForwardAndUp = newEditorAlwaysFacePointsForwardAndUp;
-                EditorUtility.SetDirty(instance);
-            }
-
-            var newEditorGizmosScale = EditorGUILayout.FloatField(new GUIContent("Point Gizmos Scale (Editor)", "Scale of the gizmos points"), instance.EditorGizmosScale);
-
-            if(Mathf.Abs(newEditorGizmosScale - instance.EditorGizmosScale) > 0.0001f)
-            {
-                if (newEditorGizmosScale < 0.01f) newEditorGizmosScale = 0.01f;
-
-                Undo.RecordObject(instance, "Point Gizmos Scale");
-                instance.EditorGizmosScale = newEditorGizmosScale;
-                EditorUtility.SetDirty(instance);
-            }
-
-            GUILayout.EndVertical();
-
-            EditorGUILayout.Space();
-            GUILayout.EndVertical();
-            GUILayout.BeginVertical("GroupBox");
-
-            if (instance.GetSplineClosed())
-            {
-                if (GUILayout.Button("Open Spline"))
-                {
-                    Undo.RecordObjects(new UnityEngine.Object[] { instance, this }, "Open Spline");
-
-                    PlacingPoint = false;
-                    SelectedPoints.Clear();
-
-                    instance.SetSplineClosed(false);
-                    instance.UpdateNative();
-                    instance.SendEditorSplineUpdatedEvent();
-                }
-            }
-            else
-            {
-                if (!PlacingPoint)
-                {
-                    if (GUILayout.Button("Close Spline"))
-                    {
-                        Undo.RecordObjects(new UnityEngine.Object[] { instance, this }, "Close Spline");
-
-                        PlacingPoint = false;
-                        SelectedPoints.Clear();
-
-                        instance.SetSplineClosed(true);
-                        instance.UpdateNative();
-                        instance.SendEditorSplineUpdatedEvent();
-                    }
-
-                    if (GUILayout.Button("Start Placing Points"))
-                    {
-                        SelectedPoints.Clear();
-                        PlacingPoint = !PlacingPoint;
-                    }
-                }
-                else if (PlacingPoint)
-                {
-                    if(GUILayout.Button("Stop Placing Points"))
-                    {
-                        PlacingPoint = !PlacingPoint;
-                    }
-
-                    EditorGUILayout.HelpBox("You can stop placing points by pressing ESCAPE with the Scene view focused, " +
-                        "or by holding right-click and then pressing left-click on your mouse.", MessageType.Info);
-                }
-
-            }
-
-            if (PlacingPoint)
-            {
-                PlaceMode = (SplinePlacePointMode)EditorGUILayout.EnumPopup("Place Point Mode", PlaceMode);
-                PlacePosition = (SplinePlacePosition)EditorGUILayout.EnumPopup("Append To Side", PlacePosition);
-
-                if(PlaceMode != SplinePlacePointMode.InsertBetweenPoints)
-                {
-                    PlaceOffsetFromSurface = EditorGUILayout.FloatField(new GUIContent("Offset From Surface",
-                        "Will offset the placed point by its normal. The normal chosen depends on the current SplinePlacePointMode."), PlaceOffsetFromSurface);
-                }
-
-                if (PlaceMode == SplinePlacePointMode.CollisionSurface)
-                {
-                    LayerMask tempMask = EditorGUILayout.MaskField("Surface Layers", InternalEditorUtility.LayerMaskToConcatenatedLayersMask(PlaceLayerMask), InternalEditorUtility.layers);
-                    PlaceLayerMask = InternalEditorUtility.ConcatenatedLayersMaskToLayerMask(tempMask);
-
-                    SnapToNearestVert = EditorGUILayout.Toggle("Snap To Nearest Vertex", SnapToNearestVert);
-                }
-
-                if (PlaceMode == SplinePlacePointMode.Plane)
-                {
-                    PlacePlaneOffset = EditorGUILayout.Vector3Field("Plane Offset", PlacePlaneOffset);
-                    PlacePlaneNormalRotation.eulerAngles = EditorGUILayout.Vector3Field("Plane Rotation", PlacePlaneNormalRotation.eulerAngles);
-                }
-
-                if(instance.EditorAlwaysFacePointsForwardAndUp)
-                {
-                    Undo.RecordObject(instance, "Forced Rotation");
-
-                    instance.SetSplinePointsRotationForward();
-                    instance.UpdateNative();
-                    instance.SendEditorSplineUpdatedEvent();
-
-                    EditorUtility.SetDirty(instance);
-                }
-            }
-            else
-            {
-                GUILayout.BeginVertical("GroupBox");
-
-                GUILayout.Label("Point Editor", UnityEditor.EditorStyles.largeLabel);
-
-                if(instance.GetHasHandles())
-                {
-                    GUILayout.BeginVertical("GroupBox");
-                    EditorGUILayout.LabelField("Handle Settings");
-
-                    MirrorAnchors = EditorGUILayout.Toggle(new GUIContent("Mirror Anchors", 
-                        "If enabled, any handles moved around an anchor point using the spline editor will automatically mirror the DIRECTION of the moved handle to the adjacent handle."), MirrorAnchors);
-
-                    LockHandleLength = EditorGUILayout.Toggle(new GUIContent("Lock Handles Length", 
-                        "If enabled, any handles moved around an anchor point using the spline editor will be locked to a specified distance from their anchor, defined below."), LockHandleLength);
-
-                    if (LockHandleLength)
-                    {
-                        LockedHandleLength = EditorGUILayout.FloatField(new GUIContent("Locked Handles Length", 
-                            "The length to lock handles around anchor points when moving with the spline editor."), LockedHandleLength);
-                    }
-
-                    GUILayout.EndVertical(); 
-                }
-
-                DrawPointSelectorInspector(instance);
-
-                if (SelectedPoints.Count > 0)
-                {
-                    GUILayout.BeginVertical("GroupBox");
-
-                    var first_point_index = SelectedPoints[0];
-                    var point = instance.Points[first_point_index];
-
-                    var editPoint = point;
-                    editPoint.position = EditorGUILayout.Vector3Field("point position", editPoint.position);
-                    editPoint.rotation.eulerAngles = EditorGUILayout.Vector3Field("point rotation", editPoint.rotation.eulerAngles);
-                    editPoint.scale = EditorGUILayout.Vector3Field("point scale", editPoint.scale);
-
-                    if (!point.Equals(editPoint))
-                    {
-                        Undo.RecordObject(instance, "Points Edited");
-
-                        for (var i = 0; i < SelectedPoints.Count; ++i)
-                        {
-                            var other_index = SelectedPoints[i];
-                            var other_point = instance.Points[other_index];
-
-                            // find modified components, only match them 
-                            if(point.position.x != editPoint.position.x) other_point.position.x = editPoint.position.x;
-                            if(point.position.y != editPoint.position.y) other_point.position.y = editPoint.position.y;
-                            if(point.position.z != editPoint.position.z) other_point.position.z = editPoint.position.z;
-
-                            if (point.rotation.x != editPoint.rotation.x) other_point.rotation.x = editPoint.rotation.x;
-                            if (point.rotation.y != editPoint.rotation.y) other_point.rotation.y = editPoint.rotation.y;
-                            if (point.rotation.z != editPoint.rotation.z) other_point.rotation.z = editPoint.rotation.z;
-                            if (point.rotation.w != editPoint.rotation.w) other_point.rotation.w = editPoint.rotation.w;
-
-                            if (point.scale.x != editPoint.scale.x) other_point.scale.x = editPoint.scale.x;
-                            if (point.scale.y != editPoint.scale.y) other_point.scale.y = editPoint.scale.y;
-                            if (point.scale.z != editPoint.scale.z) other_point.scale.z = editPoint.scale.z;
-
-                            instance.Points[other_index] = other_point;
-
-                            // update handles if necessary 
-                            UpdateHandlesWhenPointMoved(instance, other_index, other_point.position - point.position);
-                        }
-
-                        instance.UpdateNative();
-                        instance.SendEditorSplineUpdatedEvent();
-
-                        if (instance.EditorAlwaysFacePointsForwardAndUp)
-                        {
-                            instance.SetSplinePointsRotationForward();
-                            instance.UpdateNative();
-                            instance.SendEditorSplineUpdatedEvent();
-
-                            EditorUtility.SetDirty(instance);
-                        }
-                    }
-
-                    if (!instance.EditorAlwaysFacePointsForwardAndUp && GUILayout.Button("Rotations: Force Forward & Up"))
-                    {
-                        Undo.RecordObject(instance, "Forced Rotation");
-
-                        instance.SetSplinePointsRotationForward();
-                        instance.UpdateNative();
-                        instance.SendEditorSplineUpdatedEvent();
-
-                        EditorUtility.SetDirty(instance);
-                    }
-
-                    if(SelectedPoints.Count == 1)
-                    {
-                        EditorGUILayout.Space();
-
-                        if(GUILayout.Button("Create Junction"))
-                        {
-                            var selectedPointIndex = SelectedPoints[0];
-                            var selectedPoint = instance.Points[selectedPointIndex];
-
-                            var junction_t = instance.GetPercentageOfPointIndex(selectedPointIndex); 
-                            var junctionParent = instance.transform;
-
-                            var newSplineGo = MenuItemCreateSpline();
-                            var newSplineTransform = newSplineGo.transform;
-                                newSplineTransform.SetParent(junctionParent);
-                                newSplineTransform.localPosition = Vector3.zero;
-                                newSplineTransform.localRotation = Quaternion.identity;
-                                newSplineTransform.localScale = Vector3.one;
-
-                            var newSpline = newSplineGo.GetComponent<Spline>();
-                                newSpline.SetSplineMode(instance.GetSplineMode());
-                                newSpline.SetSplineSpace(Space.World, false);
-                                newSpline.ConfigureAsJunction(instance, junction_t, 2.0f, null, 1.0f, 2.0f);
-                                newSpline.AppendPoint(selectedPoint.position, selectedPoint.rotation, selectedPoint.scale);
-                                newSpline.UpdateStartJunction();
-                                newSpline.UpdateEndJunction();
-                                newSpline.UpdateNative();
-
-                            Selection.activeObject = newSplineGo;
-                        }
-                    }
-
-                    GUILayout.EndVertical();
-                }
-
-                GUILayout.EndVertical();
-            }
-
-            GUILayout.EndVertical();
-
+        private void DrawInspectorPrefabOverrides(Spline instance)
+        {
             var prefabAssetType = PrefabUtility.GetPrefabAssetType(instance.gameObject);
-            if(prefabAssetType != PrefabAssetType.NotAPrefab)
+            if (prefabAssetType != PrefabAssetType.NotAPrefab)
             {
                 EditorGUILayout.BeginVertical("GroupBox");
 
@@ -464,7 +501,7 @@ namespace CorgiSpline
                 {
                     _showModifiedProperties = EditorGUILayout.Foldout(_showModifiedProperties, $"Modified properties", true);
 
-                    if(_showModifiedProperties)
+                    if (_showModifiedProperties)
                     {
                         var modifications = PrefabUtility.GetPropertyModifications(instance);
 
@@ -497,21 +534,6 @@ namespace CorgiSpline
                 }
                 EditorGUILayout.EndVertical();
             }
-
-            // update child spline junctions 
-            var childSplines = instance.transform.root.GetComponentsInChildren<Spline>();
-            foreach (var childSpline in childSplines)
-            {
-                if (childSpline.GetHasAnyJunction())
-                {
-                    childSpline.UpdateStartJunction();
-                    childSpline.UpdateEndJunction();
-                    childSpline.UpdateNative();
-                }
-            }
-
-            // apply modified stuff 
-            serializedObject.ApplyModifiedProperties();
         }
 
         private bool _rightMouseHeld;
@@ -1345,14 +1367,17 @@ namespace CorgiSpline
                     continue;
                 }
 
-                if (instance.GetStartSplineJunction() != null && p == 1)
+                if(instance.GetSplineJunctionsSupportTightness())
                 {
-                    continue;
-                }
+                    if (instance.GetStartSplineJunction() != null && p == 1)
+                    {
+                        continue;
+                    }
 
-                if (instance.GetEndSplineJunction() != null && p == length - 2)
-                {
-                    continue;
+                    if (instance.GetEndSplineJunction() != null && p == length - 2)
+                    {
+                        continue;
+                    }
                 }
 
                 var point = instance.Points[p];

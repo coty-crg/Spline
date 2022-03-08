@@ -1717,6 +1717,15 @@ namespace CorgiSpline
             _junctionEnd_t = percent;
         }
 
+        /// <summary>
+        /// Returns true if our spline mode supports a tightness parameter when acting as a junction.
+        /// </summary>
+        /// <returns></returns>
+        public bool GetSplineJunctionsSupportTightness()
+        {
+            return Mode != SplineMode.Linear;
+        }
+
         private static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
         {
             var oneMinusT = 1f - t;
