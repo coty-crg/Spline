@@ -51,6 +51,8 @@ namespace CorgiSpline
         private SerializedProperty _junctionSplineEnd;
         private SerializedProperty _junctionEnd_t;
 
+        private bool _showJunctionPanel;
+
         // helper gui draw functions
         // https://forum.unity.com/threads/draw-a-simple-rectangle-filled-with-a-color.116348/#post-2751340
         private static Texture2D backgroundTexture;
@@ -414,6 +416,7 @@ namespace CorgiSpline
 
         private void DrawInspectorSplineJunctions(Spline instance)
         {
+            // has junction? draw their settings 
             if (instance.GetHasAnyJunction())
             {
                 GUILayout.BeginVertical("GroupBox");
@@ -469,6 +472,21 @@ namespace CorgiSpline
                 instance.UpdateStartJunction();
                 instance.UpdateEndJunction();
                 instance.UpdateNative();
+
+                GUILayout.EndVertical();
+            }
+
+            // no junction? panel for creating one 
+            else
+            {
+                GUILayout.BeginVertical("GroupBox");
+
+                _showJunctionPanel = EditorGUILayout.Foldout(_showJunctionPanel, new GUIContent("Junction Tools", "Junctions are a tool in the spline system to allow easy blending between splines. If this spline (A) is junctioned to another spline (B), any changes to B will be reflected in A, as if it were attached. Changes are automatically updated in the Unity editor. At runtime, you will need to call UpdateJunctions() on all splines with junctions yourself."), true);
+                if (_showJunctionPanel)
+                {
+                    EditorGUILayout.PropertyField(_junctionSplineBegin, new GUIContent("Set Start Junction Spline", "Drag a spline in here to create a junction in this spline to the defined spline."));
+                    EditorGUILayout.PropertyField(_junctionSplineEnd, new GUIContent("Set End Junction Spline", "Drag a spline in here to create a junction in this spline to the defined spline."));
+                }
 
                 GUILayout.EndVertical();
             }

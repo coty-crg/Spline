@@ -105,12 +105,19 @@ namespace CorgiSpline
         /// <summary>
         /// Junction dependency. If this is not null this spline begins as a junction. 
         /// </summary>
+        /// 
+        [Tooltip("When set, this spline will begin at a junction with the defined spline.")]
         [SerializeField, HideInInspector] private Spline _junctionSplineBegin;
+        [Tooltip("Where along the junctioned spline to begin.")]
         [SerializeField, HideInInspector, Range(0f, 1f)] private float _junctionBegin_t;
+        [Tooltip("How far the first point or handle after the junction will be automatically moved to, to seemlessly blend across the junction.")]
         [SerializeField, HideInInspector, Range(-10f, 10f)] private float _junctionBeginTightness = 1.0f;
 
+        [Tooltip("When set, this spline will end at a junction with the defined spline.")]
         [SerializeField, HideInInspector] private Spline _junctionSplineEnd;
+        [Tooltip("Where along the junctioned spline to begin.")]
         [SerializeField, HideInInspector, Range(0f, 1f)] private float _junctionEnd_t;
+        [Tooltip("How far the previous point or handle before the junction will be automatically moved to, to seemlessly blend across the junction.")]
         [SerializeField, HideInInspector, Range(-10f, 10f)] private float _junctionEndTightness = 1.0f;
 
         /// <summary>
