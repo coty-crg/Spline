@@ -107,11 +107,11 @@ namespace CorgiSpline
         /// </summary>
         [SerializeField, HideInInspector] private Spline _junctionSplineBegin;
         [SerializeField, HideInInspector, Range(0f, 1f)] private float _junctionBegin_t;
-        [SerializeField, HideInInspector, Range(0f, 10f)] private float _junctionBeginTightness = 1.0f;
+        [SerializeField, HideInInspector, Range(-10f, 10f)] private float _junctionBeginTightness = 1.0f;
 
         [SerializeField, HideInInspector] private Spline _junctionSplineEnd;
         [SerializeField, HideInInspector, Range(0f, 1f)] private float _junctionEnd_t;
-        [SerializeField, HideInInspector, Range(0f, 10f)] private float _junctionEndTightness = 1.0f;
+        [SerializeField, HideInInspector, Range(-10f, 10f)] private float _junctionEndTightness = 1.0f;
 
         /// <summary>
         /// Used at runtime for burstable jobs. Does not automatically update, aside from on OnEnable. 
@@ -323,7 +323,7 @@ namespace CorgiSpline
                     {
                         var junctionSplineForward = _junctionSplineEnd.GetForward(_junctionEnd_t);
                         var junctionHandle = endJunctionSplinePoint;
-                        junctionHandle.position += junctionSplineForward * _junctionEndTightness;
+                        junctionHandle.position -= junctionSplineForward * _junctionEndTightness;
 
                         Points[Points.Length - 1 - 1] = junctionHandle;
                     }
