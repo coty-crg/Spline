@@ -82,9 +82,21 @@ namespace CorgiSpline
             {
                 GUILayout.BeginVertical("GroupBox");
 
-
                 EditorGUILayout.LabelField("Start Spline Junction", EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(_junctionSplineBegin, new GUIContent("Start Junction Spline"));
+
+                GUILayout.BeginHorizontal();
+                {
+                    EditorGUILayout.PropertyField(_junctionSplineBegin, new GUIContent("Start Junction Spline"));
+                    if(instance.GetStartSplineJunction() != null && GUILayout.Button("x", GUILayout.Width(32f)))
+                    {
+                        Undo.RecordObject(instance, "removed start junction");
+
+                        instance.ConfigureAsJunction(null, instance.GetStartSplineJunctionPercent(), instance.GetStartJunctionTightness(), 
+                            instance.GetEndSplineJunction(), instance.GetEndSplineJunctionPercent(), instance.GetEndJunctionTightness()); 
+                    }
+                }
+
+                GUILayout.EndHorizontal();
                 if(instance.GetStartSplineJunction() != null)
                 {
                     EditorGUILayout.PropertyField(_junctionBegin_t, new GUIContent("Start Junction Percent"));
@@ -92,7 +104,18 @@ namespace CorgiSpline
                 }
 
                 EditorGUILayout.LabelField("End Spline Junction", EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(_junctionSplineEnd, new GUIContent("End Junction Spline"));
+                GUILayout.BeginHorizontal();
+                {
+                    EditorGUILayout.PropertyField(_junctionSplineEnd, new GUIContent("End Junction Spline"));
+                    if (instance.GetEndSplineJunction() != null && GUILayout.Button("x", GUILayout.Width(32f)))
+                    {
+                        Undo.RecordObject(instance, "removed end junction");
+
+                        instance.ConfigureAsJunction(instance.GetStartSplineJunction(), instance.GetStartSplineJunctionPercent(), instance.GetStartJunctionTightness(),
+                            null, instance.GetEndSplineJunctionPercent(), instance.GetEndJunctionTightness());
+                    }
+                }
+                GUILayout.EndHorizontal();
                 if(instance.GetEndSplineJunction() != null)
                 {
                     EditorGUILayout.PropertyField(_junctionEnd_t, new GUIContent("End Junction Percent"));
@@ -410,7 +433,7 @@ namespace CorgiSpline
                             var newSpline = newSplineGo.GetComponent<Spline>();
                                 newSpline.SetSplineMode(instance.GetSplineMode());
                                 newSpline.SetSplineSpace(Space.World, false);
-                                newSpline.ConfigureAsJunction(instance, junction_t, 2.0f);
+                                newSpline.ConfigureAsJunction(instance, junction_t, 2.0f, null, 1.0f, 2.0f);
                                 newSpline.AppendPoint(selectedPoint.position, selectedPoint.rotation, selectedPoint.scale);
                                 newSpline.UpdateStartJunction();
                                 newSpline.UpdateEndJunction();
@@ -1146,6 +1169,10 @@ namespace CorgiSpline
 
                 UpdateHandlesWhenPointMoved(instance, point_index, splinePointDelta);
 
+                // update junctions 
+                if (instance.GetStartSplineJunction() != null && point_index == 0) instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(instance.Points[point_index].position));
+                if (instance.GetStartSplineJunction() != null && point_index == instance.Points.Length - 1) instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(instance.Points[point_index].position));
+
                 if (anyMoved)
                 {
                     var delta_move = splinePoint.position - original_point.position;
@@ -1158,6 +1185,10 @@ namespace CorgiSpline
                         UpdateHandlesWhenPointMoved(instance, other_index, splinePointDelta);
 
                         instance.Points[other_index].position += delta_move;
+
+                        // update junctions 
+                        if (instance.GetStartSplineJunction() != null && other_index == 0) instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(instance.Points[other_index].position));
+                        if (instance.GetStartSplineJunction() != null && other_index == instance.Points.Length - 1) instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(instance.Points[other_index].position));
                     }
 
                     Repaint();
@@ -1314,6 +1345,16 @@ namespace CorgiSpline
                     continue;
                 }
 
+                if (instance.GetStartSplineJunction() != null && p == 1)
+                {
+                    continue;
+                }
+
+                if (instance.GetEndSplineJunction() != null && p == length - 2)
+                {
+                    continue;
+                }
+
                 var point = instance.Points[p];
 
                 if (instance.GetSplineSpace() == Space.Self)
@@ -1331,7 +1372,6 @@ namespace CorgiSpline
                     {
                         continue;
                     }
-
 
                     // when a handle is selected, we only want to draw the other handle touching our center point 
                     var isSelectedHandle = first_selected_point % 3 != 0;

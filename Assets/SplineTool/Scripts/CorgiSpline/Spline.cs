@@ -255,11 +255,15 @@ namespace CorgiSpline
         /// </summary>
         /// <param name="otherSpline"></param>
         /// <param name="otherSplinePercentage"></param>
-        public void ConfigureAsJunction(Spline otherSpline, float otherSplinePercentage, float junctionTightness)
+        public void ConfigureAsJunction(Spline junctionStartSpline, float junctionStartPercent, float junctionStartTightness, Spline junctionEndSpline, float junctionEndPercent, float junctionEndTightness)
         {
-            _junctionSplineBegin = otherSpline;
-            _junctionBegin_t = otherSplinePercentage;
-            _junctionBeginTightness = junctionTightness;
+            _junctionSplineBegin = junctionStartSpline;
+            _junctionBegin_t = junctionStartPercent;
+            _junctionBeginTightness = junctionStartTightness;
+
+            _junctionSplineEnd = junctionEndSpline;
+            _junctionEnd_t = junctionEndPercent;
+            _junctionEndTightness = junctionEndTightness;
 
             SetSplineClosed(false);
         }
@@ -1693,6 +1697,24 @@ namespace CorgiSpline
         public float GetEndJunctionTightness()
         {
             return _junctionEndTightness;
+        }
+
+        /// <summary>
+        /// Updates the start junction's percentage. 
+        /// </summary>
+        /// <param name="percent"></param>
+        public void SetStartJunctionPercent(float percent)
+        {
+            _junctionBegin_t = percent;
+        }
+
+        /// <summary>
+        /// Updates the end junction's percentage.
+        /// </summary>
+        /// <param name="percent"></param>
+        public void SetEndJunctionPercent(float percent)
+        {
+            _junctionEnd_t = percent;
         }
 
         private static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
