@@ -472,6 +472,7 @@ namespace CorgiSpline
                 instance.UpdateStartJunction();
                 instance.UpdateEndJunction();
                 instance.UpdateNative();
+                instance.SendEditorSplineUpdatedEvent();
 
                 GUILayout.EndVertical();
             }
@@ -500,6 +501,7 @@ namespace CorgiSpline
                     childSpline.UpdateStartJunction();
                     childSpline.UpdateEndJunction();
                     childSpline.UpdateNative();
+                    childSpline.SendEditorSplineUpdatedEvent(); 
                 }
             }
         }
