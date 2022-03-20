@@ -1619,7 +1619,10 @@ namespace CorgiSpline
                 var selected_forward = GetForward(selected_t);
                 var selected_up = Vector3.up;
 
-                selectedPoint.rotation = Quaternion.LookRotation(selected_forward, selected_up);
+                if(selected_forward.sqrMagnitude > 0.0001f && (selected_forward - selected_up).sqrMagnitude > 0.0001f)
+                {
+                    selectedPoint.rotation = Quaternion.LookRotation(selected_forward, selected_up);
+                }
 
                 Points[p] = selectedPoint;
             }

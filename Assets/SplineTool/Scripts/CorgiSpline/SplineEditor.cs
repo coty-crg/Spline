@@ -410,6 +410,50 @@ namespace CorgiSpline
                     GUILayout.EndVertical();
                 }
 
+
+                GUILayout.BeginVertical("GroupBox");
+                GUILayout.Label("Extra tools");
+                GUILayout.BeginHorizontal();
+
+                if (GUILayout.Button("+ start point"))
+                {
+                    Undo.RecordObject(instance, "+ start point");
+
+                    var finalPoint = instance.GetPoint(0f);
+                    finalPoint.position -= instance.GetForward(0f);
+
+                    instance.ReversePoints();
+                    instance.AppendPoint(finalPoint.position, finalPoint.rotation, finalPoint.scale);
+                    instance.ReversePoints();
+
+                    instance.UpdateNative();
+                    instance.SendEditorSplineUpdatedEvent();
+
+                    SelectedPoints.Clear();
+                    SelectedPoints.Add(0);
+
+                    EditorUtility.SetDirty(instance);
+                }
+
+                if (GUILayout.Button("+ end point"))
+                {
+                    Undo.RecordObject(instance, "+ end point");
+
+                    var finalPoint = instance.GetPoint(1f);
+                    finalPoint.position += instance.GetForward(1f);
+
+                    instance.AppendPoint(finalPoint.position, finalPoint.rotation, finalPoint.scale);
+                    instance.UpdateNative();
+                    instance.SendEditorSplineUpdatedEvent();
+
+                    SelectedPoints.Clear();
+                    SelectedPoints.Add(instance.Points.Length - 1);
+
+                    EditorUtility.SetDirty(instance);
+                }
+
+                GUILayout.EndHorizontal();
+                GUILayout.EndVertical(); 
             }
             GUILayout.EndVertical();
         }
