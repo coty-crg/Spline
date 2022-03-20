@@ -309,7 +309,7 @@ namespace CorgiSpline
                 // closed splines overlap a bit so we dont have to stitch 
                 var full_loop = ClosedSpline  && built_to_t >= 1f;
 
-                var rotation = quaternion.Euler(rotationEulorOffset); 
+                var rotation = Quaternion.Euler(rotationEulorOffset); 
 
                 var repeatingBoundsMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
                 var repeatingBoundsMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
@@ -363,14 +363,14 @@ namespace CorgiSpline
                         var vertex_splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, innerMesh_t);
                         
                         var trs = Matrix4x4.TRS(
-                            vertex_splinePoint.position + MeshLocalOffsetVertices, 
-                            vertex_splinePoint.rotation * rotation, 
+                            vertex_splinePoint.position, 
+                            vertex_splinePoint.rotation, 
                             Vector3.Scale(vertex_splinePoint.scale, scale)
                         );
 
-                        var vertex = trs.MultiplyPoint(new Vector3(repeating_vertex.x, repeating_vertex.y, 0));
-                        normal = trs.MultiplyVector(normal);
-                        tangent = trs.MultiplyVector(tangent);
+                        var vertex = trs.MultiplyPoint(new Vector3(repeating_vertex.x, repeating_vertex.y, 0) + MeshLocalOffsetVertices);
+                        normal = trs.MultiplyVector(rotation * normal);
+                        tangent = trs.MultiplyVector(rotation * tangent);
 
                         verts.Add(vertex);
                         normals.Add(normal);
