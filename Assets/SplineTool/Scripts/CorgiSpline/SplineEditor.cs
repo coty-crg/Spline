@@ -312,6 +312,21 @@ namespace CorgiSpline
                         GUILayout.BeginVertical("GroupBox");
 
                         var first_point_index = SelectedPoints[0];
+
+                        if (first_point_index >= instance.Points.Length)
+                        {
+                            first_point_index = instance.Points.Length - 1;
+                        }
+                        else if (first_point_index < 0)
+                        {
+                            first_point_index = 0;
+                        }
+                        else if (instance.Points.Length == 0)
+                        {
+                            SelectedPoints.Clear();
+                            return;
+                        }
+
                         var point = instance.Points[first_point_index];
 
                         var editPoint = point;
@@ -1193,6 +1208,10 @@ namespace CorgiSpline
 
         private void DrawSelectedSplineHandle(Spline instance, int point_index)
         {
+            if(point_index < 0 || point_index >= instance.Points.Length)
+            {
+                return;
+            }
 
             var splinePoint = instance.Points[point_index];
 
