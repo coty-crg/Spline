@@ -425,49 +425,60 @@ namespace CorgiSpline
                     GUILayout.EndVertical();
                 }
 
-
                 GUILayout.BeginVertical("GroupBox");
-                GUILayout.Label("Extra tools");
-                GUILayout.BeginHorizontal();
-
-                if (GUILayout.Button("+ start point"))
                 {
-                    Undo.RecordObject(instance, "+ start point");
+                    GUILayout.Label("Extra tools");
+                    GUILayout.BeginHorizontal();
+                    {
+                        if (GUILayout.Button("+ start point"))
+                        {
+                            Undo.RecordObject(instance, "+ start point");
 
-                    var finalPoint = instance.GetPoint(0f);
-                    finalPoint.position -= instance.GetForward(0f);
+                            var finalPoint = instance.GetPoint(0f);
+                            finalPoint.position -= instance.GetForward(0f);
 
-                    instance.ReversePoints();
-                    instance.AppendPoint(finalPoint.position, finalPoint.rotation, finalPoint.scale);
-                    instance.ReversePoints();
+                            instance.ReversePoints();
+                            instance.AppendPoint(finalPoint.position, finalPoint.rotation, finalPoint.scale);
+                            instance.ReversePoints();
 
-                    instance.UpdateNative();
-                    instance.SendEditorSplineUpdatedEvent();
+                            instance.UpdateNative();
+                            instance.SendEditorSplineUpdatedEvent();
 
-                    SelectedPoints.Clear();
-                    SelectedPoints.Add(0);
+                            SelectedPoints.Clear();
+                            SelectedPoints.Add(0);
 
-                    EditorUtility.SetDirty(instance);
+                            EditorUtility.SetDirty(instance);
+                        }
+                        if (GUILayout.Button("+ end point"))
+                        {
+                            Undo.RecordObject(instance, "+ end point");
+
+                            var finalPoint = instance.GetPoint(1f);
+                            finalPoint.position += instance.GetForward(1f);
+
+                            instance.AppendPoint(finalPoint.position, finalPoint.rotation, finalPoint.scale);
+                            instance.UpdateNative();
+                            instance.SendEditorSplineUpdatedEvent();
+
+                            SelectedPoints.Clear();
+                            SelectedPoints.Add(instance.Points.Length - 1);
+
+                            EditorUtility.SetDirty(instance);
+                        }
+                        if (GUILayout.Button("center pivot"))
+                        {
+                            var changing = new List<UnityEngine.Object>() { instance.transform, instance };
+                            for (var t = 0; t < instance.transform.childCount; ++t) changing.Add(instance.transform.GetChild(t));
+
+                            Undo.RecordObjects(changing.ToArray(), "centered pivot");
+                            instance.CenterPivotTransform();
+                            instance.UpdateNative();
+                            instance.SendEditorSplineUpdatedEvent(); 
+                            EditorUtility.SetDirty(instance.transform);
+                        }
+                    }
+                    GUILayout.EndHorizontal();
                 }
-
-                if (GUILayout.Button("+ end point"))
-                {
-                    Undo.RecordObject(instance, "+ end point");
-
-                    var finalPoint = instance.GetPoint(1f);
-                    finalPoint.position += instance.GetForward(1f);
-
-                    instance.AppendPoint(finalPoint.position, finalPoint.rotation, finalPoint.scale);
-                    instance.UpdateNative();
-                    instance.SendEditorSplineUpdatedEvent();
-
-                    SelectedPoints.Clear();
-                    SelectedPoints.Add(instance.Points.Length - 1);
-
-                    EditorUtility.SetDirty(instance);
-                }
-
-                GUILayout.EndHorizontal();
                 GUILayout.EndVertical(); 
             }
             GUILayout.EndVertical();
@@ -1275,8 +1286,21 @@ namespace CorgiSpline
                 UpdateHandlesWhenPointMoved(instance, point_index, splinePointDelta);
 
                 // update junctions 
-                if (instance.GetStartSplineJunction() != null && point_index == 0) instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(instance.Points[point_index].position));
-                if (instance.GetEndSplineJunction() != null && point_index == instance.Points.Length - 1) instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(instance.Points[point_index].position));
+                var thisPoint = instance.Points[point_index];
+                if(instance.GetSplineSpace() == Space.Self)
+                {
+                    thisPoint = instance.TransformSplinePoint(thisPoint);
+                }
+
+                if (instance.GetStartSplineJunction() != null && point_index == 0)
+                {
+                    instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(thisPoint.position));
+                }
+
+                if (instance.GetEndSplineJunction() != null && point_index == instance.Points.Length - 1)
+                {
+                    instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(thisPoint.position));
+                }
 
                 if (anyMoved)
                 {
@@ -1291,9 +1315,22 @@ namespace CorgiSpline
 
                         instance.Points[other_index].position += delta_move;
 
+                        var otherPoint = instance.Points[other_index];
+                        if(instance.GetSplineSpace() == Space.Self)
+                        {
+                            otherPoint = instance.TransformSplinePoint(otherPoint);
+                        }
+
                         // update junctions 
-                        if (instance.GetStartSplineJunction() != null && other_index == 0) instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(instance.Points[other_index].position));
-                        if (instance.GetEndSplineJunction() != null && other_index == instance.Points.Length - 1) instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(instance.Points[other_index].position));
+                        if (instance.GetStartSplineJunction() != null && other_index == 0)
+                        {
+                            instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(otherPoint.position));
+                        }
+
+                        if (instance.GetEndSplineJunction() != null && other_index == instance.Points.Length - 1)
+                        {
+                            instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(otherPoint.position));
+                        }
                     }
 
                     Repaint();

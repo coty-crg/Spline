@@ -286,7 +286,15 @@ namespace CorgiSpline
             }
 
             var beginJunctionSplinePoint = _junctionSplineBegin.GetPoint(_junctionBegin_t);
-            Points[0] = beginJunctionSplinePoint;
+
+            if(GetSplineSpace() == Space.Self)
+            {
+                Points[0] = InverseTransformSplinePoint(beginJunctionSplinePoint);
+            }
+            else
+            {
+                Points[0] = beginJunctionSplinePoint;
+            }
 
             switch (GetSplineMode())
             {
@@ -300,7 +308,14 @@ namespace CorgiSpline
                         var junctionHandle = beginJunctionSplinePoint;
                         junctionHandle.position += junctionSplineForward * _junctionBeginTightness;
 
-                        Points[1] = junctionHandle;
+                        if(GetSplineSpace() == Space.Self)
+                        {
+                            Points[1] = InverseTransformSplinePoint(junctionHandle);
+                        }
+                        else
+                        {
+                            Points[1] = junctionHandle;
+                        }
                     }
                     break; 
             }
@@ -317,7 +332,15 @@ namespace CorgiSpline
             }
 
             var endJunctionSplinePoint = _junctionSplineEnd.GetPoint(_junctionEnd_t);
-            Points[Points.Length - 1] = endJunctionSplinePoint;
+
+            if (GetSplineSpace() == Space.Self)
+            {
+                Points[Points.Length - 1] = InverseTransformSplinePoint(endJunctionSplinePoint);
+            }
+            else
+            {
+                Points[Points.Length - 1] = endJunctionSplinePoint;
+            }
 
             switch (GetSplineMode())
             {
@@ -332,7 +355,14 @@ namespace CorgiSpline
                         var junctionHandle = endJunctionSplinePoint;
                         junctionHandle.position -= junctionSplineForward * _junctionEndTightness;
 
-                        Points[Points.Length - 1 - 1] = junctionHandle;
+                        if(GetSplineSpace() == Space.Self)
+                        {
+                            Points[Points.Length - 1 - 1] = InverseTransformSplinePoint(junctionHandle);
+                        }
+                        else
+                        {
+                            Points[Points.Length - 1 - 1] = junctionHandle;
+                        }
                     }
                     break;
             }
@@ -388,7 +418,7 @@ namespace CorgiSpline
                 }
             }
         }
-
+         
         public Space GetSplineSpace()
         {
             return SplineSpace;
@@ -1733,6 +1763,61 @@ namespace CorgiSpline
         public bool GetSplineJunctionsSupportTightness()
         {
             return Mode != SplineMode.Linear;
+        }
+
+        /// <summary>
+        /// This will take the transform position and plae it at the center of all the points. 
+        /// Point data will be lifted out, then put back in, so points will be in the same world space positions after the pivot moves.
+        /// This will also unparent children and reparent them so their world space positions stay the same. 
+        /// Generates some garbage. 
+        /// </summary>
+        public void CenterPivotTransform()
+        {
+            var childTransformCount = transform.childCount;
+            var rememberChildren = new Transform[childTransformCount];
+
+            for(var t = 0; t < childTransformCount; ++t)
+            {
+                rememberChildren[t] = transform.GetChild(t);
+            }
+
+            transform.DetachChildren();
+
+            var pointCount = Points.Length;
+            var pointsClone = new SplinePoint[pointCount];
+
+            if (GetSplineSpace() == Space.Self)
+            {
+                for (var i = 0; i < pointCount; ++i)
+                {
+                    pointsClone[i] = TransformSplinePoint(Points[i]);
+                }
+            }
+
+            var centerPoint = Vector3.zero;
+            for (var i = 0; i < pointCount; ++i)
+            {
+                var point = pointsClone[i];
+                centerPoint += point.position;
+            }
+
+            centerPoint /= Mathf.Max(1, pointCount);
+
+            transform.position = centerPoint;
+
+            if (GetSplineSpace() == Space.Self)
+            {
+                for (var i = 0; i < pointCount; ++i)
+                {
+                    Points[i] = InverseTransformSplinePoint(pointsClone[i]);
+                }
+            }
+
+            for (var t = 0; t < childTransformCount; ++t)
+            {
+                var child = rememberChildren[t];
+                child.SetParent(transform, true);
+            }
         }
 
         private static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
