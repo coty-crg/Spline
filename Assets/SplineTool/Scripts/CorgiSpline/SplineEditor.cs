@@ -70,7 +70,7 @@ namespace CorgiSpline
             backgroundTexture = Texture2D.whiteTexture;
             textureStyle = new GUIStyle { normal = new GUIStyleState { background = backgroundTexture } };
 
-            if(_previouslySelectedSpline == null || _previouslySelectedSpline != (Spline) target)
+            if(_previouslySelectedSpline == null || target == null || _previouslySelectedSpline != (Spline) target)
             {
                 SelectedPoints.Clear(); 
             }
