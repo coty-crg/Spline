@@ -29,20 +29,20 @@ namespace CorgiSpline
             End,
         }
 
-        [SerializeField] private List<int> SelectedPoints = new List<int>();
-        [SerializeField] private bool MirrorAnchors = true;
-        [SerializeField] private bool LockHandleLength = false;
-        [SerializeField] private float LockedHandleLength = 1.0f;
-        [SerializeField] private bool PlacingPoint;
-        [SerializeField] private float PlaceOffsetFromSurface = 0f;
-        [SerializeField] private SplinePlacePointMode PlaceMode = SplinePlacePointMode.MeshSurface;
-        [SerializeField] private SplinePlacePosition PlacePosition = SplinePlacePosition.End;
-        [SerializeField] private LayerMask PlaceLayerMask;
-        [SerializeField] private Vector3 PlacePlaneOffset;
-        [SerializeField] private Quaternion PlacePlaneNormalRotation;
-        [SerializeField] public bool SnapToNearestVert;
-        private bool _showModifiedProperties;
-
+        private static Spline _previouslySelectedSpline;
+        private static List<int> SelectedPoints = new List<int>();
+        private static bool MirrorAnchors = true;
+        private static bool LockHandleLength = false;
+        private static float LockedHandleLength = 1.0f;
+        private static bool PlacingPoint;
+        private static float PlaceOffsetFromSurface = 0f;
+        private static SplinePlacePointMode PlaceMode = SplinePlacePointMode.MeshSurface;
+        private static SplinePlacePosition PlacePosition = SplinePlacePosition.End;
+        private static LayerMask PlaceLayerMask;
+        private static Vector3 PlacePlaneOffset;
+        private static Quaternion PlacePlaneNormalRotation;
+        private static bool SnapToNearestVert;
+        private static bool _showModifiedProperties;
 
         private SerializedProperty _junctionSplineBegin;
         private SerializedProperty _junctionBegin_t;
@@ -69,13 +69,25 @@ namespace CorgiSpline
 
             backgroundTexture = Texture2D.whiteTexture;
             textureStyle = new GUIStyle { normal = new GUIStyleState { background = backgroundTexture } };
+
+            if(_previouslySelectedSpline == null || _previouslySelectedSpline != (Spline) target)
+            {
+                SelectedPoints.Clear(); 
+            }
+        }
+
+        private void OnDisable()
+        {
+            Tools.hidden = false; 
         }
 
         public override void OnInspectorGUI()
         {
-            var instance = (Spline)target;
+            var instance = (Spline) target;
 
-            if(!instance.gameObject.activeInHierarchy)
+            _previouslySelectedSpline = instance;
+
+            if (!instance.gameObject.activeInHierarchy)
             {
                 EditorGUILayout.HelpBox("This GameObject is disabled, so placing points will not be available.", MessageType.Warning); 
             }
@@ -632,7 +644,7 @@ namespace CorgiSpline
         {
             var instance = (Spline)target;
 
-            if(Event.current.button == 1)
+            if (Event.current.button == 1)
             {
                 if(Event.current.type == EventType.MouseDown)
                 {
@@ -766,6 +778,8 @@ namespace CorgiSpline
                 DrawSelectablePoints(instance);
             }
 
+            UpdateUnityTransformGizmoVisible();
+
             // update native every frame, to catch stuff like undo/redo or anything else weird that can happen.. 
             // note: this means no jobs can be async when in editor mode; although this was true even before this change
             // instance.UpdateNative();
@@ -784,6 +798,8 @@ namespace CorgiSpline
             {
                 SelectedPoints.Add(intIndex);
             }
+
+            UpdateUnityTransformGizmoVisible();
         }
 
         private void OnAllPointsSelected(object splineObj)
@@ -796,11 +812,19 @@ namespace CorgiSpline
             {
                 SelectedPoints.Add(i);
             }
+
+            UpdateUnityTransformGizmoVisible();
         }
 
         private void OnNoPointsSelected()
         {
             SelectedPoints.Clear();
+            UpdateUnityTransformGizmoVisible();
+        }
+
+        private void UpdateUnityTransformGizmoVisible()
+        {
+            Tools.hidden = SelectedPoints.Count > 0;
         }
 
         private void DrawPointSelectorInspector(Spline spline)
