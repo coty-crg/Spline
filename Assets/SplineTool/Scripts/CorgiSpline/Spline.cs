@@ -1820,7 +1820,7 @@ namespace CorgiSpline
             }
         }
 
-        private static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
+        public static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
         {
             var oneMinusT = 1f - t;
             var result =
@@ -1843,7 +1843,7 @@ namespace CorgiSpline
             // return ad; 
         }
 
-        private static Vector3 BSplineInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
+        public static Vector3 BSplineInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
         {
             var result = (
                   (  -point0 + point2) * 0.5f
@@ -1854,7 +1854,7 @@ namespace CorgiSpline
             return result;
         }
 
-        private static Vector3 QuadraticFirstDerivative(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
+        public static Vector3 QuadraticFirstDerivative(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
         {
             t = Mathf.Clamp01(t);
 
@@ -1865,7 +1865,7 @@ namespace CorgiSpline
                 3f * t * t * (point3 - point2);
         }
 
-        private static Quaternion QuadraticInterpolate(Quaternion point0, Quaternion point1, Quaternion point2, Quaternion point3, float t)
+        public static Quaternion QuadraticInterpolate(Quaternion point0, Quaternion point1, Quaternion point2, Quaternion point3, float t)
         {
             // var oneMinusT = 1f - t;
             // var result =
