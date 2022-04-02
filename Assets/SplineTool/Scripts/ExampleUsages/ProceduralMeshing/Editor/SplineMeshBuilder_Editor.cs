@@ -49,6 +49,27 @@ namespace CorgiSpline
             unity_lightmap_params       = serializedObject.FindProperty("unity_lightmap_params");
         }
 
+        protected void DrawRefreshAndTimings(SplineMeshBuilder instance)
+        {
+            EditorGUILayout.BeginHorizontal("GroupBox");
+            {
+                if (instance.SplineReference != null && GUILayout.Button(EditorGUIUtility.IconContent("d_Refresh"), GUILayout.Width(32f), GUILayout.Height(32f)))
+                {
+                    instance.SplineReference.SendEditorSplineUpdatedEvent();
+                }
+
+                if (instance.GetPreviousMeshingDurationMs() > 0f)
+                {
+                    EditorGUILayout.LabelField($"Meshing took {instance.GetPreviousMeshingDurationMs()}ms to complete.");
+                }
+                else
+                {
+                    EditorGUILayout.LabelField($"Awaiting remesh.");
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+
         public override void OnInspectorGUI()
         {
             #if !CORGI_DETECTED_BURST
@@ -58,16 +79,7 @@ namespace CorgiSpline
             var instance = (SplineMeshBuilder) target;
             var prevSplineReference = instance.SplineReference;
 
-            if(instance.GetPreviousMeshingDurationMs() > 0f)
-            {
-                EditorGUILayout.HelpBox($"Meshing took {instance.GetPreviousMeshingDurationMs()}ms to complete.", MessageType.Info);
-            }
-            else
-            {
-                EditorGUILayout.HelpBox($"Awaiting remesh.", MessageType.Info);
-            }
-
-            EditorGUILayout.Space();
+            DrawRefreshAndTimings(instance); 
 
             GUILayout.BeginVertical("GroupBox");
             {
