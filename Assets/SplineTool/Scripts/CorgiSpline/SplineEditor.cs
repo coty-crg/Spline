@@ -179,6 +179,16 @@ namespace CorgiSpline
                     EditorUtility.SetDirty(instance);
                 }
 
+                var newEditorDrawRotations = EditorGUILayout.Toggle(new GUIContent("Draw Point Rotations (Editor)",
+                    "If enabled, the gizmos drawing this spline will include rotations while rendering the spline preview."), instance.EditorDrawRotations);
+
+                if (newEditorDrawRotations != instance.EditorDrawRotations)
+                {
+                    Undo.RecordObject(instance, "EditorDrawThickness");
+                    instance.EditorDrawRotations = newEditorDrawRotations;
+                    EditorUtility.SetDirty(instance);
+                }
+
                 var newEditorAlwaysFacePointsForwardAndUp = EditorGUILayout.Toggle(new GUIContent("Force Points Forward&Up (Editor)",
                     "If enabled, when editing a spline, points will automatically face forward relative to the points around them, with a y up vector."), instance.EditorAlwaysFacePointsForwardAndUp);
 

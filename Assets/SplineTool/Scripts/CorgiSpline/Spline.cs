@@ -136,6 +136,7 @@ namespace CorgiSpline
 
         // editor only settings 
         public bool EditorDrawThickness;
+        public bool EditorDrawRotations;
         public bool EditorAlwaysDraw;
         public bool EditorAlwaysFacePointsForwardAndUp;
         public float EditorGizmosScale = 1.0f;
@@ -2844,6 +2845,27 @@ namespace CorgiSpline
                     {
                         Gizmos.DrawLine(p0.position, p1.position);
                     }
+
+                    if(EditorDrawRotations)
+                    {
+                        var position = p0.position;
+                        var rotation = p0.rotation;
+
+                        var up = rotation * Vector3.up;
+                        var forward = rotation * Vector3.forward;
+                        var right = rotation * Vector3.right;
+
+                        var distance = 0.25f;
+
+                        Gizmos.color = Color.green;
+                        Gizmos.DrawRay(position, up * distance);
+
+                        Gizmos.color = Color.blue;
+                        Gizmos.DrawRay(position, forward * distance);
+
+                        Gizmos.color = Color.red;
+                        Gizmos.DrawRay(position, right * distance);
+                    }
                 }
 
                 if(Mode == SplineMode.BSpline && selected)
@@ -2851,6 +2873,44 @@ namespace CorgiSpline
                     Gizmos.color = new Color(0.5f, 0.5f, 0.5f, 1f); 
                     DrawLinearGizmos(); 
                 }
+            }
+
+            DrawPointRotationGizmos(); 
+        }
+
+        private void DrawPointRotationGizmos()
+        {
+            if(!EditorDrawRotations)
+            {
+                return;
+            }
+
+            for(var i = 0; i < Points.Length; ++i)
+            {
+                var splinePoint = Points[i];
+
+                if(SplineSpace == Space.Self)
+                {
+                    splinePoint = TransformSplinePoint(splinePoint);
+                }
+
+                var position = splinePoint.position;
+                var rotation = splinePoint.rotation;
+
+                var up = rotation * Vector3.up;
+                var forward = rotation * Vector3.forward;
+                var right = rotation * Vector3.right;
+
+                var distance = 1f;
+
+                Gizmos.color = Color.green;
+                Gizmos.DrawRay(position, up * distance);
+                
+                Gizmos.color = Color.blue;
+                Gizmos.DrawRay(position, forward * distance);
+                
+                Gizmos.color = Color.red;
+                Gizmos.DrawRay(position, right * distance);
             }
         }
 
