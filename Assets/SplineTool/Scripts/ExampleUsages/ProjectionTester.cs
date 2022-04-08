@@ -7,10 +7,13 @@ namespace CorgiSpline
 {
     public class ProjectionTester : MonoBehaviour
     {
-
+        [Header("Settings")]
         public Spline spline;
-
         public bool AlwaysDraw;
+
+        [Header("Results")]
+        public float ResultPercentage;
+
 
         private void OnDrawGizmosSelected()
         {
@@ -27,7 +30,10 @@ namespace CorgiSpline
             if (spline == null) return;
 
             var position = transform.position;
-            var splinePoint = spline.ProjectOnSpline(position);
+
+            ResultPercentage = spline.ProjectOnSpline_t(position);
+
+            var splinePoint = spline.GetPoint(ResultPercentage);
             var projectedPosition = splinePoint.position;
             var distance = Vector3.Distance(projectedPosition, position);
 
