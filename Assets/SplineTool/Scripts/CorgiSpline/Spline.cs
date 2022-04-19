@@ -1196,7 +1196,7 @@ namespace CorgiSpline
 
                 if (index0 > Points.Length - 3)
                 {
-                    var lastPoint = Points[Points.Length - 2];
+                    var lastPoint = Points[Points.Length - 1];
                 
                     if (SplineSpace == Space.Self)
                     {
@@ -2500,7 +2500,7 @@ namespace CorgiSpline
 
                 if (index0 > Points.Length - 3)
                 {
-                    var lastPoint = Points[Points.Length - 2];
+                    var lastPoint = Points[Points.Length - 1];
 
                     if (SplineSpace == Space.Self)
                     {
