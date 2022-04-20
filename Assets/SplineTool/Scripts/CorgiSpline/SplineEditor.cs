@@ -42,6 +42,7 @@ namespace CorgiSpline
         private static Vector3 PlacePlaneOffset;
         private static Quaternion PlacePlaneNormalRotation;
         private static bool SnapToNearestVert;
+        private static bool SnapToNavMesh;
         private static bool _showModifiedProperties;
 
         private SerializedProperty _junctionSplineBegin;
@@ -282,6 +283,7 @@ namespace CorgiSpline
                         PlaceLayerMask = InternalEditorUtility.ConcatenatedLayersMaskToLayerMask(tempMask);
 
                         SnapToNearestVert = EditorGUILayout.Toggle("Snap To Nearest Vertex", SnapToNearestVert);
+                        SnapToNavMesh = EditorGUILayout.Toggle("Snap To NavMesh", SnapToNavMesh);
                     }
 
                     if (PlaceMode == SplinePlacePointMode.Plane)
@@ -1063,6 +1065,25 @@ namespace CorgiSpline
                     var collisionHit = Physics.Raycast(worldRay, out collisionInfo, 256f, PlaceLayerMask, QueryTriggerInteraction.Ignore);
                     if (collisionHit)
                     {
+                        if(SnapToNavMesh && UnityEngine.AI.NavMesh.SamplePosition(collisionInfo.point, out UnityEngine.AI.NavMeshHit navMeshInfo, 16f, int.MaxValue))
+                        {
+                            var navMeshUp = navMeshInfo.normal;
+
+                            var navMeshForward = Vector3.ProjectOnPlane(Vector3.forward, navMeshUp);
+                            if (navMeshForward.sqrMagnitude > 0.001f)
+                            {
+                                navMeshForward = navMeshForward.normalized;
+                            }
+                            else
+                            {
+                                navMeshForward = Vector3.forward;
+                            }
+
+                            var navMeshPointRotation = Quaternion.LookRotation(navMeshForward, navMeshUp);
+                            point = new SplinePoint(navMeshInfo.position, navMeshPointRotation, Vector3.one);
+                            return true;
+                        }
+
                         if (SnapToNearestVert && collisionInfo.triangleIndex >= 0)
                         {
                             var meshFilter = collisionInfo.collider.GetComponent<MeshFilter>();
@@ -1120,14 +1141,12 @@ namespace CorgiSpline
 
                             return true;
                         }
-                        else
-                        {
-                            Handles.color = Color.white;
-                            Handles.DrawLine(collisionInfo.point, collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface);
 
-                            point = new SplinePoint(collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one);
-                            return true;
-                        }
+                        Handles.color = Color.white;
+                        Handles.DrawLine(collisionInfo.point, collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface);
+
+                        point = new SplinePoint(collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one);
+                        return true;
                     }
                     else
                     {
@@ -1137,9 +1156,11 @@ namespace CorgiSpline
 
                 case SplinePlacePointMode.InsertBetweenPoints:
 
-                    var sceneCam = SceneView.currentDrawingSceneView.camera;
-                    point = instance.ProjectOnSpline(sceneCam, sceneCam.WorldToScreenPoint(worldRay.origin));
-                    return true;
+                    {
+                        var sceneCam = SceneView.currentDrawingSceneView.camera;
+                        point = instance.ProjectOnSpline(sceneCam, sceneCam.WorldToScreenPoint(worldRay.origin));
+                        return true;
+                    }
             }
 
             point = new SplinePoint();
@@ -1741,6 +1762,12 @@ namespace CorgiSpline
                 {
                     GUI.color = Color.white;
                     GUILayout.Label("[Snapping to vertex]");
+                }
+
+                if (PlaceMode == SplinePlacePointMode.CollisionSurface && SnapToNearestVert)
+                {
+                    GUI.color = Color.white;
+                    GUILayout.Label("[Snapping to nav mesh]");
                 }
 
                 GUILayout.EndHorizontal();
