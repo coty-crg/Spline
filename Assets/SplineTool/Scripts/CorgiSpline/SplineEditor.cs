@@ -1764,7 +1764,7 @@ namespace CorgiSpline
                     GUILayout.Label("[Snapping to vertex]");
                 }
 
-                if (PlaceMode == SplinePlacePointMode.CollisionSurface && SnapToNearestVert)
+                if (PlaceMode == SplinePlacePointMode.CollisionSurface && SnapToNavMesh)
                 {
                     GUI.color = Color.white;
                     GUILayout.Label("[Snapping to nav mesh]");
