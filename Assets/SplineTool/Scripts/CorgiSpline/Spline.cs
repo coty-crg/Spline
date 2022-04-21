@@ -1194,7 +1194,7 @@ namespace CorgiSpline
                 index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
                 index0 = index0 - index0 % 3;
 
-                if (index0 > Points.Length - 3)
+                if (index0 >= Points.Length - 3)
                 {
                     var lastPoint = Points[Points.Length - 1];
                 
@@ -2498,7 +2498,7 @@ namespace CorgiSpline
                 index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
                 index0 = index0 - index0 % 3;
 
-                if (index0 > Points.Length - 3)
+                if (index0 >= Points.Length - 3)
                 {
                     var lastPoint = Points[Points.Length - 1];
 
