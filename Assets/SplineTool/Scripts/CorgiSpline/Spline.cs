@@ -1646,7 +1646,7 @@ namespace CorgiSpline
             {
                 var selectedPoint = Points[p];
 
-                var selected_t = ProjectOnSpline_t(selectedPoint.position);
+                var selected_t = (float) p / Points.Length;
                 var selected_forward = GetForward(selected_t);
                 var selected_up = Vector3.up;
 
