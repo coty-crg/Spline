@@ -400,17 +400,6 @@ namespace CorgiSpline
                             }
                         }
 
-                        if (!instance.EditorAlwaysFacePointsForwardAndUp && GUILayout.Button("Rotations: Force Forward & Up"))
-                        {
-                            Undo.RecordObject(instance, "Forced Rotation");
-
-                            instance.SetSplinePointsRotationForward();
-                            instance.UpdateNative();
-                            instance.SendEditorSplineUpdatedEvent();
-
-                            EditorUtility.SetDirty(instance);
-                        }
-
                         if (SelectedPoints.Count == 1)
                         {
                             EditorGUILayout.Space();
@@ -499,6 +488,16 @@ namespace CorgiSpline
                             instance.UpdateNative();
                             instance.SendEditorSplineUpdatedEvent(); 
                             EditorUtility.SetDirty(instance.transform);
+                        }
+                        if (!instance.EditorAlwaysFacePointsForwardAndUp && GUILayout.Button("Force ALL Rotations Forward&Up"))
+                        {
+                            Undo.RecordObject(instance, "Forced Rotation");
+
+                            instance.SetSplinePointsRotationForward();
+                            instance.UpdateNative();
+                            instance.SendEditorSplineUpdatedEvent();
+
+                            EditorUtility.SetDirty(instance);
                         }
                     }
                     GUILayout.EndHorizontal();
