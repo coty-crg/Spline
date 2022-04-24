@@ -1634,6 +1634,42 @@ namespace CorgiSpline
 
         /// <summary>
         /// Helper function to automatically set rotations of all spline points, such that the points are each facing their next point. 
+        /// Takes in an array of point indices. Used by the SplineEditor window.
+        /// </summary>
+        public void SetSplinePointsRotationForward(int[] pointIndices)
+        {
+            var isLocalSpace = GetSplineSpace() == Space.Self;
+
+            if (isLocalSpace)
+            {
+                SetSplineSpace(Space.World, true);
+            }
+
+            for (var p = 0; p < pointIndices.Length; ++p)
+            {
+                var i = pointIndices[p];
+                var selectedPoint = Points[i];
+
+                var selected_t = (float)p / Points.Length;
+                var selected_forward = GetForward(selected_t);
+                var selected_up = Vector3.up;
+
+                if (selected_forward.sqrMagnitude > 0.0001f && (selected_forward - selected_up).sqrMagnitude > 0.0001f)
+                {
+                    selectedPoint.rotation = Quaternion.LookRotation(selected_forward, selected_up);
+                }
+
+                Points[i] = selectedPoint;
+            }
+
+            if (isLocalSpace)
+            {
+                SetSplineSpace(Space.Self, true);
+            }
+        }
+
+        /// <summary>
+        /// Helper function to automatically set rotations of all spline points, such that the points are each facing their next point. 
         /// </summary>
         public void SetSplinePointsRotationForward()
         {

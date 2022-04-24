@@ -358,6 +358,17 @@ namespace CorgiSpline
                         editPoint.rotation.eulerAngles = EditorGUILayout.Vector3Field("point rotation", editPoint.rotation.eulerAngles);
                         editPoint.scale = EditorGUILayout.Vector3Field("point scale", editPoint.scale);
 
+                        if (!instance.EditorAlwaysFacePointsForwardAndUp && GUILayout.Button("Force selected rotations Forward&Up"))
+                        {
+                            Undo.RecordObject(instance, "Forced Rotation");
+
+                            instance.SetSplinePointsRotationForward(SelectedPoints.ToArray());
+                            instance.UpdateNative();
+                            instance.SendEditorSplineUpdatedEvent();
+
+                            EditorUtility.SetDirty(instance);
+                        }
+
                         if (!point.Equals(editPoint))
                         {
                             Undo.RecordObject(instance, "Points Edited");
