@@ -31,7 +31,7 @@ namespace CorgiSpline
         [Range(0f, 1f)] public float built_to_t = 1f;
 
         [Tooltip("Visual quality of the mesh along the spline. Higher values look nicer but are slower to compute.")]
-        [Range(32, 1024)] public int quality = 256;
+        [Range(4, 1024)] public int quality = 256;
 
         // [Tooltip("Width of the mesh along each spline node's local x axis.")]
         // [Range(0.001f, 10f)] public float width = 1f;
