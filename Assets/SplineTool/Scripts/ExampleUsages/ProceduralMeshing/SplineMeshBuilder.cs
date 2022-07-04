@@ -708,10 +708,10 @@ namespace CorgiSpline
                     var normal1 = up;
                     var normal2 = -up;
                     var normal3 = -up;
-                    var normal4 = -right;
-                    var normal5 = -right;
-                    var normal6 = right;
-                    var normal7 = right;
+                    var normal4 = right;
+                    var normal5 = right;
+                    var normal6 = -right;
+                    var normal7 = -right;
 
                     var tangent0 = right;
                     var tangent1 = right;
