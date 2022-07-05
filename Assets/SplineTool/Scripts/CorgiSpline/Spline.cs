@@ -1241,9 +1241,9 @@ namespace CorgiSpline
                 var mod_t = Mathf.Repeat(t, delta_t);
                 var inner_t = mod_t / delta_t;
 
-                var index = Mathf.FloorToInt(t * Points.Length);
-
-                index = Mathf.Clamp(index, 0, Points.Length);
+                var pointCount = Points.Length;
+                var index = Mathf.FloorToInt(t * pointCount);
+                index = Mathf.Clamp(index, 0, pointCount);
 
                 // note, offsetting by -1 so index0 starts behind current point 
                 index -= 1;
@@ -1255,7 +1255,7 @@ namespace CorgiSpline
 
                 if (ClosedSpline)
                 {
-                    int mod_count = Points.Length; // - 1; // -1 to ignore duplicate final point 
+                    int mod_count = Points.Length; // - 1; // -1 to ignore duplicate final point
 
                     index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                     index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
@@ -1279,6 +1279,26 @@ namespace CorgiSpline
                 var point1 = Points[index1];
                 var point2 = Points[index2];
                 var point3 = Points[index3];
+
+                if (!ClosedSpline)
+                {
+                    // if we're on the first point, guess 
+                    if (index < 0)
+                    {
+                        point0.position = point1.position + (point1.position - point2.position);
+                    }
+
+                    // if we're on the last point, guess 
+                    if (index >= pointCount - 2)
+                    {
+                        point2.position = point1.position + (point1.position - point0.position).normalized * 0.01f;
+                    }
+
+                    if (index >= pointCount - 3)
+                    {
+                        point3.position = point2.position + (point2.position - point1.position).normalized * 0.01f;
+                    }
+                }
 
                 var result = CalculateBSplinePoint(point0, point1, point2, point3, inner_t);
 
