@@ -766,9 +766,16 @@ namespace CorgiSpline
         /// </summary>
         /// <param name="d"></param>
         /// <returns></returns>
-        public float ProjectDistance(float d)
+        public float ProjectDistance(float d, bool repeat = false)
         {
-            d = Mathf.Repeat(d, _projectionDistanceLength);
+            if(repeat)
+            {
+                d = Mathf.Repeat(d, _projectionDistanceLength);
+            }
+            else
+            {
+                d = Mathf.Clamp(d, 0f, _projectionDistanceLength); 
+            }
 
             // find out our closest d 
             var resolution = _projectionDistanceCache.Length;
