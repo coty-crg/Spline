@@ -2265,12 +2265,12 @@ namespace CorgiSpline
         /// <param name="hit"></param>
         /// <param name="nonLinearSubdivisions"></param>
         /// <returns></returns>
-        public bool RaycastAlongSpline(int layerMask, out RaycastHit hit, QueryTriggerInteraction queryTriggerInteraction, int nonLinearSubdivisions = 1000)
+        public bool RaycastAlongSpline(int layerMask, out RaycastHit hit, QueryTriggerInteraction queryTriggerInteraction, int nonLinearSubdivisions = 128)
         {
             var blocked = false;
             hit = default;
 
-            if(Mode == SplineMode.Linear)
+            if (Mode == SplineMode.Linear)
             {
                 var splineSpace = GetSplineSpace();
                 SetSplineSpace(Space.World, true);
@@ -2319,6 +2319,109 @@ namespace CorgiSpline
                             blocked = true;
                             break;
                         }
+                    }
+                }
+            }
+
+            return blocked; 
+        }
+
+        /// <summary>
+        /// Jobified version of RaycastAlongSpline(). Generates a small amount of garbage, but can be much faster for complex splines. 
+        /// Raycasts from the start to the end along the spline. Returns true if something was hit, populating the out parameter hit. 
+        /// If the spline is not Linear, nonLinearSubdivisions will be used for raycasting along the spline. 
+        /// </summary>
+        /// <param name="layerMask"></param>
+        /// <param name="hit"></param>
+        /// <param name="nonLinearSubdivisions"></param>
+        /// <returns></returns>
+        public bool RaycastAlongSplineJobified(int layerMask, out RaycastHit hit, int nonLinearSubdivisions = 128)
+        {
+            var blocked = false;
+            hit = default;
+
+            
+            if (Mode == SplineMode.Linear)
+            {
+                var splineSpace = GetSplineSpace();
+                SetSplineSpace(Space.World, true);
+
+                var raycastCommands = new NativeArray<RaycastCommand>(Points.Length - 1, Allocator.TempJob);
+                var raycastHits = new NativeArray<RaycastHit>(raycastCommands.Length, Allocator.TempJob);
+
+                for (var i = 0; i < Points.Length - 1; ++i)
+                {
+                    var pointA = Points[i + 0];
+                    var pointB = Points[i + 1];
+
+                    var ab = (pointB.position - pointA.position);
+                    var abDistance = ab.magnitude;
+                    if (abDistance > 0.00001f)
+                    {
+                        var origin = pointA.position;
+                        var direction = ab.normalized;
+
+                        raycastCommands[i] = new RaycastCommand(origin, direction, abDistance, layerMask, 1);
+                    }
+                }
+
+                SetSplineSpace(splineSpace, true);
+
+                var raycastHandle = RaycastCommand.ScheduleBatch(raycastCommands, raycastHits, 16);
+                raycastHandle.Complete();
+
+                raycastCommands.Dispose();
+                raycastHits.Dispose();
+
+                for (var h = 0; h < raycastHits.Length; ++h)
+                {
+                    var raycastHit = raycastHits[h];
+                    if (raycastHit.collider != null)
+                    {
+                        hit = raycastHit;
+                        blocked = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                var raycastCommands = new NativeArray<RaycastCommand>(nonLinearSubdivisions, Allocator.TempJob);
+                var raycastHits = new NativeArray<RaycastHit>(raycastCommands.Length, Allocator.TempJob);
+
+                for (var i = 0; i <= nonLinearSubdivisions; ++i)
+                {
+                    var t0 = ((float) (i + 0)) / nonLinearSubdivisions;
+                    var t1 = ((float) (i + 1)) / nonLinearSubdivisions;
+
+                    var pointA = GetPoint(t0);
+                    var pointB = GetPoint(t1);
+
+                    var ab = (pointB.position - pointA.position);
+                    var abDistance = ab.magnitude;
+                    if (abDistance > 0f)
+                    {
+                        var origin = pointA.position;
+                        var direction = ab.normalized;
+
+                        raycastCommands[i] = new RaycastCommand(origin, direction, abDistance, layerMask, 1); 
+                    }
+                }
+
+                var raycastHandle = RaycastCommand.ScheduleBatch(raycastCommands, raycastHits, 16);
+                    raycastHandle.Complete();
+
+                raycastCommands.Dispose();
+                raycastHits.Dispose();
+
+                for (var h = 0; h < raycastHits.Length; ++h)
+                {
+                    var raycastHit = raycastHits[h];
+                    if (raycastHit.collider != null)
+                    {
+                        hit = raycastHit;
+                        blocked = true;
+                        break;
                     }
                 }
             }
@@ -2879,7 +2982,7 @@ namespace CorgiSpline
 
             return projectionDistanceCacheLength;
         }
-        
+
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
