@@ -1,4 +1,4 @@
-//#define CORGI_DETECTED_DOTWEEN // no way to automatically detect this?! 
+#define CORGI_DETECTED_DOTWEEN // no way to automatically detect this?! 
 
 namespace CorgiSpline
 {
@@ -41,19 +41,27 @@ namespace CorgiSpline
         /// <param name="spline"></param>
         /// <param name="speed"></param>
         /// <returns></returns>
-        public static Tweener DoFollowSplineConsistent(this Transform transform, Spline spline, float speed)
+        public static Tweener DoFollowSplineConsistent(this Transform transform, Spline spline, float speed, bool matchRotation, Ease ease = Ease.InOutSine, int resolution = 1000)
         {
-            var totalDistance = spline.UpdateDistanceProjectionsData();
+            var totalDistance = spline.UpdateDistanceProjectionsData(resolution);
             var duration = totalDistance / Mathf.Max(0.01f, speed);
 
             var d = 0f;
-            return DOTween.To(() => d, x => d = x, totalDistance, duration).OnUpdate(() =>
+            return DOTween.To(() => d, x => d = x, totalDistance, duration)
+                .SetEase(ease)
+                .OnUpdate(() =>
             {
                 if (transform != null && spline != null)
                 {
                     var t = spline.ProjectDistance(d); 
                     var splinePoint = spline.GetPoint(t);
+
                     transform.position = splinePoint.position;
+
+                    if(matchRotation)
+                    {
+                        transform.rotation = splinePoint.rotation; 
+                    }
                 }
             });
         }
