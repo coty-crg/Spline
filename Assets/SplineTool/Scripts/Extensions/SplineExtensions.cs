@@ -1,4 +1,4 @@
-#define CORGI_DETECTED_DOTWEEN // no way to automatically detect this?! 
+// #define CORGI_DETECTED_DOTWEEN // no way to automatically detect this?! 
 
 namespace CorgiSpline
 {
