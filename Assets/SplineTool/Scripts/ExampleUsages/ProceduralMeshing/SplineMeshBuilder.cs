@@ -125,6 +125,8 @@ namespace CorgiSpline
         private bool _hasScheduledJob;
         private bool _needsNativeUpdate;
 
+        [System.NonSerialized] public bool _disabledAtRuntimeFromSerializedMesh;
+
 #if UNITY_EDITOR
         public void EditorOnSplineUpdated(Spline spline)
         {
@@ -163,6 +165,7 @@ namespace CorgiSpline
 
                 if(Application.isPlaying)
                 {
+                    _disabledAtRuntimeFromSerializedMesh = true; 
                     this.enabled = false; 
                     return; 
                 }
@@ -334,7 +337,7 @@ namespace CorgiSpline
         }
 
         /// <summary>
-        /// Completes a meshing job. 
+        /// Completes an ongoing async meshing job. 
         /// </summary>
         public void CompleteJob()
         {

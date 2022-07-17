@@ -79,6 +79,12 @@ namespace CorgiSpline
             var instance = (SplineMeshBuilder) target;
             var prevSplineReference = instance.SplineReference;
 
+            if(instance._disabledAtRuntimeFromSerializedMesh)
+            {
+                EditorGUILayout.HelpBox("This SplineMeshBuilder component was disabled at runtime because it is modifying a serialized mesh. " +
+                    "If you wish to modify it at runtime, exit play mode and unlink the serialized mesh.", MessageType.Info);
+            }
+
             DrawRefreshAndTimings(instance); 
 
             GUILayout.BeginVertical("GroupBox");
