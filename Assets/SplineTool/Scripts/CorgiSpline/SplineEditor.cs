@@ -999,6 +999,8 @@ namespace CorgiSpline
         private SplinePoint previousMeshSurfacePoint;
         private bool hasPreviousMeshSurfacePoint;
 
+        private Vector3[] _boxVertCache = new Vector3[8];
+
         private bool TryGetPointFromMouse(Spline instance, out SplinePoint point)
         {
             var mousePosition = Event.current.mousePosition;
@@ -1149,6 +1151,42 @@ namespace CorgiSpline
                                 point = new SplinePoint(vertex2 + normal2 * PlaceOffsetFromSurface, rotation2, Vector3.one);
                             }
 
+                            return true;
+                        }
+                        else if (SnapToNearestVert && collisionInfo.collider as BoxCollider != null)
+                        {
+                            var boxCollider = collisionInfo.collider as BoxCollider;
+                            var boxLocalToWorld = boxCollider.transform.localToWorldMatrix;
+
+                            var min = boxCollider.center - boxCollider.size * 0.5f;
+                            var max = boxCollider.center + boxCollider.size * 0.5f;
+
+                            _boxVertCache[0] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, min.y, min.z));
+                            _boxVertCache[1] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, min.y, max.z));
+                            _boxVertCache[2] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, max.y, min.z));
+                            _boxVertCache[3] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, max.y, max.z));
+                            _boxVertCache[4] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, min.y, min.z));
+                            _boxVertCache[5] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, min.y, max.z));
+                            _boxVertCache[6] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, max.y, min.z));
+                            _boxVertCache[7] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, max.y, max.z));
+
+                            var closestDistance = 1000f;
+                            var closestPointIndex = -1;
+
+                            for (int i = 0; i < 8; i++)
+                            {
+                                var distance = Vector3.Distance(collisionInfo.point, _boxVertCache[i]);
+                                if (distance < closestDistance)
+                                {
+                                    closestDistance = distance;
+                                    closestPointIndex = i;
+                                }
+                            }
+
+                            Handles.color = Color.white;
+                            Handles.DrawLine(collisionInfo.point, collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface);
+
+                            point = new SplinePoint(_boxVertCache[closestPointIndex] + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one);
                             return true;
                         }
 
