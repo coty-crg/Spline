@@ -136,7 +136,9 @@ namespace CorgiSpline
             ReadbackNativeArray();
         }
 
+#if CORGI_DETECTED_BURST
         [BurstCompile]
+#endif
         private struct RigidbodyFollowSpline : IJobParallelFor
         {
             // data 
@@ -184,7 +186,9 @@ namespace CorgiSpline
             }
         }
 
+#if CORGI_DETECTED_BURST
         [BurstCompile]
+#endif
         private struct RigidbodyInitializeRandomScatter : IJobParallelFor
         {
             // data 

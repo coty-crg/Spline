@@ -231,7 +231,9 @@ namespace CorgiSpline
             return job.Schedule(dependency);
         }
 
+#if CORGI_DETECTED_BURST
         [BurstCompile]
+#endif
         private struct BuildMeshFromSpline_RepeatingMesh : IJob
         {
             // settings

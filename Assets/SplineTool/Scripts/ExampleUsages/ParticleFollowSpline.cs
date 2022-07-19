@@ -88,7 +88,9 @@ namespace CorgiSpline
             TargetParticleSystem.SetParticles(_particleCache, particle_count);
         }
 
+#if CORGI_DETECTED_BURST
         [BurstCompile]
+#endif
         private struct ParticlesSplineFollow : IJobParallelFor
         {
             // Particle System data 

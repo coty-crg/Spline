@@ -113,7 +113,9 @@ namespace CorgiSpline
             _previousJobHandle.Complete();
         }
 
+#if CORGI_DETECTED_BURST
         [BurstCompile]
+#endif
         private struct TransformFollowSplineJob : IJobParallelForTransform
         {
             // settings 
@@ -153,7 +155,9 @@ namespace CorgiSpline
             }
         }
 
+#if CORGI_DETECTED_BURST
         [BurstCompile]
+#endif
         private struct TransformInitializeRandomScatter : IJobParallelForTransform
         {
             public NativeArray<float> Distances;

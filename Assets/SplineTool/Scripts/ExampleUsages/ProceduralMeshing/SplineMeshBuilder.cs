@@ -553,7 +553,9 @@ namespace CorgiSpline
             _needsNativeUpdate = true;
         }
 
+#if CORGI_DETECTED_BURST
         [BurstCompile]
+#endif
         private struct BuildMeshFromSpline : IJob
         {
             // settings
