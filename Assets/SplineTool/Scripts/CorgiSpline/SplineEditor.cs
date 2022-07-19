@@ -1170,7 +1170,7 @@ namespace CorgiSpline
                             _boxVertCache[6] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, max.y, min.z));
                             _boxVertCache[7] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, max.y, max.z));
 
-                            var closestDistance = 1000f;
+                            var closestDistance = float.MaxValue;
                             var closestPointIndex = -1;
 
                             for (int i = 0; i < 8; i++)
