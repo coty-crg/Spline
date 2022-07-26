@@ -217,7 +217,7 @@ namespace CorgiSpline
                     {
                         localWidth *= splinePoint.scale.magnitude;
                     }
-
+                    
                     for (var tube_step = 0; tube_step < tube_quality; ++tube_step)
                     {
                         var radians = tube_step * tube_delta * pi2; 
@@ -344,7 +344,7 @@ namespace CorgiSpline
                     var v_start_center = verts.Length;
                     var startTangent = new Vector4(start_up.x, start_up.y, start_up.z, 1.0f);
 
-                    verts.Add(firstPoint.position);
+                    verts.Add(firstPoint.position + vertexOffset);
                     normals.Add(start_forward);
                     tangents.Add(startTangent);
                     uvs0.Add(new Vector4(0f, 0f, 0f, 0f));
@@ -391,7 +391,7 @@ namespace CorgiSpline
 
                     var endTangent = new Vector4(end_up.x, end_up.y, end_up.z, 1.0f);
 
-                    verts.Add(lastPoint.position);
+                    verts.Add(lastPoint.position + vertexOffset);
                     normals.Add(end_forward);
                     tangents.Add(endTangent);
                     uvs0.Add(new Vector4(0f, 0f, 0f, 0f));
