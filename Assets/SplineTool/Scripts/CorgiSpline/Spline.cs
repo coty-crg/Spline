@@ -675,7 +675,10 @@ namespace CorgiSpline
 
                 for (var i = 0; i < length; i += 1)
                 {
-                    var index = Mathf.Clamp(i, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
+                    var index = i;
+
+                    var pointCount = Points.Length;
+                    index = Mathf.Clamp(index, 0, pointCount) - 1; // note, offsetting by -1 so index0 starts behind current point 
 
                     int index0;
                     int index1;
@@ -698,19 +701,25 @@ namespace CorgiSpline
                         index2 = index + 2;
                         index3 = index + 3;
 
-                        index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
-                        index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
-                        index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
-                        index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+                        index0 = Mathf.Clamp(index0, 0, pointCount - 1);
+                        index1 = Mathf.Clamp(index1, 0, pointCount - 1);
+                        index2 = Mathf.Clamp(index2, 0, pointCount - 1);
+                        index3 = Mathf.Clamp(index3, 0, pointCount - 1);
                     }
 
-                    var p0 = Points[index0];
-                    var p1 = Points[index1];
-                    var p2 = Points[index2];
-                    var p3 = Points[index3];
+                    var point0 = Points[index0];
+                    var point1 = Points[index1];
+                    var point2 = Points[index2];
+                    var point3 = Points[index3];
 
-                    var t = BSplineProject(p0.position, p1.position, p2.position, p3.position, position);
-                    var projected = BSplineInterpolate(p0.position, p1.position, p2.position, p3.position, t);
+                    if (!ClosedSpline)
+                    {
+                        BSplineValidatePositions(index, pointCount, ref point0.position, ref point1.position, ref point2.position, ref point3.position);
+                    }
+
+                    var t = BSplineProject(point0.position, point1.position, point2.position, point3.position, position);
+                    var projected = BSplineInterpolate(point0.position, point1.position, point2.position, point3.position, t);
+                    
                     var distance = Vector3.Distance(projected, position);
 
                     if (distance < closestDistance)
@@ -721,6 +730,8 @@ namespace CorgiSpline
                         best_t = t;
                     }
                 }
+
+                if (best_i < 0) best_i = 0; 
 
                 return (float)best_i / Points.Length + best_t * (1f / Points.Length);
             }
@@ -1016,7 +1027,8 @@ namespace CorgiSpline
                  
                 for (var i = 0; i < length; i += 1)
                 {
-                    var index = Mathf.Clamp(i, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
+                    var pointCount = Points.Length;
+                    var index = Mathf.Clamp(i, 0, pointCount) - 1; // note, offsetting by -1 so index0 starts behind current point 
 
                     int index0;
                     int index1;
@@ -1039,38 +1051,43 @@ namespace CorgiSpline
                         index2 = index + 2;
                         index3 = index + 3;
 
-                        index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
-                        index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
-                        index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
-                        index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+                        index0 = Mathf.Clamp(index0, 0, pointCount - 1);
+                        index1 = Mathf.Clamp(index1, 0, pointCount - 1);
+                        index2 = Mathf.Clamp(index2, 0, pointCount - 1);
+                        index3 = Mathf.Clamp(index3, 0, pointCount - 1);
                     }
 
-                    var p0 = Points[index0];
-                    var p1 = Points[index1];
-                    var p2 = Points[index2];
-                    var p3 = Points[index3];
+                    var point0 = Points[index0];
+                    var point1 = Points[index1];
+                    var point2 = Points[index2];
+                    var point3 = Points[index3];
+
+                    if (!ClosedSpline)
+                    {
+                        BSplineValidatePositions(index, pointCount, ref point0.position, ref point1.position, ref point2.position, ref point3.position);
+                    }
 
                     if (SplineSpace == Space.Self)
                     {
-                        p0 = TransformSplinePoint(p0);
-                        p1 = TransformSplinePoint(p1);
-                        p2 = TransformSplinePoint(p2);
-                        p3 = TransformSplinePoint(p3);
+                        point0 = TransformSplinePoint(point0);
+                        point1 = TransformSplinePoint(point1);
+                        point2 = TransformSplinePoint(point2);
+                        point3 = TransformSplinePoint(point3);
                     }
 
                     // convert to screen coords 
-                    p0.position = camera.WorldToScreenPoint(p0.position);
-                    p1.position = camera.WorldToScreenPoint(p1.position);
-                    p2.position = camera.WorldToScreenPoint(p2.position);
-                    p3.position = camera.WorldToScreenPoint(p3.position);
+                    point0.position = camera.WorldToScreenPoint(point0.position);
+                    point1.position = camera.WorldToScreenPoint(point1.position);
+                    point2.position = camera.WorldToScreenPoint(point2.position);
+                    point3.position = camera.WorldToScreenPoint(point3.position);
 
-                    p0.position.z = 0f;
-                    p1.position.z = 0f;
-                    p2.position.z = 0f;
-                    p3.position.z = 0f;
+                    point0.position.z = 0f;
+                    point1.position.z = 0f;
+                    point2.position.z = 0f;
+                    point3.position.z = 0f;
 
-                    var t = BSplineProject(p0.position, p1.position, p2.position, p3.position, screenPosition);
-                    var projected = BSplineInterpolate(p0.position, p1.position, p2.position, p3.position, t);
+                    var t = BSplineProject(point0.position, point1.position, point2.position, point3.position, screenPosition);
+                    var projected = BSplineInterpolate(point0.position, point1.position, point2.position, point3.position, t);
                     var distance = Vector3.Distance(projected, screenPosition);
 
                     if (distance < closestDistance)
@@ -1282,22 +1299,7 @@ namespace CorgiSpline
 
                 if (!ClosedSpline)
                 {
-                    // if we're on the first point, guess 
-                    if (index < 0)
-                    {
-                        point0.position = point1.position + (point1.position - point2.position);
-                    }
-
-                    // if we're on the last point, guess 
-                    if (index >= pointCount - 2)
-                    {
-                        point2.position = point1.position + (point1.position - point0.position).normalized * 0.01f;
-                    }
-
-                    if (index >= pointCount - 3)
-                    {
-                        point3.position = point2.position + (point2.position - point1.position).normalized * 0.01f;
-                    }
+                    BSplineValidatePositions(index, pointCount, ref point0.position, ref point1.position, ref point2.position, ref point3.position);
                 }
 
                 var result = CalculateBSplinePoint(point0, point1, point2, point3, inner_t);
@@ -2605,8 +2607,10 @@ namespace CorgiSpline
 
                 for (var i = 0; i < length; i += 1)
                 {
+                    var pointCount = Points.Length;
+
                     var index = i;
-                    index = Mathf.Clamp(index, 0, Points.Length) - 1; // note, offsetting by -1 so index0 starts behind current point 
+                    index = Mathf.Clamp(index, 0, pointCount) - 1; // note, offsetting by -1 so index0 starts behind current point 
 
                     int index0;
                     int index1;
@@ -2629,19 +2633,24 @@ namespace CorgiSpline
                         index2 = index + 2;
                         index3 = index + 3;
 
-                        index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
-                        index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
-                        index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
-                        index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+                        index0 = Mathf.Clamp(index0, 0, pointCount - 1);
+                        index1 = Mathf.Clamp(index1, 0, pointCount - 1);
+                        index2 = Mathf.Clamp(index2, 0, pointCount - 1);
+                        index3 = Mathf.Clamp(index3, 0, pointCount - 1);
                     }
 
-                    var p0 = Points[index0];
-                    var p1 = Points[index1];
-                    var p2 = Points[index2];
-                    var p3 = Points[index3];
+                    var point0 = Points[index0];
+                    var point1 = Points[index1];
+                    var point2 = Points[index2];
+                    var point3 = Points[index3];
 
-                    var t = BSplineProject(p0.position, p1.position, p2.position, p3.position, position);
-                    var projected = BSplineInterpolate(p0.position, p1.position, p2.position, p3.position, t);
+                    if (!ClosedSpline)
+                    {
+                        BSplineValidatePositions(index, pointCount, ref point0.position, ref point1.position, ref point2.position, ref point3.position);
+                    }
+
+                    var t = BSplineProject(point0.position, point1.position, point2.position, point3.position, position);
+                    var projected = BSplineInterpolate(point0.position, point1.position, point2.position, point3.position, t);
                     var distance = Vector3.Distance(projected, position);
 
                     if (distance < closestDistance)
@@ -2657,6 +2666,26 @@ namespace CorgiSpline
             }
 
             return 0f;
+        }
+
+        private static void BSplineValidatePositions(int index, int length, ref Vector3 point0, ref Vector3 point1, ref Vector3 point2, ref Vector3 point3)
+        {
+            // if we're on the first point, guess 
+            if (index < 0)
+            {
+                point0 = point1 + (point1 - point2);
+            }
+
+            // if we're on the last point, guess 
+            if (index >= length - 2)
+            {
+                point2 = point1 + (point1 - point0).normalized * 0.01f;
+            }
+
+            if (index >= length - 3)
+            {
+                point3 = point2 + (point2 - point1).normalized * 0.01f;
+            }
         }
 
         public static SplinePoint JobSafe_GetPoint(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
@@ -2815,22 +2844,7 @@ namespace CorgiSpline
 
                 if (!ClosedSpline)
                 {
-                    // if we're on the first point, guess 
-                    if (index < 0)
-                    {
-                        point0.position = point1.position + (point1.position - point2.position);
-                    }
-
-                    // if we're on the last point, guess 
-                    if (index >= pointCount - 2)
-                    {
-                        point2.position = point1.position + (point1.position - point0.position).normalized * 0.01f;
-                    }
-
-                    if (index >= pointCount - 3)
-                    {
-                        point3.position = point2.position + (point2.position - point1.position).normalized * 0.01f;
-                    }
+                    BSplineValidatePositions(index, pointCount, ref point0.position, ref point1.position, ref point2.position, ref point3.position);
                 }
 
                 var result = CalculateBSplinePoint(point0, point1, point2, point3, inner_t);
@@ -2983,7 +2997,7 @@ namespace CorgiSpline
             return projectionDistanceCacheLength;
         }
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR 
         private void OnDrawGizmosSelected()
         {
             if (EditorAlwaysDraw) return;
