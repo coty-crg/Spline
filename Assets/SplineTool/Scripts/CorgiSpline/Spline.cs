@@ -2372,9 +2372,6 @@ namespace CorgiSpline
                 var raycastHandle = RaycastCommand.ScheduleBatch(raycastCommands, raycastHits, 16);
                 raycastHandle.Complete();
 
-                raycastCommands.Dispose();
-                raycastHits.Dispose();
-
                 for (var h = 0; h < raycastHits.Length; ++h)
                 {
                     var raycastHit = raycastHits[h];
@@ -2385,6 +2382,9 @@ namespace CorgiSpline
                         break;
                     }
                 }
+
+                raycastCommands.Dispose();
+                raycastHits.Dispose();
             }
             else
             {
@@ -2413,9 +2413,6 @@ namespace CorgiSpline
                 var raycastHandle = RaycastCommand.ScheduleBatch(raycastCommands, raycastHits, 16);
                     raycastHandle.Complete();
 
-                raycastCommands.Dispose();
-                raycastHits.Dispose();
-
                 for (var h = 0; h < raycastHits.Length; ++h)
                 {
                     var raycastHit = raycastHits[h];
@@ -2426,6 +2423,9 @@ namespace CorgiSpline
                         break;
                     }
                 }
+
+                raycastCommands.Dispose();
+                raycastHits.Dispose();
             }
 
             return blocked; 
