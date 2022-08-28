@@ -77,6 +77,7 @@ namespace CorgiSpline
             #endif
 
             var instance = (SplineMeshBuilder) target;
+            var instanceIsSplitMesh = instance as SplineMeshBuilder_RepeatingMeshSplit != null;
             var prevSplineReference = instance.SplineReference;
 
             if(instance._disabledAtRuntimeFromSerializedMesh)
@@ -138,7 +139,7 @@ namespace CorgiSpline
                     EditorGUILayout.LabelField("General Settings", EditorStyles.boldLabel);
                     // EditorGUILayout.PropertyField(SerializeMesh);
 
-                    if(instance._serializedMesh != null)
+                    if(!instanceIsSplitMesh && instance._serializedMesh != null)
                     {
                         EditorGUI.BeginDisabledGroup(true); 
                         EditorGUILayout.PropertyField(_serializedMesh);
@@ -175,7 +176,7 @@ namespace CorgiSpline
                         EditorGUILayout.PropertyField(AllowAsyncRebuild);
 
                         EditorGUILayout.Space();
-                        if(GUILayout.Button("Serialize Mesh"))
+                        if(!instanceIsSplitMesh && GUILayout.Button("Serialize Mesh"))
                         {
                             var filename = EditorUtility.SaveFilePanel("Save Mesh Asset", Application.dataPath, $"{instance.gameObject.name}", "asset");
                             if(!string.IsNullOrEmpty(filename))
@@ -205,11 +206,14 @@ namespace CorgiSpline
 
                     EditorGUILayout.Space();
 
-                    var existingMeshCollider = instance.GetComponent<MeshCollider>();
-                    if(existingMeshCollider == null && GUILayout.Button("Generate MeshCollider"))
+                    if(!instanceIsSplitMesh)
                     {
-                        var meshCollider = Undo.AddComponent<MeshCollider>(instance.gameObject);
-                            meshCollider.sharedMesh = instance.GetMesh(); 
+                        var existingMeshCollider = instance.GetComponent<MeshCollider>();
+                        if(existingMeshCollider == null && GUILayout.Button("Generate MeshCollider"))
+                        {
+                            var meshCollider = Undo.AddComponent<MeshCollider>(instance.gameObject);
+                                meshCollider.sharedMesh = instance.GetMesh(); 
+                        }
                     }
                 }
                 GUILayout.EndVertical();
@@ -230,7 +234,7 @@ namespace CorgiSpline
                     var supportsSplineSamplingSettings = repeatingMeshBuilder == null;
 
                     EditorGUILayout.LabelField("Visual Settings", EditorStyles.boldLabel);
-                    EditorGUILayout.PropertyField(built_to_t);
+                    if(!instanceIsSplitMesh) EditorGUILayout.PropertyField(built_to_t);
                     EditorGUILayout.PropertyField(vertexOffset);
                     EditorGUILayout.PropertyField(rotationEulorOffset);
                     EditorGUILayout.PropertyField(scaleMult);
@@ -295,6 +299,7 @@ namespace CorgiSpline
         {
             var editorConfig = SplineEditorConfig.FindConfig();
             var newGameobject = new GameObject("NewSplineMesh_Cube");
+                newGameobject.AddComponent<MeshFilter>();
 
             var spline = newGameobject.AddComponent<Spline>();
                 spline.SetSplineSpace(Space.Self, false);
@@ -302,6 +307,7 @@ namespace CorgiSpline
 
             var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder>();
                 meshBuilder.SplineReference = spline;
+
 
             var newMeshRenderer = newGameobject.AddComponent<MeshRenderer>();
                 newMeshRenderer.sharedMaterial = editorConfig.defaultMaterialForRenderers;

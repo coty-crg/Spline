@@ -9,7 +9,6 @@ using UnityEngine.UIElements;
 namespace CorgiSpline
 {
     [ExecuteInEditMode]
-    [RequireComponent(typeof(MeshFilter))]
     public class SplineMeshBuilder : MonoBehaviour
     {
         // references 
@@ -120,10 +119,10 @@ namespace CorgiSpline
         protected NativeList<int> _nativeTris;
         protected JobHandle _previousHandle;
 
-        private float _prevCompleteMs;
-        private bool _asyncReadyToRebuild = true;
-        private bool _hasScheduledJob;
-        private bool _needsNativeUpdate;
+        protected float _prevCompleteMs;
+        protected bool _hasScheduledJob;
+        protected bool _asyncReadyToRebuild = true;
+        protected bool _needsNativeUpdate;
 
         [System.NonSerialized] public bool _disabledAtRuntimeFromSerializedMesh;
 
@@ -339,7 +338,7 @@ namespace CorgiSpline
         /// <summary>
         /// Completes an ongoing async meshing job. 
         /// </summary>
-        public void CompleteJob()
+        public virtual void CompleteJob()
         {
             if(!_hasScheduledJob)
             {

@@ -6,10 +6,12 @@ using UnityEditor;
 
 namespace CorgiSpline
 {
-    [CustomEditor(typeof(SplineMeshBuilder_RepeatingMesh))]
-    public class SplineMeshBuilder_RepeatingMesh_Editor : SplineMeshBuilder_Editor
+    [CustomEditor(typeof(SplineMeshBuilder_RepeatingMeshSplit))]
+    public class SplineMeshBuilder_RepeatingMeshSplit_Editor : SplineMeshBuilder_Editor
     {
         protected SerializedProperty RepeatableMesh;
+        protected SerializedProperty Material;
+        protected SerializedProperty createMeshCollider;
         protected SerializedProperty UseRepeatingMeshUVs;
         private List<Vector3> _vertexCache = new List<Vector3>();
         private List<int> _vertexMinZCache = new List<int>();
@@ -25,13 +27,15 @@ namespace CorgiSpline
 
             RepeatableMesh              = serializedObject.FindProperty("RepeatableMesh");
             UseRepeatingMeshUVs         = serializedObject.FindProperty("UseRepeatingMeshUVs");
+            Material = serializedObject.FindProperty("Material");
+            createMeshCollider = serializedObject.FindProperty("createMeshCollider");
         }
 
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
 
-            var instance = (SplineMeshBuilder_RepeatingMesh) target;
+            var instance = (SplineMeshBuilder_RepeatingMeshSplit) target;
 
             GUILayout.BeginVertical("GroupBox");
             {
@@ -39,6 +43,8 @@ namespace CorgiSpline
                 {
                     EditorGUILayout.LabelField("Repeating Mesh", EditorStyles.boldLabel);
                     EditorGUILayout.PropertyField(RepeatableMesh);
+                    EditorGUILayout.PropertyField(Material);
+                    EditorGUILayout.PropertyField(createMeshCollider);
 
                     if (instance.RepeatableMesh == null)
                     {
@@ -206,26 +212,24 @@ namespace CorgiSpline
             }
         }
 
-        [MenuItem("GameObject/CorgiSpline/Spline Mesh (repeating mesh)", priority = 10)]
-        public static void MenuItemCreateMeshBuilder_RepeatingMesh()
+        [MenuItem("GameObject/CorgiSpline/Spline Split Mesh (split repeating mesh)", priority = 10)]
+        public static void MenuItemCreateMeshBuilder_RepeatingMeshSplit()
         {
             var editorConfig = SplineEditorConfig.FindConfig();
 
-            var newGameobject = new GameObject("NewSplineMesh_RepeatingMesh");
-                newGameobject.AddComponent<MeshFilter>();
+            var newGameobject = new GameObject("NewSplineMesh_RepeatingMeshSplit");
 
             var spline = newGameobject.AddComponent<Spline>();
                 spline.SetSplineSpace(Space.Self, false);
                 spline.EditorAlwaysFacePointsForwardAndUp = true;
 
-            var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_RepeatingMesh>();
+            var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_RepeatingMeshSplit>();
                 meshBuilder.SplineReference = spline;
                 meshBuilder.UseRepeatingMeshUVs = true;
                 meshBuilder.use_splinepoint_rotations = true;
                 meshBuilder.use_splinepoint_scale = true;
-
-            var newMeshRenderer = newGameobject.AddComponent<MeshRenderer>();
-                newMeshRenderer.sharedMaterial = editorConfig.defaultMaterialForRenderers;
+                meshBuilder.Material = editorConfig.defaultMaterialForRenderers;
+                meshBuilder.quality = 16;
 
             // toggle to force register 
             meshBuilder.enabled = false;

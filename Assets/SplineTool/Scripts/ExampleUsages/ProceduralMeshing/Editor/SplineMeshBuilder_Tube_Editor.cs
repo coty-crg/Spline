@@ -52,6 +52,7 @@ namespace CorgiSpline
         {
             var editorConfig = SplineEditorConfig.FindConfig();
             var newGameobject = new GameObject("NewSplineMesh_Tube");
+                newGameobject.AddComponent<MeshFilter>();
 
             var spline = newGameobject.AddComponent<Spline>();
                 spline.SetSplineSpace(Space.Self, false);
