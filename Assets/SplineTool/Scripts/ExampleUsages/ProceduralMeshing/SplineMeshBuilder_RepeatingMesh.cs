@@ -390,7 +390,7 @@ namespace CorgiSpline
                         else
                         {
                             var uv_x = innerMesh_t;
-                            var uv_y = (repeating_vertex.y - repeatingBoundsMin.y) / (repeatingBoundsMax.y - repeatingBoundsMin.y);
+                            var uv_y = (repeating_vertex.z - repeatingBoundsMin.z) / (repeatingBoundsMax.z - repeatingBoundsMin.z);
 
                             if (uvsMode == MeshBuilderUVs.Tile)
                             {
