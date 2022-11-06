@@ -21,18 +21,20 @@ namespace CorgiSpline
         [Tooltip("Use the real UV data from the mesh we are pasting.")]
         public bool UseRepeatingMeshUVs;
 
+        public int repeatableMeshSeed = 0x8008;
+
         // internal stuff 
         private List<MeshData> _meshDatas = new List<MeshData>();
+        private List<int> cache_tris = new List<int>();
+        private List<Vector3> cache_verts = new List<Vector3>();
+        private List<Vector3> cache_normals = new List<Vector3>();
+        private List<Vector4> cache_tangents = new List<Vector4>();
+        private List<Vector4> cache_uv0 = new List<Vector4>();
+        private List<Color> cache_colors = new List<Color>();
 
         private class MeshData
         {
             public Mesh mesh; 
-            public List<int> cache_tris = new List<int>();
-            public List<Vector3> cache_verts = new List<Vector3>();
-            public List<Vector3> cache_normals = new List<Vector3>();
-            public List<Vector4> cache_tangents = new List<Vector4>();
-            public List<Vector4> cache_uv0 = new List<Vector4>();
-            public List<Color> cache_colors = new List<Color>();
 
             public NativeList<int> native_tris;
             public NativeList<Vector3> native_verts;
@@ -99,22 +101,22 @@ namespace CorgiSpline
                     meshData.native_uv0 = new NativeList<Vector4>(Allocator.Persistent);
                     meshData.native_colors = new NativeList<Vector4>(Allocator.Persistent);
 
-                    meshData.cache_tris.Clear();
-                    meshData.cache_verts.Clear();
-                    meshData.cache_normals.Clear();
-                    meshData.cache_tangents.Clear();
-                    meshData.cache_uv0.Clear();
-                    meshData.cache_colors.Clear();
+                    cache_tris.Clear();
+                    cache_verts.Clear();
+                    cache_normals.Clear();
+                    cache_tangents.Clear();
+                    cache_uv0.Clear();
+                    cache_colors.Clear();
 
                     // fetch the data from the repeatable mesh 
-                    mesh.GetTriangles(meshData.cache_tris, 0);
-                    mesh.GetVertices(meshData.cache_verts);
+                    mesh.GetTriangles(cache_tris, 0);
+                    mesh.GetVertices(cache_verts);
 
-                    for (var t = 0; t < meshData.cache_tris.Count; ++t)
-                        meshData.native_tris.Add(meshData.cache_tris[t]);
+                    for (var t = 0; t < cache_tris.Count; ++t)
+                        meshData.native_tris.Add(cache_tris[t]);
 
-                    for (var v = 0; v < meshData.cache_verts.Count; ++v)
-                        meshData.native_verts.Add(meshData.cache_verts[v]);
+                    for (var v = 0; v < cache_verts.Count; ++v)
+                        meshData.native_verts.Add(cache_verts[v]);
 
                     // check if this repeatable mesh actually has the attributes we want.. 
                     var has_normals = mesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal);
@@ -124,16 +126,16 @@ namespace CorgiSpline
 
                     if (has_normals)
                     {
-                        mesh.GetNormals(meshData.cache_normals);
+                        mesh.GetNormals(cache_normals);
 
-                        for (var v = 0; v < meshData.cache_normals.Count; ++v)
+                        for (var v = 0; v < cache_normals.Count; ++v)
                         {
-                            meshData.native_normals.Add(meshData.cache_normals[v]);
+                            meshData.native_normals.Add(cache_normals[v]);
                         }
                     }
                     else
                     {
-                        for (var v = 0; v < meshData.cache_verts.Count; ++v)
+                        for (var v = 0; v < cache_verts.Count; ++v)
                         {
                             meshData.native_normals.Add(Vector3.up);
                         }
@@ -141,16 +143,16 @@ namespace CorgiSpline
 
                     if (has_tangents)
                     {
-                        mesh.GetTangents(meshData.cache_tangents);
+                        mesh.GetTangents(cache_tangents);
 
-                        for (var v = 0; v < meshData.cache_tangents.Count; ++v)
+                        for (var v = 0; v < cache_tangents.Count; ++v)
                         {
-                            meshData.native_tangents.Add(meshData.cache_tangents[v]);
+                            meshData.native_tangents.Add(cache_tangents[v]);
                         }
                     }
                     else
                     {
-                        for (var v = 0; v < meshData.cache_verts.Count; ++v)
+                        for (var v = 0; v < cache_verts.Count; ++v)
                         {
                             meshData.native_tangents.Add(Vector3.right);
                         }
@@ -158,16 +160,16 @@ namespace CorgiSpline
 
                     if (has_uv0)
                     {
-                        mesh.GetUVs(0, meshData.cache_uv0);
+                        mesh.GetUVs(0, cache_uv0);
 
-                        for (var v = 0; v < meshData.cache_uv0.Count; ++v)
+                        for (var v = 0; v < cache_uv0.Count; ++v)
                         {
-                            meshData.native_uv0.Add(meshData.cache_uv0[v]);
+                            meshData.native_uv0.Add(cache_uv0[v]);
                         }
                     }
                     else
                     {
-                        for (var v = 0; v < meshData.cache_verts.Count; ++v)
+                        for (var v = 0; v < cache_verts.Count; ++v)
                         {
                             meshData.native_uv0.Add(Vector4.zero);
                         }
@@ -175,23 +177,23 @@ namespace CorgiSpline
 
                     if (has_color)
                     {
-                        mesh.GetColors(meshData.cache_colors);
+                        mesh.GetColors(cache_colors);
 
-                        for (var v = 0; v < meshData.cache_colors.Count; ++v)
+                        for (var v = 0; v < cache_colors.Count; ++v)
                         {
                             meshData.native_colors.Add(
                                 new Vector4(
-                                    meshData.cache_colors[v].r,
-                                    meshData.cache_colors[v].g,
-                                    meshData.cache_colors[v].b,
-                                    meshData.cache_colors[v].a
+                                    cache_colors[v].r,
+                                    cache_colors[v].g,
+                                    cache_colors[v].b,
+                                    cache_colors[v].a
                                     )
                                 );
                         }
                     }
                     else
                     {
-                        for (var v = 0; v < meshData.cache_verts.Count; ++v)
+                        for (var v = 0; v < cache_verts.Count; ++v)
                         {
                             meshData.native_colors.Add(Color.white);
                         }
@@ -265,7 +267,14 @@ namespace CorgiSpline
 
         private void DisposeMeshDatas()
         {
-            foreach(var meshData in _meshDatas)
+            cache_tris.Clear();
+            cache_verts.Clear();
+            cache_normals.Clear();
+            cache_tangents.Clear();
+            cache_uv0.Clear();
+            cache_colors.Clear();
+
+            foreach (var meshData in _meshDatas)
             {
                 meshData.native_tris.Dispose();
                 meshData.native_verts.Dispose();
@@ -327,7 +336,7 @@ namespace CorgiSpline
                 repeatingMeshes_uv0_indices = _repeatingMeshes_uv0_indices,
 
                 repeatingMesh_has_colors = _repeatingMeshes_colors.Length == _repeatingMeshes_verts.Length,
-                repeatingMesh_has_uv0 = _repeatingMeshes_uv0.Length == _repeatingMeshes_tris.Length,
+                repeatingMesh_has_uv0 = _repeatingMeshes_uv0.Length == _repeatingMeshes_verts.Length,
 
                 repeatingMeshCount = _meshDatas.Count,
 
@@ -360,7 +369,7 @@ namespace CorgiSpline
                 worldToLocalMatrix = worldToLocalMatrix,
                 localToWorldMatrix = localToWorldMatrix,
 
-                randomMeshSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue),
+                randomMeshSeed = repeatableMeshSeed,
             };
 
             return job.Schedule(dependency);
@@ -492,29 +501,36 @@ namespace CorgiSpline
 
                 var rotation = Quaternion.Euler(rotationEulorOffset); 
 
-                var repeatingBoundsMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-                var repeatingBoundsMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
-
-                for(var ri = 0; ri < repeatingMeshes_verts.Length; ++ri)
-                {
-                    var vert = repeatingMeshes_verts[ri];
-                    repeatingBoundsMin = Vector3.Min(repeatingBoundsMin, vert);
-                    repeatingBoundsMax = Vector3.Max(repeatingBoundsMax, vert);
-                }
-
-                var boundsDistance = Vector3.Distance(repeatingBoundsMin, repeatingBoundsMax);
+                
                 var repeatCount = 0;
 
                 var random = new Unity.Mathematics.Random((uint) randomMeshSeed);
-                var tri_offset = 0;
+                // var tri_offset = 0;
 
                 for (var meshIndex = 0; meshIndex < quality; ++meshIndex)
                 {
+                    var tri_offset = verts.Length;
+
                     var repeatableMeshIndex = random.NextInt(0, repeatingMeshCount);
                     var repeatingMeshBounds = repeatingMeshes_bounds[repeatableMeshIndex];
                     var meshBoundsZ = (repeatingMeshBounds.max.z - repeatingMeshBounds.min.z);
                     var totalMeshZ = meshBoundsZ * quality;
                     var currentMeshZ = meshIndex * meshBoundsZ;
+
+                    var repeatingMeshVertIndexData = repeatingMeshes_verts_indices[repeatableMeshIndex];
+
+                    // bounds data 
+                    var repeatingBoundsMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+                    var repeatingBoundsMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+
+                    for (var ri = 0; ri < repeatingMeshVertIndexData.y; ++ri)
+                    {
+                        var vert = GetRepeatingMeshVert(repeatableMeshIndex, ri);
+                        repeatingBoundsMin = Vector3.Min(repeatingBoundsMin, vert);
+                        repeatingBoundsMax = Vector3.Max(repeatingBoundsMax, vert);
+                    }
+
+                    var boundsDistance = Vector3.Distance(repeatingBoundsMin, repeatingBoundsMax);
 
                     // lightmap chunk data 
                     var lightmapGridSize = Mathf.Max(1, Mathf.RoundToInt(Mathf.Sqrt(quality)));
@@ -525,7 +541,6 @@ namespace CorgiSpline
 
                     // pasted the mesh over and over, bending the verts to be along the spline 
                     var brokenEarly = false;
-                    var repeatingMeshVertIndexData = repeatingMeshes_verts_indices[repeatableMeshIndex];
                     for (var ri = 0; ri < repeatingMeshVertIndexData.y; ++ri)
                     {
                         var repeating_vertex = GetRepeatingMeshVert(repeatableMeshIndex, ri);
@@ -571,7 +586,7 @@ namespace CorgiSpline
                         else
                         {
                             var uv_x = innerMesh_t;
-                            var uv_y = (repeating_vertex.y - repeatingBoundsMin.y) / (repeatingBoundsMax.y - repeatingBoundsMin.y);
+                            var uv_y = (repeating_vertex.z - repeatingBoundsMin.z) / (repeatingBoundsMax.z - repeatingBoundsMin.z);
 
                             if (uvsMode == MeshBuilderUVs.Tile)
                             {
@@ -591,10 +606,10 @@ namespace CorgiSpline
                     var repeatableMeshTriIndexData = repeatingMeshes_tris_indices[repeatableMeshIndex];
                     for (var ri = 0; ri < repeatableMeshTriIndexData.y; ++ri)
                     {
-                        tris.Add(GetRepeatingMeshTri(repeatableMeshIndex, ri) + tri_offset);
+                        tris.Add(tri_offset + GetRepeatingMeshTri(repeatableMeshIndex, ri));
                     }
 
-                    tri_offset += repeatingMeshes_verts_indices[repeatableMeshIndex].y;
+                    // tri_offset += repeatingMeshes_verts_indices[repeatableMeshIndex].y;
                     repeatCount++;
 
                     if (brokenEarly)

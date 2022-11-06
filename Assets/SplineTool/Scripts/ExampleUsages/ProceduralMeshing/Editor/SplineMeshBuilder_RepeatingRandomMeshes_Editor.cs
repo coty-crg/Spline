@@ -11,6 +11,7 @@ namespace CorgiSpline
     {
         protected SerializedProperty RepeatableMeshes;
         protected SerializedProperty UseRepeatingMeshUVs;
+        protected SerializedProperty repeatableMeshSeed;
         private List<Vector3> _vertexCache = new List<Vector3>();
         private List<int> _vertexMinZCache = new List<int>();
         private List<int> _vertexMaxZCache = new List<int>();
@@ -23,8 +24,9 @@ namespace CorgiSpline
         {
             base.OnEnable();
 
-            RepeatableMeshes              = serializedObject.FindProperty("RepeatableMeshes");
-            UseRepeatingMeshUVs         = serializedObject.FindProperty("UseRepeatingMeshUVs");
+            RepeatableMeshes        = serializedObject.FindProperty("RepeatableMeshes");
+            UseRepeatingMeshUVs     = serializedObject.FindProperty("UseRepeatingMeshUVs");
+            repeatableMeshSeed      = serializedObject.FindProperty("repeatableMeshSeed");
         }
 
         public override void OnInspectorGUI()
@@ -47,72 +49,77 @@ namespace CorgiSpline
                     else
                     {
                         EditorGUILayout.Space(); 
-                        EditorGUILayout.BeginHorizontal();
+                        EditorGUILayout.BeginVertical();
                         {
                             for(var m = 0; m < instance.RepeatableMeshes.Count; ++m)
                             {
                                 var randomMesh = instance.RepeatableMeshes[m];
 
-                                // draw preview 
-                                var assetPreview = AssetPreview.GetAssetPreview(randomMesh);
-                                if (assetPreview != null)
+                                EditorGUILayout.BeginHorizontal();
                                 {
-                                    EditorGUILayout.Space();
-                                    var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
-                                    GUILayout.Label(assetPreview, style);
-                                    EditorGUILayout.Space();
+
+                                    // draw preview 
+                                    var assetPreview = AssetPreview.GetAssetPreview(randomMesh);
+                                    if (assetPreview != null)
+                                    {
+                                        EditorGUILayout.Space();
+                                        var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
+                                        GUILayout.Label(assetPreview, style);
+                                        EditorGUILayout.Space();
+                                    }
+
+                                    EditorGUILayout.BeginVertical();
+                                    {
+                                        // warnings for missing vertex data 
+                                        var has_normals = randomMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal);
+                                        var has_tangents = randomMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent);
+                                        var has_uv0 = randomMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord0);
+                                        var has_color = randomMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color);
+
+                                        // run various tests on the mesh 
+                                        VerifyMeshTests(randomMesh);
+
+                                        if (!has_normals)
+                                        {
+                                            EditorGUILayout.HelpBox("RepeatableMesh does not contain normals. It is recommended to add them.",
+                                                MessageType.Warning);
+                                        }
+
+                                        if (!has_tangents)
+                                        {
+                                            EditorGUILayout.HelpBox("RepeatableMesh does not contain tangents. It is recommended to add them.",
+                                                MessageType.Warning);
+                                        }
+
+                                        if (!has_uv0 && instance.UseRepeatingMeshUVs)
+                                        {
+                                            EditorGUILayout.HelpBox("RepeatableMesh does not contain UVs. It is recommended to add them, because you have enabled UseRepeatingMeshUVs.",
+                                                MessageType.Info);
+                                        }
+
+                                        if (!has_color)
+                                        {
+                                            EditorGUILayout.HelpBox("RepeatableMesh does not contain vertex colors. It is recommended to add them.",
+                                                MessageType.Info);
+                                        }
+
+                                        if (!_passed_MinMaxMatch)
+                                        {
+                                            EditorGUILayout.HelpBox($"The number of vertices at the z start and the number of vertices at z end do NOT match! " +
+                                                $"start: {_vertexMinZCache.Count}, end: {_vertexMaxZCache.Count}", MessageType.Error);
+                                        }
+
+                                        if (!_passed_XYMatch)
+                                        {
+                                            EditorGUILayout.HelpBox($"The vertices at the start of the mesh do not match the vertices at the end of the mesh! ", MessageType.Warning);
+                                        }
+                                    }
+                                    EditorGUILayout.EndVertical();
                                 }
-
-                                EditorGUILayout.BeginVertical();
-                                {
-                                    // warnings for missing vertex data 
-                                    var has_normals = randomMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal);
-                                    var has_tangents = randomMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent);
-                                    var has_uv0 = randomMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord0);
-                                    var has_color = randomMesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color);
-
-                                    // run various tests on the mesh 
-                                    VerifyMeshTests(randomMesh);
-
-                                    if (!has_normals)
-                                    {
-                                        EditorGUILayout.HelpBox("RepeatableMesh does not contain normals. It is recommended to add them.",
-                                            MessageType.Warning);
-                                    }
-
-                                    if (!has_tangents)
-                                    {
-                                        EditorGUILayout.HelpBox("RepeatableMesh does not contain tangents. It is recommended to add them.",
-                                            MessageType.Warning);
-                                    }
-
-                                    if (!has_uv0 && instance.UseRepeatingMeshUVs)
-                                    {
-                                        EditorGUILayout.HelpBox("RepeatableMesh does not contain UVs. It is recommended to add them, because you have enabled UseRepeatingMeshUVs.",
-                                            MessageType.Info);
-                                    }
-
-                                    if (!has_color)
-                                    {
-                                        EditorGUILayout.HelpBox("RepeatableMesh does not contain vertex colors. It is recommended to add them.",
-                                            MessageType.Info);
-                                    }
-
-                                    if (!_passed_MinMaxMatch)
-                                    {
-                                        EditorGUILayout.HelpBox($"The number of vertices at the z start and the number of vertices at z end do NOT match! " +
-                                            $"start: {_vertexMinZCache.Count}, end: {_vertexMaxZCache.Count}", MessageType.Error);
-                                    }
-
-                                    if (!_passed_XYMatch)
-                                    {
-                                        EditorGUILayout.HelpBox($"The vertices at the start of the mesh do not match the vertices at the end of the mesh! ", MessageType.Warning);
-                                    }
-                                }
-                                EditorGUILayout.EndVertical();
+                                EditorGUILayout.EndHorizontal();
                             }
                         }
-                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.EndVertical();
                         EditorGUILayout.Space();
                     }
                 }
@@ -122,6 +129,20 @@ namespace CorgiSpline
                 {
                     EditorGUILayout.LabelField("Repeating Mesh Settings", EditorStyles.boldLabel);
                     EditorGUILayout.PropertyField(UseRepeatingMeshUVs);
+
+                    EditorGUILayout.BeginHorizontal();
+                    {
+                        EditorGUI.BeginDisabledGroup(true);
+                        EditorGUILayout.PropertyField(repeatableMeshSeed);
+                        EditorGUI.EndDisabledGroup();
+                        if (GUILayout.Button("new seed"))
+                        {
+                            Undo.RecordObject(instance, "new seed");
+                            instance.repeatableMeshSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+                            EditorUtility.SetDirty(instance);
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
                 GUILayout.EndVertical();
             }
