@@ -232,7 +232,7 @@ namespace CorgiSpline
             }
         }
 
-        [MenuItem("GameObject/CorgiSpline/Meshes/Spline Mesh (repeating random meshes)", priority = 10)]
+        [MenuItem("GameObject/CorgiSpline/Meshes/Curvy Repeating Random Meshes", priority = 10)]
         public static void MenuItemCreateMeshBuilder_RepeatingRandomMeshes()
         {
             var editorConfig = SplineEditorConfig.FindConfig();

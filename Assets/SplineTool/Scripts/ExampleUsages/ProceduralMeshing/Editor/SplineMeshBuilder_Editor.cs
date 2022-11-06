@@ -294,7 +294,7 @@ namespace CorgiSpline
             // base.OnInspectorGUI();
         }
 
-        [MenuItem("GameObject/CorgiSpline/Spline Mesh (cube)", priority = 10)]
+        [MenuItem("GameObject/CorgiSpline/Meshes/Curvy Cube", priority = 10)]
         public static void MenuItemCreateMeshBuilder_Cubey()
         {
             var editorConfig = SplineEditorConfig.FindConfig();

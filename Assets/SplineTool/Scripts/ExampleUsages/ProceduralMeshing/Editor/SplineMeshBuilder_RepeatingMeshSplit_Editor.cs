@@ -212,7 +212,7 @@ namespace CorgiSpline
             }
         }
 
-        [MenuItem("GameObject/CorgiSpline/Spline Split Mesh (split repeating mesh)", priority = 10)]
+        [MenuItem("GameObject/CorgiSpline/Meshes/Curvy Repeating Mesh (split meshes)", priority = 10)]
         public static void MenuItemCreateMeshBuilder_RepeatingMeshSplit()
         {
             var editorConfig = SplineEditorConfig.FindConfig();

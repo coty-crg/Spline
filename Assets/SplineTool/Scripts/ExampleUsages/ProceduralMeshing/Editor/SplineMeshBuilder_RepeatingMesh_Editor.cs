@@ -206,7 +206,7 @@ namespace CorgiSpline
             }
         }
 
-        [MenuItem("GameObject/CorgiSpline/Spline Mesh (repeating mesh)", priority = 10)]
+        [MenuItem("GameObject/CorgiSpline/Meshes/Curvy Repeating Mesh (single mesh)", priority = 10)]
         public static void MenuItemCreateMeshBuilder_RepeatingMesh()
         {
             var editorConfig = SplineEditorConfig.FindConfig();

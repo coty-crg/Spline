@@ -47,7 +47,7 @@ namespace CorgiSpline
             }
         }
 
-        [MenuItem("GameObject/CorgiSpline/Spline Mesh (tube)", priority = 10)]
+        [MenuItem("GameObject/CorgiSpline/Meshes/Curvy Tube", priority = 10)]
         public static void MenuItemCreateMeshBuilder_Tubey()
         {
             var editorConfig = SplineEditorConfig.FindConfig();
