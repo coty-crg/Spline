@@ -54,6 +54,10 @@ namespace CorgiSpline
                             for(var m = 0; m < instance.RepeatableMeshes.Count; ++m)
                             {
                                 var randomMesh = instance.RepeatableMeshes[m];
+                                if(randomMesh == null)
+                                {
+                                    continue;
+                                }
 
                                 EditorGUILayout.BeginHorizontal();
                                 {

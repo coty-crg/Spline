@@ -91,6 +91,11 @@ namespace CorgiSpline
                 for(var i = 0; i < RepeatableMeshes.Count; ++i)
                 {
                     var mesh = RepeatableMeshes[i];
+                    if(mesh == null)
+                    {
+                        continue;
+                    }
+
                     var meshData = new MeshData();
 
                     meshData.mesh = mesh;
