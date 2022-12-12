@@ -9,6 +9,7 @@ using UnityEngine.UIElements;
 namespace CorgiSpline
 {
     [ExecuteInEditMode]
+    [DefaultExecutionOrder(1)] // this is so the mesh builders' OnEnable run after the spline's OnEnable
     public class SplineMeshBuilder : MonoBehaviour
     {
         // references 

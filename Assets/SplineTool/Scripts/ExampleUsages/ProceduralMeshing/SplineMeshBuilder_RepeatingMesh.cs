@@ -8,7 +8,8 @@ using UnityEngine;
 
 namespace CorgiSpline
 {
-
+    [ExecuteInEditMode]
+    [DefaultExecutionOrder(1)] // this is so the mesh builders' OnEnable run after the spline's OnEnable
     public class SplineMeshBuilder_RepeatingMesh : SplineMeshBuilder
     {
         // [Header("RepeatingMesh")]

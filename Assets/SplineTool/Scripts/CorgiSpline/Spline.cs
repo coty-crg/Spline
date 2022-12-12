@@ -94,7 +94,7 @@ namespace CorgiSpline
     }
 
     [ExecuteInEditMode]
-    [DefaultExecutionOrder(1)] // this is so we run the de-allocate in OnDisable after the other scripts run their OnDisable()s in the case of a shutdown 
+    [DefaultExecutionOrder(-1)] // this is so we run the de-allocate in OnDisable after the other scripts run their OnDisable()s in the case of a shutdown 
     public class Spline : MonoBehaviour
     {
         /// <summary>
