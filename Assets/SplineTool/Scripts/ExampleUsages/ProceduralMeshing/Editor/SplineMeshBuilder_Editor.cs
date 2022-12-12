@@ -26,6 +26,7 @@ namespace CorgiSpline
         protected SerializedProperty UVsMode;
         protected SerializedProperty unity_generate_lightmap_uvs;
         protected SerializedProperty unity_lightmap_params;
+        protected SerializedProperty RetainMeshBetweenOnEnableOnDisable;
 
         protected virtual void OnEnable()
         {
@@ -47,6 +48,7 @@ namespace CorgiSpline
             UVsMode                     = serializedObject.FindProperty("UVsMode");
             unity_generate_lightmap_uvs = serializedObject.FindProperty("unity_generate_lightmap_uvs");
             unity_lightmap_params       = serializedObject.FindProperty("unity_lightmap_params");
+            RetainMeshBetweenOnEnableOnDisable = serializedObject.FindProperty("RetainMeshBetweenOnEnableOnDisable");
         }
 
         protected void DrawRefreshAndTimings(SplineMeshBuilder instance)
@@ -174,6 +176,11 @@ namespace CorgiSpline
                         EditorGUILayout.PropertyField(RebuildEveryFrame);
                         EditorGUILayout.PropertyField(RebuildOnEnable);
                         EditorGUILayout.PropertyField(AllowAsyncRebuild);
+
+                        if(instance._serializedMesh == null)
+                        {
+                            EditorGUILayout.PropertyField(RetainMeshBetweenOnEnableOnDisable);
+                        }
 
                         EditorGUILayout.Space();
                         if(!instanceIsSplitMesh && GUILayout.Button("Serialize Mesh"))

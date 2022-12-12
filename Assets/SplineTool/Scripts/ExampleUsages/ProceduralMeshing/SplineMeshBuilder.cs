@@ -26,6 +26,9 @@ namespace CorgiSpline
         [Tooltip("Attempts to run the mesh builder script off the main thread, so the game is not slowed down.")] 
         public bool AllowAsyncRebuild;
 
+        [Tooltip("When this is true, generated meshes will NOT be cleaned up when this object is enabled or disabled. Be careful, you may leak memory if you do not clean it up yourself. Unless you need this for runtime, I recommend serializing your mesh, instead.")]
+        public bool RetainMeshBetweenOnEnableOnDisable;
+
         [Tooltip("Stop building the mesh at this % of the spline.")]
         [Range(0f, 1f)] public float built_to_t = 1f;
 
@@ -171,7 +174,17 @@ namespace CorgiSpline
             }
             else
             {
-                _mesh = new Mesh();
+                if(RetainMeshBetweenOnEnableOnDisable)
+                {
+                    if(_mesh == null)
+                    {
+                        _mesh = new Mesh(); 
+                    }
+                }
+                else
+                {
+                    _mesh = new Mesh();
+                }
             }
 
             _nativeVertices = new NativeList<Vector3>(Allocator.Persistent);
@@ -222,15 +235,18 @@ namespace CorgiSpline
 
             if(_serializedMesh == null)
             {
-                if (_mesh != null)
+                if(!RetainMeshBetweenOnEnableOnDisable)
                 {
-                    if (Application.isPlaying)
+                    if (_mesh != null)
                     {
-                        Destroy(_mesh);
-                    }
-                    else
-                    {
-                        DestroyImmediate(_mesh);
+                        if (Application.isPlaying)
+                        {
+                            Destroy(_mesh);
+                        }
+                        else
+                        {
+                            DestroyImmediate(_mesh);
+                        }
                     }
                 }
             }
