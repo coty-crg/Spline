@@ -301,7 +301,7 @@ namespace CorgiSpline
                 CompleteJob();
             }
 #else
-            if (RebuildEveryFrame && AllowAsyncRebuild && _previousHandle.IsCompleted)
+            if (RebuildEveryFrame && AllowAsyncRebuild) // && _previousHandle.IsCompleted
             {
                 CompleteJob();
             }
