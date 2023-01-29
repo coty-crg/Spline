@@ -1888,6 +1888,49 @@ namespace CorgiSpline
             }
         }
 
+        /// <summary>
+        /// Removes a point from the internal Points array. 
+        /// If you are using a Bezier spline type, this will NOT delete 'handle' points, only the points between the handles. 
+        /// When a bezier anchor point is removed, both handles will also be removed.
+        /// </summary>
+        /// <param name="index"></param>
+        public void RemovePoint(int point_index)
+        {
+            // don't allow deleting handles directly? 
+            var isHandle = SplinePoint.IsHandle(GetSplineMode(), point_index);
+            if (isHandle)
+            {
+                // uncomment to get warnings on this 
+                // Debug.LogWarning($"You tried to remove a handle instead of a point. Ignoring.");
+                return;
+            }
+
+            // copy points into easier to modify list 
+            var pointList = Points.ToList();
+
+            switch (GetSplineMode())
+            {
+                // if we have neighbor handles, find them and delete them too.. 
+                case SplineMode.Bezier:
+                    SplinePoint.GetHandleIndexes(GetSplineMode(), GetSplineClosed(), Points.Length,
+                        point_index, out int handleIndex0, out int handleIndex1);
+
+                    if (pointList.Count > 0 && pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
+                    if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
+                    if (pointList.Count > 0 && pointList.Count > handleIndex0) pointList.RemoveAt(handleIndex0);
+                    break;
+
+                // otherwise, just the point 
+                case SplineMode.Linear:
+                case SplineMode.BSpline:
+                    if (pointList.Count > 0 && pointList.Count > point_index) pointList.RemoveAt(point_index);
+                    break;
+            }
+
+            // set 
+            Points = pointList.ToArray();
+        }
+
         public static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
         {
             var oneMinusT = 1f - t;
