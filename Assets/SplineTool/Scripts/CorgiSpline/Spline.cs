@@ -549,16 +549,31 @@ namespace CorgiSpline
                 var closestDistance = float.MaxValue;
                 var closestIndex = -1;
 
-                for (var i = 0; i < length; ++i)
+                for (var i = 0; i < length - 1; ++i)
                 {
-                    var point = Points[i];
+                    var pointA = Points[i + 0];
+                    var pointB = Points[i + 1];
 
-                    var toPoint = point.position - position;
-                    var toPointDistance = toPoint.magnitude;
-                    if (toPointDistance < closestDistance)
+                    var pointVector = (pointB.position - pointA.position);
+                    if(pointVector.sqrMagnitude > 0f)
                     {
-                        closestDistance = toPointDistance;
-                        closestIndex = i;
+                        var projectedPoint = ProjectLinear(pointA, pointB, position);
+                        var projectedDistance = (projectedPoint - position).magnitude; 
+                        if(projectedDistance < closestDistance)
+                        {
+                            closestDistance = projectedDistance;
+                            closestIndex = i;
+                        }
+                    }
+                    else
+                    {
+                        var toPoint = pointA.position - position;
+                        var toPointDistance = toPoint.magnitude;
+                        if (toPointDistance < closestDistance)
+                        {
+                            closestDistance = toPointDistance;
+                            closestIndex = i;
+                        }
                     }
                 }
 
@@ -866,24 +881,43 @@ namespace CorgiSpline
                 var closestDistance = float.MaxValue;
                 var closestIndex = -1;
 
-                for (var i = 0; i < length; ++i)
+                for (var i = 0; i < length - 1; ++i)
                 {
-                    var point = Points[i];
+                    var pointA = Points[i + 0];
+                    var pointB = Points[i + 1];
 
                     if (SplineSpace == Space.Self)
                     {
-                        point = TransformSplinePoint(point);
+                        pointA = TransformSplinePoint(pointA);
+                        pointB = TransformSplinePoint(pointB);
                     }
 
-                    var screenPointPosition = camera.WorldToScreenPoint(point.position);
-                        screenPointPosition.z = 0f;
+                    var screenPointPositionA = camera.WorldToScreenPoint(pointA.position);
+                        screenPointPositionA.z = 0f;
 
-                    var toPoint = screenPointPosition - screenPosition;
-                    var toPointDistance = toPoint.magnitude;
-                    if (toPointDistance < closestDistance)
+                    var screenPointPositionB = camera.WorldToScreenPoint(pointB.position);
+                        screenPointPositionB.z = 0f;
+
+                    var pointVector = (screenPointPositionB - screenPointPositionA);
+                    if (pointVector.sqrMagnitude > 0f)
                     {
-                        closestDistance = toPointDistance;
-                        closestIndex = i;
+                        var projectedPoint = ProjectLinear(screenPointPositionA, screenPointPositionB, screenPosition);
+                        var projectedDistance = (projectedPoint - screenPosition).magnitude;
+                        if (projectedDistance < closestDistance)
+                        {
+                            closestDistance = projectedDistance;
+                            closestIndex = i;
+                        }
+                    }
+                    else
+                    {
+                        var toPoint = screenPointPositionA - screenPosition;
+                        var toPointDistance = toPoint.magnitude;
+                        if (toPointDistance < closestDistance)
+                        {
+                            closestDistance = toPointDistance;
+                            closestIndex = i;
+                        }
                     }
                 }
 
@@ -1166,11 +1200,12 @@ namespace CorgiSpline
                 var mod_t = Mathf.Repeat(t, delta_t);
                 var inner_t = mod_t / delta_t;
 
+                // is this necessary..?
                 // sometimes inner_t will not quite reach 1 (0), so if we reach some threshold just force it over ourselves (to avoid spline jumping around) 
-                if (inner_t > 0.9999f)
-                {
-                    inner_t = 0.0f;
-                }
+                // if (inner_t > 0.999999f)
+                // {
+                //     inner_t = 0.0f;
+                // }
 
                 var index0 = Mathf.FloorToInt(t * (Points.Length - 1));
                 var index1 = index0 + 1;
@@ -2220,19 +2255,24 @@ namespace CorgiSpline
 
         private static Vector3 ProjectLinear(SplinePoint a, SplinePoint b, Vector3 point)
         {
-            var direction = b.position - a.position;
+            return ProjectLinear(a.position, b.position, point);
+        }
 
-            var toPointA = point - a.position;
+        private static Vector3 ProjectLinear(Vector3 a, Vector3 b, Vector3 point)
+        {
+            var direction = b - a;
+
+            var toPointA = point - a;
             var dotA = Vector3.Dot(direction, toPointA);
-            if (dotA < 0) return a.position;
+            if (dotA < 0) return a;
 
-            var toPointB = point - b.position;
+            var toPointB = point - b;
             var dotB = Vector3.Dot(direction, toPointB);
-            if (dotB > 0) return b.position;
+            if (dotB > 0) return b;
 
             direction = direction.normalized;
 
-            var projected = VectorProject(point - a.position, direction) + a.position;
+            var projected = VectorProject(point - a, direction) + a;
             return projected;
         }
 
@@ -2522,16 +2562,31 @@ namespace CorgiSpline
                 var closestDistance = float.MaxValue;
                 var closestIndex = -1;
 
-                for (var i = 0; i < length; ++i)
+                for (var i = 0; i < length - 1; ++i)
                 {
-                    var point = Points[i];
+                    var pointA = Points[i + 0];
+                    var pointB = Points[i + 1];
 
-                    var toPoint = point.position - position;
-                    var toPointDistance = toPoint.magnitude;
-                    if (toPointDistance < closestDistance)
+                    var pointVector = (pointB.position - pointA.position);
+                    if (pointVector.sqrMagnitude > 0f)
                     {
-                        closestDistance = toPointDistance;
-                        closestIndex = i;
+                        var projectedPoint = ProjectLinear(pointA, pointB, position);
+                        var projectedDistance = (projectedPoint - position).magnitude;
+                        if (projectedDistance < closestDistance)
+                        {
+                            closestDistance = projectedDistance;
+                            closestIndex = i;
+                        }
+                    }
+                    else
+                    {
+                        var toPoint = pointA.position - position;
+                        var toPointDistance = toPoint.magnitude;
+                        if (toPointDistance < closestDistance)
+                        {
+                            closestDistance = toPointDistance;
+                            closestIndex = i;
+                        }
                     }
                 }
 
@@ -2753,11 +2808,12 @@ namespace CorgiSpline
                 var mod_t = Mathf.Repeat(t, delta_t);
                 var inner_t = mod_t / delta_t;
 
+                // is this necessary..?
                 // sometimes inner_t will not quite reach 1 (0), so if we reach some threshold just force it over ourselves (to avoid spline jumping around) 
-                if (inner_t > 0.9999f)
-                {
-                    inner_t = 0.0f;
-                }
+                // if (inner_t > 0.999999f)
+                // {
+                //     inner_t = 0.0f;
+                // }
 
                 var index0 = Mathf.FloorToInt(t * (Points.Length - 1));
                 var index1 = index0 + 1;
