@@ -5,6 +5,7 @@ using System.Linq;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEditor;
+using UnityEngine.UIElements;
 
 namespace CorgiSpline
 {
@@ -928,26 +929,36 @@ namespace CorgiSpline
 
                 if (!ClosedSpline && closestIndex <= 0)
                 {
+                    lowest_index = closestIndex;
+
                     var index_a = closestIndex;
                     var index_b = closestIndex + 1;
 
                     point0 = Points[index_a];
                     point1 = Points[index_b];
 
-                    lowest_index = index_a;
+                    if (SplineSpace == Space.Self)
+                    {
+                        point0 = TransformSplinePoint(point0);
+                        point1 = TransformSplinePoint(point1);
+                    }
                 }
-
                 else if (!ClosedSpline && closestIndex == Points.Length - 1)
                 {
-                    var index_a = closestIndex - 1;
-                    var index_b = closestIndex ;
+                    lowest_index = closestIndex - 1;
 
-                    point0 = Points[index_a];
-                    point1 = Points[index_b];
+                    var index_a = closestIndex;
+                    var index_b = closestIndex - 1;
 
-                    lowest_index = index_a;
+                    point0 = Points[index_b];
+                    point1 = Points[index_a];
+
+                    if (SplineSpace == Space.Self)
+                    {
+                        point0 = TransformSplinePoint(point0);
+                        point1 = TransformSplinePoint(point1);
+                    }
                 }
-
                 else
                 {
                     var index_a = closestIndex;
@@ -972,40 +983,46 @@ namespace CorgiSpline
                         point_b = TransformSplinePoint(point_b);
                         point_c = TransformSplinePoint(point_c);
                     }
-
+                    
                     // convert from world to screen 
-                    point_a.position = camera.WorldToScreenPoint(point_a.position);
-                    point_b.position = camera.WorldToScreenPoint(point_b.position);
-                    point_c.position = camera.WorldToScreenPoint(point_c.position);
+                    var screenPositionPointA = camera.WorldToScreenPoint(point_a.position);
+                    var screenPositionPointB = camera.WorldToScreenPoint(point_b.position);
+                    var screenPositionPointC = camera.WorldToScreenPoint(point_c.position);
 
-                    var projected_ab = ProjectLinear(point_a, point_b, screenPosition);
-                    var projected_ac = ProjectLinear(point_a, point_c, screenPosition);
+                    var projected_ba = ProjectLinear(screenPositionPointB, screenPositionPointA, screenPosition);
+                    var projected_ac = ProjectLinear(screenPositionPointA, screenPositionPointC, screenPosition);
 
-                    var distance_ab = Vector3.Distance(screenPosition, projected_ab);
+                    var distance_ba = Vector3.Distance(screenPosition, projected_ba);
                     var distance_ac = Vector3.Distance(screenPosition, projected_ac);
 
-                    if (distance_ab < distance_ac)
+                    if (distance_ba < distance_ac)
                     {
+                        lowest_index = index_b;
+
                         point0 = point_b;
                         point1 = point_a;
-
-                        lowest_index = index_b;
                     }
                     else
                     {
+                        lowest_index = index_a;
+
                         point0 = point_a;
                         point1 = point_c;
-
-                        lowest_index = index_a;
                     }
                 }
 
-                point0.position.z = 0;
-                point1.position.z = 0;
+
+                point0.position = camera.WorldToScreenPoint(point0.position);
+                point0.position.z = 0f;
+
+                point1.position = camera.WorldToScreenPoint(point1.position);
+                point1.position.z = 0f;
 
                 var projectedPosition = ProjectLinear(point0, point1, screenPosition);
                 var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-                return (float)lowest_index / Points.Length + percentageBetweenPoints * (1f / Points.Length);
+                var total_t = (float)lowest_index / (Points.Length - 1) + percentageBetweenPoints * (1f / (Points.Length - 1));
+
+                return total_t;
             }
             else if (Mode == SplineMode.Bezier)
             {
@@ -1389,7 +1406,7 @@ namespace CorgiSpline
 
             if (Mode == SplineMode.Linear)
             {
-                return Mathf.FloorToInt(t * Points.Length);
+                return Mathf.FloorToInt(t * (Points.Length - 1));
             }
             else if (Mode == SplineMode.Bezier)
             {
