@@ -1214,21 +1214,15 @@ namespace CorgiSpline
             if (Mode == SplineMode.Linear)
             {
                 var delta_t = 1f / (Points.Length - 1);
-                var mod_t = Mathf.Repeat(t, delta_t);
-                var inner_t = mod_t / delta_t;
-
-                // is this necessary..?
-                // sometimes inner_t will not quite reach 1 (0), so if we reach some threshold just force it over ourselves (to avoid spline jumping around) 
-                // if (inner_t > 0.999999f)
-                // {
-                //     inner_t = 0.0f;
-                // }
 
                 var index0 = Mathf.FloorToInt(t * (Points.Length - 1));
                 var index1 = index0 + 1;
 
                 index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
                 index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+
+                var mod_t = t - delta_t * index0;
+                var inner_t = mod_t / delta_t;
 
                 if (index0 == Points.Length - 1)
                 {
@@ -2822,15 +2816,6 @@ namespace CorgiSpline
             if (Mode == SplineMode.Linear)
             {
                 var delta_t = 1f / (Points.Length - 1);
-                var mod_t = Mathf.Repeat(t, delta_t);
-                var inner_t = mod_t / delta_t;
-
-                // is this necessary..?
-                // sometimes inner_t will not quite reach 1 (0), so if we reach some threshold just force it over ourselves (to avoid spline jumping around) 
-                // if (inner_t > 0.999999f)
-                // {
-                //     inner_t = 0.0f;
-                // }
 
                 var index0 = Mathf.FloorToInt(t * (Points.Length - 1));
                 var index1 = index0 + 1;
@@ -2850,6 +2835,9 @@ namespace CorgiSpline
                     return firstPoint;
                 }
 
+                var mod_t = t - delta_t * index0;
+                var inner_t = mod_t / delta_t;
+
                 var point0 = Points[index0];
                 var point1 = Points[index1];
 
@@ -2857,7 +2845,6 @@ namespace CorgiSpline
                 result.position = Vector3.Lerp(point0.position, point1.position, inner_t);
                 result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, inner_t);
                 result.scale = Vector3.Lerp(point0.scale, point1.scale, inner_t);
-
 
                 if (SplineSpace == Space.Self)
                 {
