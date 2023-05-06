@@ -349,11 +349,6 @@ namespace CorgiSpline
                         var normal = repeatingMesh_normals[ri];
                         var tangent = repeatingMesh_tangents[ri];
 
-                        if (repeatingMesh_has_colors)
-                        {
-                            var color = repeatingMesh_colors[ri];
-                            colors.Add(color);
-                        }
 
                         var meshBoundsWithInnerZ = currentMeshZ + (repeating_vertex.z - repeatingMesh_bounds.min.z); 
                         var innerMesh_t = meshBoundsWithInnerZ / totalMeshZ;
@@ -407,6 +402,16 @@ namespace CorgiSpline
 
                             uv0s.Add(new Vector4(uv_x, uv_y));
                             uv1s.Add(Vector4.Scale(new Vector4(innerMesh_t, uv_y), lightmapScale) + lightmapOffset);
+                        }
+
+                        if (repeatingMesh_has_colors)
+                        {
+                            var color = repeatingMesh_colors[ri];
+                            colors.Add(color);
+                        }
+                        else
+                        {
+                            colors.Add(vertex_splinePoint.color);
                         }
 
                         // track bounds.. 

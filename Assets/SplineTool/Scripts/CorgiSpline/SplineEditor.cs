@@ -357,6 +357,7 @@ namespace CorgiSpline
                         editPoint.position = EditorGUILayout.Vector3Field("point position", editPoint.position);
                         editPoint.rotation.eulerAngles = EditorGUILayout.Vector3Field("point rotation", editPoint.rotation.eulerAngles);
                         editPoint.scale = EditorGUILayout.Vector3Field("point scale", editPoint.scale);
+                        editPoint.color = EditorGUILayout.ColorField("point color", editPoint.color);
 
                         if (!instance.EditorAlwaysFacePointsForwardAndUp && GUILayout.Button("Force selected rotations Forward&Up"))
                         {
@@ -391,6 +392,11 @@ namespace CorgiSpline
                                 if (point.scale.x != editPoint.scale.x) other_point.scale.x = editPoint.scale.x;
                                 if (point.scale.y != editPoint.scale.y) other_point.scale.y = editPoint.scale.y;
                                 if (point.scale.z != editPoint.scale.z) other_point.scale.z = editPoint.scale.z;
+
+                                if (point.color.r != editPoint.color.r) other_point.color.r = editPoint.color.r;
+                                if (point.color.g != editPoint.color.g) other_point.color.g = editPoint.color.g;
+                                if (point.color.b != editPoint.color.b) other_point.color.b = editPoint.color.b;
+                                if (point.color.a != editPoint.color.a) other_point.color.a = editPoint.color.a;
 
                                 instance.Points[other_index] = other_point;
 
@@ -1011,7 +1017,7 @@ namespace CorgiSpline
                 case SplinePlacePointMode.CameraPlane:
                     var position = worldRay.origin + worldRay.direction * 1f; // * Camera.current.nearClipPlane;
                     var up = Vector3.up;
-                    point = new SplinePoint(position + worldRay.direction * PlaceOffsetFromSurface, Quaternion.LookRotation(worldRay.direction, Vector3.up), Vector3.one);
+                    point = new SplinePoint(position + worldRay.direction * PlaceOffsetFromSurface, Quaternion.LookRotation(worldRay.direction, Vector3.up), Vector3.one, Color.white);
                     return true;
                 case SplinePlacePointMode.Plane:
                     var placePlaneNormal = PlacePlaneNormalRotation * Vector3.up;
@@ -1037,7 +1043,7 @@ namespace CorgiSpline
                     var pointPos = worldRay.origin + rayDistanceToPlane * worldRay.direction;
                         pointPos += placePlaneNormal * PlaceOffsetFromSurface;
 
-                    point = new SplinePoint(pointPos, PlacePlaneNormalRotation, Vector3.one);
+                    point = new SplinePoint(pointPos, PlacePlaneNormalRotation, Vector3.one, Color.white);
 
                     return true;
                 case SplinePlacePointMode.MeshSurface:
@@ -1054,7 +1060,7 @@ namespace CorgiSpline
                                 previousMeshPoint0 = info.point;
                                 previousMeshPoint1 = info.point + info.normal.normalized * PlaceOffsetFromSurface;
 
-                                point = new SplinePoint(info.point + info.normal.normalized * PlaceOffsetFromSurface, Quaternion.LookRotation(info.normal, Vector3.up), Vector3.one);
+                                point = new SplinePoint(info.point + info.normal.normalized * PlaceOffsetFromSurface, Quaternion.LookRotation(info.normal, Vector3.up), Vector3.one, Color.white);
                                 previousMeshSurfacePoint = point;
                                 hasPreviousMeshSurfacePoint = true;
                                 return true;
@@ -1092,7 +1098,7 @@ namespace CorgiSpline
                             }
 
                             var navMeshPointRotation = Quaternion.LookRotation(navMeshForward, navMeshUp);
-                            point = new SplinePoint(navMeshInfo.position, navMeshPointRotation, Vector3.one);
+                            point = new SplinePoint(navMeshInfo.position, navMeshPointRotation, Vector3.one, Color.white);
                             return true;
                         }
 
@@ -1134,21 +1140,21 @@ namespace CorgiSpline
                                 Handles.color = Color.white; 
                                 Handles.DrawLine(vertex0, vertex0 + normal0 * PlaceOffsetFromSurface);
 
-                                point = new SplinePoint(vertex0 + normal0 * PlaceOffsetFromSurface, rotation0, Vector3.one);
+                                point = new SplinePoint(vertex0 + normal0 * PlaceOffsetFromSurface, rotation0, Vector3.one, Color.white);
                             }
                             else if (distance1 < distance0 && distance1 < distance2)
                             {
                                 Handles.color = Color.white;
                                 Handles.DrawLine(vertex1, vertex1 + normal1 * PlaceOffsetFromSurface);
 
-                                point = new SplinePoint(vertex1 + normal1 * PlaceOffsetFromSurface, rotation1, Vector3.one);
+                                point = new SplinePoint(vertex1 + normal1 * PlaceOffsetFromSurface, rotation1, Vector3.one, Color.white);
                             }
                             else
                             {
                                 Handles.color = Color.white;
                                 Handles.DrawLine(vertex2, vertex2 + normal2 * PlaceOffsetFromSurface);
 
-                                point = new SplinePoint(vertex2 + normal2 * PlaceOffsetFromSurface, rotation2, Vector3.one);
+                                point = new SplinePoint(vertex2 + normal2 * PlaceOffsetFromSurface, rotation2, Vector3.one, Color.white);
                             }
 
                             return true;
@@ -1186,14 +1192,14 @@ namespace CorgiSpline
                             Handles.color = Color.white;
                             Handles.DrawLine(collisionInfo.point, collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface);
 
-                            point = new SplinePoint(_boxVertCache[closestPointIndex] + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one);
+                            point = new SplinePoint(_boxVertCache[closestPointIndex] + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one, Color.white);
                             return true;
                         }
 
                         Handles.color = Color.white;
                         Handles.DrawLine(collisionInfo.point, collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface);
 
-                        point = new SplinePoint(collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one);
+                        point = new SplinePoint(collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one, Color.white);
                         return true;
                     }
                     else

@@ -811,6 +811,9 @@ namespace CorgiSpline
                     uvs1.Add(uv1_0);
                     uvs1.Add(uv1_1);
 
+                    colors.Add(splinePoint.color);
+                    colors.Add(splinePoint.color);
+
                     if(thicc)
                     {
                         verts.Add(vert2);
@@ -827,6 +830,9 @@ namespace CorgiSpline
 
                         uvs1.Add(uv1_2);
                         uvs1.Add(uv1_3);
+
+                        colors.Add(splinePoint.color);
+                        colors.Add(splinePoint.color);
 
                         if (normalsMode == MeshBuilderNormals.Hard)
                         {
@@ -854,6 +860,11 @@ namespace CorgiSpline
                             uvs1.Add(uv1_5);
                             uvs1.Add(uv1_6);
                             uvs1.Add(uv1_7);
+
+                            colors.Add(splinePoint.color);
+                            colors.Add(splinePoint.color);
+                            colors.Add(splinePoint.color);
+                            colors.Add(splinePoint.color);
                         }
                     }
 
@@ -986,6 +997,11 @@ namespace CorgiSpline
                     var front_uv1_2 = new Vector4(0f, 5f / 6f, 0f, 0f);
                     var front_uv1_3 = new Vector4(1f, 5f / 6f, 0f, 0f);
 
+                    var front_color_t0 = colors[first_index + 0];
+                    var front_color_t1 = colors[first_index + 1];
+                    var front_color_b0 = colors[first_index + 2];
+                    var front_color_b1 = colors[first_index + 3];
+
                     var f_t0 = last_index + groupVertCount + 0;
                     var f_t1 = last_index + groupVertCount + 1;
                     var f_b0 = last_index + groupVertCount + 2;
@@ -1015,6 +1031,11 @@ namespace CorgiSpline
                     uvs1.Add(front_uv1_1);
                     uvs1.Add(front_uv1_2);
                     uvs1.Add(front_uv1_3);
+
+                    colors.Add(front_color_t0);
+                    colors.Add(front_color_t1);
+                    colors.Add(front_color_b0);
+                    colors.Add(front_color_b1);
 
                     tris.Add(f_b0);
                     tris.Add(f_t1);
@@ -1049,6 +1070,11 @@ namespace CorgiSpline
                     var back_uv1_2 = new Vector4(0f, 6f / 6f, 0f, 0f);
                     var back_uv1_3 = new Vector4(1f, 6f / 6f, 0f, 0f);
 
+                    var back_color_t0 = colors[last_index + 0];
+                    var back_color_t1 = colors[last_index + 1];
+                    var back_color_b0 = colors[last_index + 2];
+                    var back_color_b1 = colors[last_index + 3];
+
                     var b_t0 = last_index + groupVertCount + 4 + 0;
                     var b_t1 = last_index + groupVertCount + 4 + 1;
                     var b_b0 = last_index + groupVertCount + 4 + 2;
@@ -1077,7 +1103,12 @@ namespace CorgiSpline
                     uvs1.Add(back_uv1_0);
                     uvs1.Add(back_uv1_1);
                     uvs1.Add(back_uv1_2);
-                    uvs1.Add(back_uv1_3); 
+                    uvs1.Add(back_uv1_3);
+
+                    colors.Add(back_color_t0);
+                    colors.Add(back_color_t1);
+                    colors.Add(back_color_b0);
+                    colors.Add(back_color_b1);
 
                     tris.Add(b_b1);
                     tris.Add(b_t1);

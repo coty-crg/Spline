@@ -16,21 +16,24 @@ namespace CorgiSpline
         public Vector3 position;
         public Quaternion rotation;
         public Vector3 scale;
+        public Color color;
 
-        public SplinePoint(Vector3 position, Quaternion rotation, Vector3 scale)
+        public SplinePoint(Vector3 position, Quaternion rotation, Vector3 scale, Color color)
         {
             this.position = position;
             this.rotation = rotation;
             this.scale = scale;
+            this.color = color; 
         }
 
         public override bool Equals(object obj)
         {
             var otherPoint = (SplinePoint)obj;
             var matchPosition = (position - otherPoint.position).sqrMagnitude < 0.001f;
+            var matchColor = ((Vector4) color - (Vector4) otherPoint.color).sqrMagnitude < 0.001f;
             var matchUp = (rotation.eulerAngles - otherPoint.rotation.eulerAngles).sqrMagnitude < 0.001f;
             var matchScale = (scale - otherPoint.scale).sqrMagnitude < 0.001f;
-            return matchPosition && matchUp && matchScale;
+            return matchPosition && matchUp && matchScale && matchColor;
         }
 
         public override int GetHashCode()
@@ -1239,11 +1242,7 @@ namespace CorgiSpline
                 var point0 = Points[index0];
                 var point1 = Points[index1];
 
-                var result = new SplinePoint();
-                result.position = Vector3.Lerp(point0.position, point1.position, inner_t);
-                result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, inner_t);
-                result.scale = Vector3.Lerp(point0.scale, point1.scale, inner_t);
-
+                var result = LerpSplinePoint(point0, point1, inner_t); 
 
                 if (SplineSpace == Space.Self)
                 {
@@ -1463,13 +1462,13 @@ namespace CorgiSpline
                 case SplineMode.BSpline:
                     ResizePointArray(Points.Length + 1);
                     var last_index = Points.Length - 1;
-                    Points[last_index] = new SplinePoint(position, rotation, scale);
+                    Points[last_index] = new SplinePoint(position, rotation, scale, Color.white);
                     break;
                 case SplineMode.Bezier:
                     if (Points.Length == 0)
                     {
                         ResizePointArray(Points.Length + 1);
-                        Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale);
+                        Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale, Color.white);
                     }
                     else if (Points.Length == 1)
                     {
@@ -1479,9 +1478,9 @@ namespace CorgiSpline
                         var fromFirstPointPos = position - firstPointPos;
                         var distanceScale = 0.25f;
 
-                        Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos * distanceScale, rotation, scale);    // handle 1
-                        Points[2] = new SplinePoint(position - fromFirstPointPos * distanceScale, rotation, scale);         // handle 2
-                        Points[3] = new SplinePoint(position, rotation, scale);                                             // point  2
+                        Points[1] = new SplinePoint(firstPointPos + fromFirstPointPos * distanceScale, rotation, scale, Color.white);    // handle 1
+                        Points[2] = new SplinePoint(position - fromFirstPointPos * distanceScale, rotation, scale, Color.white);         // handle 2
+                        Points[3] = new SplinePoint(position, rotation, scale, Color.white);                                             // point  2
                     }
                     else
                     {
@@ -1500,9 +1499,9 @@ namespace CorgiSpline
                         prev_handle.position = prev_point.position - new_to_prev * distanceScale;
                         Points[index_prev_handle] = prev_handle;
 
-                        Points[Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev * distanceScale, rotation, scale);    // handle 1
-                        Points[Points.Length - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale);               // handle 2 
-                        Points[Points.Length - 1] = new SplinePoint(position, rotation, scale);                                             // point 
+                        Points[Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev * distanceScale, rotation, scale, Color.white);    // handle 1
+                        Points[Points.Length - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale, Color.white);               // handle 2 
+                        Points[Points.Length - 1] = new SplinePoint(position, rotation, scale, Color.white);                                             // point 
                     }
                     break; 
             }
@@ -1977,6 +1976,18 @@ namespace CorgiSpline
             Points = pointList.ToArray();
         }
 
+        public static SplinePoint LerpSplinePoint(SplinePoint point0, SplinePoint point1, float t)
+        {
+            var result = new SplinePoint();
+
+            result.position = Vector3.Lerp(point0.position, point1.position, t);
+            result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, t);
+            result.scale = Vector3.Lerp(point0.scale, point1.scale, t);
+            result.color = Color.Lerp(point0.color, point1.color, t);
+
+            return result;
+        }
+
         public static Vector3 QuadraticInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
         {
             var oneMinusT = 1f - t;
@@ -2000,6 +2011,18 @@ namespace CorgiSpline
             // return ad; 
         }
 
+        public static Color QuadraticInterpolate(Color color0, Color color1, Color color2, Color color3, float t)
+        {
+            var oneMinusT = 1f - t;
+            var result =
+                oneMinusT * oneMinusT * oneMinusT * color0 +
+                3f * oneMinusT * oneMinusT * t * color1 +
+                3f * oneMinusT * t * t * color2 +
+                t * t * t * color3;
+
+            return result;
+        }
+
         public static Vector3 BSplineInterpolate(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
         {
             var result = (
@@ -2009,6 +2032,22 @@ namespace CorgiSpline
                 + (   point0 + 4f * point1 + point2) * 0.166666f;
 
             return result;
+        }
+
+        public static Color BSplineInterpolate(Color color0, Color color1, Color color2, Color color3, float t)
+        {
+            var point0 = (Vector4) color0;
+            var point1 = (Vector4) color1;
+            var point2 = (Vector4) color2;
+            var point3 = (Vector4) color3;
+
+            var result = (
+                  (  -point0 + point2) * 0.5f
+                + (  (point0 - 2f * point1 + point2) * 0.5f
+                + (  -point0 + 3f * point1 - 3f * point2 + point3) * 0.166666f * t) * t ) * t
+                + (   point0 + 4f * point1 + point2) * 0.166666f;
+
+            return (Color) result;
         }
 
         public static Vector3 QuadraticFirstDerivative(Vector3 point0, Vector3 point1, Vector3 point2, Vector3 point3, float t)
@@ -2052,6 +2091,7 @@ namespace CorgiSpline
             result.position = QuadraticInterpolate(point0.position, point1.position, point2.position, point3.position, t);
             result.rotation = QuadraticInterpolate(point0.rotation, point1.rotation, point2.rotation, point3.rotation, t);
             result.scale = QuadraticInterpolate(point0.scale, point1.scale, point2.scale, point3.scale, t);
+            result.color = QuadraticInterpolate(point0.color, point1.color, point2.color, point3.color, t);
 
             return result;
         }
@@ -2062,6 +2102,7 @@ namespace CorgiSpline
 
             result.position = BSplineInterpolate(point0.position, point1.position, point2.position, point3.position, t);
             result.scale = BSplineInterpolate(point0.scale, point1.scale, point2.scale, point3.scale, t);
+            result.color = BSplineInterpolate(point0.color, point1.color, point2.color, point3.color, t);
 
             // getting rotation is really dumb here, find a faster way 
             var forward0 = point0.rotation * Vector3.forward;
@@ -2841,10 +2882,7 @@ namespace CorgiSpline
                 var point0 = Points[index0];
                 var point1 = Points[index1];
 
-                var result = new SplinePoint();
-                result.position = Vector3.Lerp(point0.position, point1.position, inner_t);
-                result.rotation = Quaternion.Slerp(point0.rotation, point1.rotation, inner_t);
-                result.scale = Vector3.Lerp(point0.scale, point1.scale, inner_t);
+                var result = LerpSplinePoint(point0, point1, inner_t);
 
                 if (SplineSpace == Space.Self)
                 {
