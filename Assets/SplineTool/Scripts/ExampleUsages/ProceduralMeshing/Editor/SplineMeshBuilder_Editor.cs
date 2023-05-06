@@ -260,7 +260,7 @@ namespace CorgiSpline
                     {
                         EditorGUILayout.PropertyField(UVsMode);
 
-                        if(instance.UVsMode == SplineMeshBuilder.MeshBuilderUVs.Tile)
+                        if(instance.UVsMode == SplineMeshBuilder.MeshBuilderUVs.Tile || instance.UVsMode == SplineMeshBuilder.MeshBuilderUVs.TileSwapXY)
                         {
                             EditorGUILayout.PropertyField(uv_tile_scale);
                         }

@@ -87,8 +87,10 @@ namespace CorgiSpline
         [System.Serializable]
         public enum MeshBuilderUVs
         {
-            Stretch     = 0,
-            Tile        = 1,
+            Stretch             = 0,
+            Tile                = 1,
+            StretchSwapXY       = 2,
+            TileSwapXY          = 3,
         }
 
         // note: we need to make our own copy here, so things can be serialized in builds without any warnings about editor only serialization 
@@ -745,28 +747,30 @@ namespace CorgiSpline
 
                     var uv_x = t;
 
-                    if (uvsMode == MeshBuilderUVs.Tile)
+                    if (uvsMode == MeshBuilderUVs.Tile || uvsMode == MeshBuilderUVs.TileSwapXY)
                     {
                         uv_x = (t * uv_tile_scale) % 1.0f;
                     }
 
-                    var uv0_0 = new Vector2(uv_x, 0f);
-                    var uv0_1 = new Vector2(uv_x, 1f);
-                    var uv0_2 = new Vector2(uv_x, 1f);
-                    var uv0_3 = new Vector2(uv_x, 0f);
+                    var swapXY = uvsMode == MeshBuilderUVs.StretchSwapXY || uvsMode == MeshBuilderUVs.TileSwapXY; 
+
+                    var uv0_0 = swapXY ? new Vector2(0f, uv_x) : new Vector2(uv_x, 0f);
+                    var uv0_1 = swapXY ? new Vector2(1f, uv_x) : new Vector2(uv_x, 1f);
+                    var uv0_2 = swapXY ? new Vector2(1f, uv_x) : new Vector2(uv_x, 1f);
+                    var uv0_3 = swapXY ? new Vector2(0f, uv_x) : new Vector2(uv_x, 0f);
                     var uv0_4 = uv0_0;
                     var uv0_5 = uv0_2;
                     var uv0_6 = uv0_1;
                     var uv0_7 = uv0_3;
 
-                    var uv1_0 = new Vector2(t, 0f / 6f);
-                    var uv1_1 = new Vector2(t, 1f / 6f);
-                    var uv1_2 = new Vector2(t, 1f / 6f);
-                    var uv1_3 = new Vector2(t, 2f / 6f);
-                    var uv1_4 = new Vector2(t, 2f / 6f);
-                    var uv1_5 = new Vector2(t, 3f / 6f);
-                    var uv1_6 = new Vector2(t, 3f / 6f);
-                    var uv1_7 = new Vector2(t, 4f / 6f);
+                    var uv1_0 = swapXY ? new Vector2(0f / 6f, t) : new Vector2(t, 0f / 6f);
+                    var uv1_1 = swapXY ? new Vector2(1f / 6f, t) : new Vector2(t, 1f / 6f);
+                    var uv1_2 = swapXY ? new Vector2(1f / 6f, t) : new Vector2(t, 1f / 6f);
+                    var uv1_3 = swapXY ? new Vector2(2f / 6f, t) : new Vector2(t, 2f / 6f);
+                    var uv1_4 = swapXY ? new Vector2(2f / 6f, t) : new Vector2(t, 2f / 6f);
+                    var uv1_5 = swapXY ? new Vector2(3f / 6f, t) : new Vector2(t, 3f / 6f);
+                    var uv1_6 = swapXY ? new Vector2(3f / 6f, t) : new Vector2(t, 3f / 6f);
+                    var uv1_7 = swapXY ? new Vector2(4f / 6f, t) : new Vector2(t, 4f / 6f);
 
                     verts.Add(vert0);
                     verts.Add(vert1);

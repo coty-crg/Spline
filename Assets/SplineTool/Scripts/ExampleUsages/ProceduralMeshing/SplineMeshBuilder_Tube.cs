@@ -200,10 +200,9 @@ namespace CorgiSpline
                         continue;
                     }
 
-
                     var uv_x = t;
 
-                    if (uvsMode == MeshBuilderUVs.Tile)
+                    if (uvsMode == MeshBuilderUVs.Tile || uvsMode == MeshBuilderUVs.TileSwapXY)
                     {
                         uv_x = (t * uv_tile_scale) % 1.0f;
                     }
@@ -235,10 +234,19 @@ namespace CorgiSpline
                         var tangent = new Vector4(tangent3.x, tangent3.y, tangent3.z, 1.0f);
                         tangents.Add(tangent);
 
-                        var uv0 = new Vector2(uv_x, (float) tube_step * tube_delta * uv_tile_scale);
-                        uvs0.Add(uv0);
+                        var uvTubeProgress = (float)tube_step * tube_delta * uv_tile_scale;
+                        var uvTubeWrap = (tube_step * tube_delta) / 2f;
 
-                        var uv1 = new Vector2(t, (tube_step * tube_delta) / 2f);
+                        var uv0 = new Vector2(uv_x, uvTubeProgress);
+                        var uv1 = new Vector2(t, uvTubeWrap);
+
+                        if (uvsMode == MeshBuilderUVs.StretchSwapXY || uvsMode == MeshBuilderUVs.TileSwapXY)
+                        {
+                            uv0 = new Vector2(uvTubeProgress, uv_x);
+                            uv1 = new Vector2(uvTubeWrap, t);
+                        }
+
+                        uvs0.Add(uv0);
                         uvs1.Add(uv1);
 
                         // track bounds.. 

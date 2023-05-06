@@ -393,9 +393,16 @@ namespace CorgiSpline
                             var uv_x = innerMesh_t;
                             var uv_y = (repeating_vertex.z - repeatingBoundsMin.z) / (repeatingBoundsMax.z - repeatingBoundsMin.z);
 
-                            if (uvsMode == MeshBuilderUVs.Tile)
+                            if (uvsMode == MeshBuilderUVs.Tile || uvsMode == MeshBuilderUVs.TileSwapXY)
                             {
                                 uv_x = (innerMesh_t * uv_tile_scale);
+                            }
+
+                            if(uvsMode == MeshBuilderUVs.StretchSwapXY || uvsMode == MeshBuilderUVs.TileSwapXY)
+                            {
+                                var uv_s = uv_x;
+                                uv_x = uv_y;
+                                uv_y = uv_s; 
                             }
 
                             uv0s.Add(new Vector4(uv_x, uv_y));
