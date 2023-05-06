@@ -658,7 +658,11 @@ namespace CorgiSpline
                 lastForward = rotationQuaternion * lastForward;
                 lastRight = rotationQuaternion * lastRight;
                 
-                var groupVertCount = normalsMode == MeshBuilderNormals.Hard ? 8 : 4;
+                var thicc = Unity.Mathematics.math.abs(height) > 0.00001f;
+
+                var groupVertCount = thicc && normalsMode == MeshBuilderNormals.Hard 
+                    ? 8 
+                    : (thicc ? 4 : 2);
 
                 // step through 
                 for (var step = 0; step <= until_quality; ++step)
@@ -697,7 +701,6 @@ namespace CorgiSpline
                         localWidth *= splinePoint.scale.x;
                         localHeight *= splinePoint.scale.y; 
                     }
-
 
                     // skip if too close.. 
                     // if(first_set && step != 0 && step != until_quality - 1 && Vector3.Distance(previousPosition, position) < 0.2f)
@@ -754,75 +757,104 @@ namespace CorgiSpline
 
                     var swapXY = uvsMode == MeshBuilderUVs.StretchSwapXY || uvsMode == MeshBuilderUVs.TileSwapXY; 
 
-                    var uv0_0 = swapXY ? new Vector2(0f, uv_x) : new Vector2(uv_x, 0f);
-                    var uv0_1 = swapXY ? new Vector2(1f, uv_x) : new Vector2(uv_x, 1f);
-                    var uv0_2 = swapXY ? new Vector2(1f, uv_x) : new Vector2(uv_x, 1f);
-                    var uv0_3 = swapXY ? new Vector2(0f, uv_x) : new Vector2(uv_x, 0f);
+                    var uv0_0 = new Vector2(uv_x, 0f);
+                    var uv0_1 = new Vector2(uv_x, 1f);
+                    var uv0_2 = new Vector2(uv_x, 1f);
+                    var uv0_3 = new Vector2(uv_x, 0f);
+
+                    if(swapXY)
+                    {
+                        uv0_0 = new Vector2(0f, uv_x);
+                        uv0_1 = new Vector2(1f, uv_x);
+                        uv0_2 = new Vector2(1f, uv_x);
+                        uv0_3 = new Vector2(0f, uv_x);
+                    }
+
                     var uv0_4 = uv0_0;
                     var uv0_5 = uv0_2;
                     var uv0_6 = uv0_1;
                     var uv0_7 = uv0_3;
 
-                    var uv1_0 = swapXY ? new Vector2(0f / 6f, t) : new Vector2(t, 0f / 6f);
-                    var uv1_1 = swapXY ? new Vector2(1f / 6f, t) : new Vector2(t, 1f / 6f);
-                    var uv1_2 = swapXY ? new Vector2(1f / 6f, t) : new Vector2(t, 1f / 6f);
-                    var uv1_3 = swapXY ? new Vector2(2f / 6f, t) : new Vector2(t, 2f / 6f);
-                    var uv1_4 = swapXY ? new Vector2(2f / 6f, t) : new Vector2(t, 2f / 6f);
-                    var uv1_5 = swapXY ? new Vector2(3f / 6f, t) : new Vector2(t, 3f / 6f);
-                    var uv1_6 = swapXY ? new Vector2(3f / 6f, t) : new Vector2(t, 3f / 6f);
-                    var uv1_7 = swapXY ? new Vector2(4f / 6f, t) : new Vector2(t, 4f / 6f);
+                    var uv1_0 = new Vector2(t, 0f / 6f);
+                    var uv1_1 = new Vector2(t, 1f / 6f);
+                    var uv1_2 = new Vector2(t, 1f / 6f);
+                    var uv1_3 = new Vector2(t, 2f / 6f);
+                    var uv1_4 = new Vector2(t, 2f / 6f);
+                    var uv1_5 = new Vector2(t, 3f / 6f);
+                    var uv1_6 = new Vector2(t, 3f / 6f);
+                    var uv1_7 = new Vector2(t, 4f / 6f);
+
+                    if(swapXY)
+                    {
+                        uv1_0 = new Vector2(0f / 6f, t);
+                        uv1_1 = new Vector2(1f / 6f, t);
+                        uv1_2 = new Vector2(1f / 6f, t);
+                        uv1_3 = new Vector2(2f / 6f, t);
+                        uv1_4 = new Vector2(2f / 6f, t);
+                        uv1_5 = new Vector2(3f / 6f, t);
+                        uv1_6 = new Vector2(3f / 6f, t);
+                        uv1_7 = new Vector2(4f / 6f, t);
+                    }
 
                     verts.Add(vert0);
                     verts.Add(vert1);
-                    verts.Add(vert2);
-                    verts.Add(vert3);
 
                     normals.Add(normal0);
                     normals.Add(normal1);
-                    normals.Add(normal2);
-                    normals.Add(normal3);
 
                     tangents.Add(tangent0);
                     tangents.Add(tangent1);
-                    tangents.Add(tangent2);
-                    tangents.Add(tangent3);
 
                     uvs0.Add(uv0_0);
                     uvs0.Add(uv0_1);
-                    uvs0.Add(uv0_2);
-                    uvs0.Add(uv0_3);
 
                     uvs1.Add(uv1_0);
                     uvs1.Add(uv1_1);
-                    uvs1.Add(uv1_2);
-                    uvs1.Add(uv1_3);
 
-                    if (normalsMode == MeshBuilderNormals.Hard)
+                    if(thicc)
                     {
-                        verts.Add(vert4);
-                        verts.Add(vert5);
-                        verts.Add(vert6);
-                        verts.Add(vert7);
+                        verts.Add(vert2);
+                        verts.Add(vert3);
 
-                        normals.Add(normal4);
-                        normals.Add(normal5);
-                        normals.Add(normal6);
-                        normals.Add(normal7);
+                        normals.Add(normal2);
+                        normals.Add(normal3);
 
-                        tangents.Add(tangent4);
-                        tangents.Add(tangent5);
-                        tangents.Add(tangent6);
-                        tangents.Add(tangent7);
+                        tangents.Add(tangent2);
+                        tangents.Add(tangent3);
 
-                        uvs0.Add(uv0_4);
-                        uvs0.Add(uv0_5);
-                        uvs0.Add(uv0_6);
-                        uvs0.Add(uv0_7);
+                        uvs0.Add(uv0_2);
+                        uvs0.Add(uv0_3);
 
-                        uvs1.Add(uv1_4);
-                        uvs1.Add(uv1_5);
-                        uvs1.Add(uv1_6);
-                        uvs1.Add(uv1_7);
+                        uvs1.Add(uv1_2);
+                        uvs1.Add(uv1_3);
+
+                        if (normalsMode == MeshBuilderNormals.Hard)
+                        {
+                            verts.Add(vert4);
+                            verts.Add(vert5);
+                            verts.Add(vert6);
+                            verts.Add(vert7);
+
+                            normals.Add(normal4);
+                            normals.Add(normal5);
+                            normals.Add(normal6);
+                            normals.Add(normal7);
+
+                            tangents.Add(tangent4);
+                            tangents.Add(tangent5);
+                            tangents.Add(tangent6);
+                            tangents.Add(tangent7);
+
+                            uvs0.Add(uv0_4);
+                            uvs0.Add(uv0_5);
+                            uvs0.Add(uv0_6);
+                            uvs0.Add(uv0_7);
+
+                            uvs1.Add(uv1_4);
+                            uvs1.Add(uv1_5);
+                            uvs1.Add(uv1_6);
+                            uvs1.Add(uv1_7);
+                        }
                     }
 
                     // connect the dots 
@@ -830,6 +862,7 @@ namespace CorgiSpline
                     {
                         // gather indices 
                         var i = verts.Length - groupVertCount * 2;
+                        // if (!thicc) i = verts.Length - groupVertCount;
 
                         var prev_t0 = i + 0;
                         var prev_t1 = i + 1;
@@ -849,7 +882,7 @@ namespace CorgiSpline
                         var curr_r0 = i + groupVertCount + 1;
                         var curr_r1 = i + groupVertCount + 3;
 
-                        if(normalsMode == MeshBuilderNormals.Hard)
+                        if(thicc && normalsMode == MeshBuilderNormals.Hard)
                         {
                             prev_l0 = i + 4;
                             prev_l1 = i + 5;
@@ -871,32 +904,35 @@ namespace CorgiSpline
                         tris.Add(curr_t1);
                         tris.Add(prev_t0);
 
-                        // bottom quad
-                        tris.Add(prev_b0);
-                        tris.Add(prev_b1);
-                        tris.Add(curr_b1);
+                        if(thicc)
+                        {
+                            // bottom quad
+                            tris.Add(prev_b0);
+                            tris.Add(prev_b1);
+                            tris.Add(curr_b1);
 
-                        tris.Add(prev_b0);
-                        tris.Add(curr_b1);
-                        tris.Add(curr_b0);
+                            tris.Add(prev_b0);
+                            tris.Add(curr_b1);
+                            tris.Add(curr_b0);
 
-                        // left wall 
-                        tris.Add(prev_l0);
-                        tris.Add(prev_l1);
-                        tris.Add(curr_l1);
+                            // left wall 
+                            tris.Add(prev_l0);
+                            tris.Add(prev_l1);
+                            tris.Add(curr_l1);
 
-                        tris.Add(prev_l0);
-                        tris.Add(curr_l1);
-                        tris.Add(curr_l0);
+                            tris.Add(prev_l0);
+                            tris.Add(curr_l1);
+                            tris.Add(curr_l0);
 
-                        // right wall 
-                        tris.Add(curr_r1);
-                        tris.Add(prev_r1);
-                        tris.Add(prev_r0);
+                            // right wall 
+                            tris.Add(curr_r1);
+                            tris.Add(prev_r1);
+                            tris.Add(prev_r0);
 
-                        tris.Add(curr_r0);
-                        tris.Add(curr_r1);
-                        tris.Add(prev_r0);
+                            tris.Add(curr_r0);
+                            tris.Add(curr_r1);
+                            tris.Add(prev_r0);
+                        }
                     }
 
                     // previousPosition = position;
@@ -922,7 +958,7 @@ namespace CorgiSpline
                 var last_index = verts.Length - groupVertCount;
 
                 // caps 
-                if(!ClosedSpline && cover_ends_with_quads)
+                if(!ClosedSpline && cover_ends_with_quads && thicc)
                 {
                     // start cap 
                     var front_vertex_t0 = verts[first_index + 0];
