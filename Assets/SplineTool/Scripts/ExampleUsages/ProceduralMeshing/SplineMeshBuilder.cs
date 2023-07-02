@@ -52,7 +52,7 @@ namespace CorgiSpline
         public Vector3 rotationEulorOffset = Vector3.zero;
 
         [Tooltip("UV tiling scale of the mesh along the spline, if applicable.")]
-        public float uv_tile_scale = 1f;
+        [Range(1f, 100f)] public float uv_tile_scale = 1f;
 
         [Tooltip("If true, non-closed splines will have their ends covered with a cap, when applicable.")]
         public bool cover_ends_with_quads = true;
@@ -752,7 +752,13 @@ namespace CorgiSpline
 
                     if (uvsMode == MeshBuilderUVs.Tile || uvsMode == MeshBuilderUVs.TileSwapXY)
                     {
-                        uv_x = (t * uv_tile_scale) % 1.0f;
+                        // new behavior 
+                        uv_x = step % 2 == 0 
+                            ? 0f 
+                            : uv_tile_scale; 
+
+                        // old behavior 
+                        // uv_x = (t * uv_tile_scale) % 1.0f;
                     }
 
                     var swapXY = uvsMode == MeshBuilderUVs.StretchSwapXY || uvsMode == MeshBuilderUVs.TileSwapXY; 
