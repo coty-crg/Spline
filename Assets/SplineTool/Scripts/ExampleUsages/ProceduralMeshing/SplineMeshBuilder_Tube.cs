@@ -165,6 +165,7 @@ namespace CorgiSpline
 
 
                 // step through 
+                var tile_uv_x = 0f;
                 for (var step = 0; step < quality; ++step)
                 {
                     var t = (float) step / (quality);
@@ -207,7 +208,8 @@ namespace CorgiSpline
 
                     if (uvsMode == MeshBuilderUVs.Tile || uvsMode == MeshBuilderUVs.TileSwapXY)
                     {
-                        uv_x = (t * uv_tile_scale) % 1.0f;
+                        tile_uv_x += uv_tile_scale;
+                        uv_x = tile_uv_x;
                     }
 
                     // go around the circle.. 
