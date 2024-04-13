@@ -1192,6 +1192,11 @@ namespace CorgiSpline
 
             return point;
         }
+        
+        public static double RepeatDouble(double a, double b)
+        {
+            return a - b * math.floor(a / b);
+        }
 
         /// <summary>
         /// Returns a world space SplinePoint, given an input t. t is valid from 0 to 1. 
@@ -1257,9 +1262,9 @@ namespace CorgiSpline
             {
                 var groupCount = (Points.Length - 1) - (Points.Length - 1) % 3;
 
-                var delta_t = 3f / groupCount;
-                var mod_t = Mathf.Repeat(t, delta_t);
-                var inner_t = mod_t / delta_t;
+                double delta_t = 3f / groupCount;
+                double mod_t = RepeatDouble(t, delta_t);
+                float inner_t = (float)(mod_t / delta_t);
 
                 var index0 = Mathf.FloorToInt(t * groupCount);
                 index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
@@ -1299,9 +1304,9 @@ namespace CorgiSpline
             }
             else if (Mode == SplineMode.BSpline)
             {
-                var delta_t = 1f / Points.Length;
-                var mod_t = Mathf.Repeat(t, delta_t);
-                var inner_t = mod_t / delta_t;
+                double delta_t = 1f / Points.Length;
+                double mod_t = RepeatDouble(t, delta_t);
+                float inner_t = (float) (mod_t / delta_t);
 
                 var pointCount = Points.Length;
                 var index = Mathf.FloorToInt(t * pointCount);
@@ -2897,9 +2902,9 @@ namespace CorgiSpline
             {
                 var groupCount = (Points.Length - 1) - (Points.Length - 1) % 3;
 
-                var delta_t = 3f / groupCount;
-                var mod_t = Mathf.Repeat(t, delta_t);
-                var inner_t = mod_t / delta_t;
+                double delta_t = 3f / groupCount;
+                double mod_t = RepeatDouble(t, delta_t);
+                float inner_t = (float) (mod_t / delta_t);
 
                 var index0 = Mathf.FloorToInt(t * groupCount);
                 index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
@@ -2940,9 +2945,9 @@ namespace CorgiSpline
 
             else if (Mode == SplineMode.BSpline)
             {
-                var delta_t = 1f / Points.Length;
-                var mod_t = Mathf.Repeat(t, delta_t);
-                var inner_t = mod_t / delta_t;
+                double delta_t = 1f / Points.Length;
+                double mod_t = RepeatDouble(t, delta_t);
+                float inner_t = (float)(mod_t / delta_t);
 
                 var pointCount = Points.Length;
                 var index = Mathf.FloorToInt(t * pointCount);
