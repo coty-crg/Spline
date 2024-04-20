@@ -128,7 +128,7 @@ namespace CorgiSpline
         /// Used at runtime for burstable jobs. Does not automatically update, aside from on OnEnable. 
         /// </summary>
         [System.NonSerialized] public NativeArray<SplinePoint> NativePoints;
-        [System.NonSerialized] public NativeArray<float> NativeDistanceCache;
+        [System.NonSerialized] public NativeArray<double> NativeDistanceCache;
 
         // settings
         [Tooltip("Only necessary if you care about using Splines in the Job System. Some of the example scripts use this.")] 
@@ -147,8 +147,8 @@ namespace CorgiSpline
 
         public delegate void RuntimeSplineDisabledEvent(Spline spline);
 
-        [System.NonSerialized] private float[] _projectionDistanceCache;
-        [System.NonSerialized] private float _projectionDistanceLength;
+        [System.NonSerialized] private double[] _projectionDistanceCache;
+        [System.NonSerialized] private double _projectionDistanceLength;
 
         /// <summary>
         /// Register to this if you are scheduling a job that requires access to this spline's NativeArrays. 
@@ -250,7 +250,7 @@ namespace CorgiSpline
                 if (!NativeDistanceCache.IsCreated || NativeDistanceCache.Length != projectionCacheRes)
                 {
                     DisposeNativeDistanceProjectionCache(); 
-                    NativeDistanceCache = new NativeArray<float>(projectionCacheRes, Allocator.Persistent, NativeArrayOptions.UninitializedMemory); 
+                    NativeDistanceCache = new NativeArray<double>(projectionCacheRes, Allocator.Persistent, NativeArrayOptions.UninitializedMemory); 
                 }
 
                 for(var i = 0; i < projectionCacheRes; ++i)
@@ -765,11 +765,21 @@ namespace CorgiSpline
         /// <br/> Note: changing the resolution will re-allocate managed memory (generating garbage), so avoid changing it frequently. 
         /// </summary>
         /// <returns></returns>
-        public float UpdateDistanceProjectionsData(int resolution = 1000)
+        public float UpdateDistanceProjectionsData(int resolution = 1024)
         {
-            if(_projectionDistanceCache == null || _projectionDistanceCache.Length != resolution)
+            return (float) UpdateDistanceProjectionsData_Double(resolution: resolution);
+        }
+
+        /// <summary>
+        /// Does the same as UpdateDistanceProjectionsData, but returns a double. 
+        /// </summary>
+        /// <param name="resolution"></param>
+        /// <returns></returns>
+        public double UpdateDistanceProjectionsData_Double(int resolution = 1024)
+        {
+            if (_projectionDistanceCache == null || _projectionDistanceCache.Length != resolution)
             {
-                _projectionDistanceCache = new float[resolution]; 
+                _projectionDistanceCache = new double[resolution];
             }
 
             _projectionDistanceLength = 0f;
@@ -786,7 +796,7 @@ namespace CorgiSpline
                 prevPosition = point.position;
             }
 
-            return _projectionDistanceLength; 
+            return _projectionDistanceLength;
         }
 
         /// <summary>
@@ -798,13 +808,15 @@ namespace CorgiSpline
         /// <returns></returns>
         public float ProjectDistance(float d, bool repeat = false)
         {
+            var dd = (double) d;
+
             if(repeat)
             {
-                d = Mathf.Repeat(d, _projectionDistanceLength);
+                dd = RepeatDouble(dd, _projectionDistanceLength);
             }
             else
             {
-                d = Mathf.Clamp(d, 0f, _projectionDistanceLength); 
+                dd = math.clamp(dd, 0.00, _projectionDistanceLength); 
             }
 
             // find out our closest d 
@@ -818,11 +830,11 @@ namespace CorgiSpline
                     var d0 = _projectionDistanceCache[r - 1];
                     var d1 = _projectionDistanceCache[r - 0];
 
-                    var t0 = (float) (r - 1) / resolution;
-                    var t1 = (float) (r - 0) / resolution;
+                    var t0 = (double) (r - 1) / resolution;
+                    var t1 = (double) (r - 0) / resolution;
 
-                    var tt = Mathf.InverseLerp(d0, d1, d);
-                    return Mathf.Lerp(t0, t1, tt);
+                    var tt = math.unlerp(d0, d1, d);
+                    return (float) math.lerp(t0, t1, tt);
                 }
             }
 
@@ -844,19 +856,19 @@ namespace CorgiSpline
                 var d0 = _projectionDistanceCache[r - 1];
                 var d1 = _projectionDistanceCache[r - 0];
 
-                var t0 = (float)(r - 1) / resolution;
-                var t1 = (float)(r - 0) / resolution;
+                var t0 = (double) (r - 1) / resolution;
+                var t1 = (double) (r - 0) / resolution;
 
                 if(t1 > t)
                 {
-                    var tt = Mathf.InverseLerp(t0, t1, t);
-                    var dt = Mathf.Lerp(d0, d1, tt);
+                    var tt = math.unlerp(t0, t1, t);
+                    var dt = math.lerp(d0, d1, tt);
 
-                    return dt; 
+                    return (float) dt; 
                 }
             }
 
-            return _projectionDistanceLength;
+            return (float) _projectionDistanceLength;
         }
 
         /// <summary>
@@ -1195,7 +1207,7 @@ namespace CorgiSpline
         
         public static double RepeatDouble(double a, double b)
         {
-            return a - b * math.floor(a / b);
+            return a - math.floor(a / b) * b;
         }
 
         /// <summary>
@@ -3008,7 +3020,7 @@ namespace CorgiSpline
             // not implemented 
             return new SplinePoint();
         }
-
+        
         public static Vector3 JobSafe_GetForward(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
         {
             var pointsLength = Points.Length;
@@ -3111,15 +3123,63 @@ namespace CorgiSpline
                     var t0 = (float)(r - 1) / resolution;
                     var t1 = (float)(r - 0) / resolution;
 
-                    var tt = Mathf.InverseLerp(d0, d1, d);
-                    return Mathf.Lerp(t0, t1, tt);
+                    var tt = math.unlerp(d0, d1, d);
+                    return math.lerp(t0, t1, tt);
                 }
             }
 
             return 1.0f;
         }
 
+        public static double JobSafe_ProjectDistance(NativeArray<double> projectionDistanceCache, double d)
+        {
+            // find out our closest d 
+            var resolution = projectionDistanceCache.Length;
+
+            for (var r = 1; r < resolution; ++r)
+            {
+                // one found, lerp 
+                if (projectionDistanceCache[r] > d)
+                {
+                    var d0 = projectionDistanceCache[r - 1];
+                    var d1 = projectionDistanceCache[r - 0];
+
+                    var t0 = (double) (r - 1) / resolution;
+                    var t1 = (double) (r - 0) / resolution;
+
+                    var tt = math.unlerp(d0, d1, d);
+                    return math.lerp(t0, t1, tt);
+                }
+            }
+
+            return 1.00;
+        }
+
         public static float JobSafe_ProjectPercentToDistance(NativeArray<float> projectionDistanceCache, float projectionDistanceCacheLength, float t)
+        {
+            var resolution = projectionDistanceCache.Length;
+
+            for (var r = 1; r < resolution; ++r)
+            {
+                var d0 = projectionDistanceCache[r - 1];
+                var d1 = projectionDistanceCache[r - 0];
+
+                var t0 = (float) (r - 1) / resolution;
+                var t1 = (float) (r - 0) / resolution;
+
+                if (t1 > t)
+                {
+                    var tt = math.unlerp(t0, t1, t);
+                    var dt = math.lerp(d0, d1, tt);
+
+                    return dt;
+                }
+            }
+
+            return projectionDistanceCacheLength;
+        }
+
+        public static double JobSafe_ProjectPercentToDistance(NativeArray<double> projectionDistanceCache, double projectionDistanceCacheLength, float t)
         {
             var resolution = projectionDistanceCache.Length;
 
@@ -3133,8 +3193,8 @@ namespace CorgiSpline
 
                 if (t1 > t)
                 {
-                    var tt = Mathf.InverseLerp(t0, t1, t);
-                    var dt = Mathf.Lerp(d0, d1, tt);
+                    var tt = math.unlerp(t0, t1, t);
+                    var dt = math.lerp(d0, d1, tt);
 
                     return dt;
                 }

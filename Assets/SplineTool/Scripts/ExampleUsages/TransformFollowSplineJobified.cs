@@ -126,7 +126,7 @@ namespace CorgiSpline
 
             // Spline data
             [ReadOnly] public NativeArray<SplinePoint> Points;
-            [ReadOnly] public NativeArray<float> DistanceCache;
+            [ReadOnly] public NativeArray<double> DistanceCache;
             [ReadOnly] public float DistanceCacheLength;
             public SplineMode Mode;
             public Space SplineSpace;
@@ -143,7 +143,7 @@ namespace CorgiSpline
 
                 Distances[index] = d;
 
-                var t = Spline.JobSafe_ProjectDistance(DistanceCache, d);
+                var t = (float) Spline.JobSafe_ProjectDistance(DistanceCache, d);
                 var projectedPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
                 transform.position = projectedPoint.position;
@@ -161,10 +161,10 @@ namespace CorgiSpline
         private struct TransformInitializeRandomScatter : IJobParallelForTransform
         {
             public NativeArray<float> Distances;
-            public float DistanceCacheLength;
+            public double DistanceCacheLength;
 
             // Spline data
-            [ReadOnly] public NativeArray<float> DistanceCache;
+            [ReadOnly] public NativeArray<double> DistanceCache;
             [ReadOnly] public NativeArray<SplinePoint> Points;
             public SplineMode Mode;
             public Space SplineSpace;
@@ -182,7 +182,7 @@ namespace CorgiSpline
                 transform.position = point.position;
 
                 var d = Spline.JobSafe_ProjectPercentToDistance(DistanceCache, DistanceCacheLength, t);
-                Distances[index] = d; 
+                Distances[index] = (float) d; 
             }
         }
     }
