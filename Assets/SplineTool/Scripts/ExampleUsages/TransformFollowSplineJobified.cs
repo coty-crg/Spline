@@ -143,7 +143,7 @@ namespace CorgiSpline
 
                 Distances[index] = d;
 
-                var t = (float) Spline.JobSafe_ProjectDistance(DistanceCache, d);
+                var t = Spline.JobSafe_ProjectDistance(DistanceCache, d);
                 var projectedPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
 
                 transform.position = projectedPoint.position;
@@ -176,7 +176,7 @@ namespace CorgiSpline
             {
                 var seed = (uint)(index + 10000) * 100000;
                 var random = new Unity.Mathematics.Random(seed);
-                var t = random.NextFloat();
+                var t = random.NextDouble();
 
                 var point = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
                 transform.position = point.position;

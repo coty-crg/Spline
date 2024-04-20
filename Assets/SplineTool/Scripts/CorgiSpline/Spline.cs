@@ -3021,6 +3021,172 @@ namespace CorgiSpline
             return new SplinePoint();
         }
         
+        public static SplinePoint JobSafe_GetPoint(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, double t)
+        {
+            if (Points.Length == 0)
+            {
+                return new SplinePoint();
+            }
+
+            if (ClosedSpline)
+            {
+                t = RepeatDouble(t, 1.00);
+            }
+            else
+            {
+                t = math.saturate(t);
+            }
+
+            if (Mode == SplineMode.Linear)
+            {
+                var delta_t = 1f / (Points.Length - 1);
+
+                var index0 = (int) math.floor(t * (Points.Length - 1));
+                var index1 = index0 + 1;
+
+                index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+                index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+
+                if (index0 == Points.Length - 1)
+                {
+                    var firstPoint = Points[index0];
+
+                    if (SplineSpace == Space.Self)
+                    {
+                        firstPoint = JobSafe_TransformSplinePoint(firstPoint, localToWorldMatrix);
+                    }
+
+                    return firstPoint;
+                }
+
+                var mod_t = t - delta_t * index0;
+                var inner_t = mod_t / delta_t;
+
+                var point0 = Points[index0];
+                var point1 = Points[index1];
+
+                var result = LerpSplinePoint(point0, point1, (float) inner_t);
+
+                if (SplineSpace == Space.Self)
+                {
+                    return JobSafe_TransformSplinePoint(result, localToWorldMatrix);
+                }
+                else
+                {
+                    return result;
+                }
+            }
+            else if (Mode == SplineMode.Bezier)
+            {
+                var groupCount = (Points.Length - 1) - (Points.Length - 1) % 3;
+
+                double delta_t = 3f / groupCount;
+                double mod_t = RepeatDouble(t, delta_t);
+                float inner_t = (float)(mod_t / delta_t);
+
+                var index0 = (int) math.floor(t * groupCount);
+                index0 = math.clamp(index0, 0, Points.Length - 1);
+                index0 = index0 - index0 % 3;
+
+                if (index0 >= Points.Length - 3)
+                {
+                    var lastPoint = Points[Points.Length - 1];
+
+                    if (SplineSpace == Space.Self)
+                    {
+                        lastPoint = JobSafe_TransformSplinePoint(lastPoint, localToWorldMatrix);
+                    }
+
+                    return lastPoint;
+                }
+
+                var index1 = index0 + 1;
+                var index2 = index0 + 2;
+                var index3 = index0 + 3;
+
+                var point0 = Points[index0];
+                var point1 = Points[index1];
+                var point2 = Points[index2];
+                var point3 = Points[index3];
+
+                var result = CalculateBezierPoint(point0, point1, point2, point3, inner_t);
+
+                if (SplineSpace == Space.Self)
+                {
+                    return JobSafe_TransformSplinePoint(result, localToWorldMatrix);
+                }
+                else
+                {
+                    return result;
+                }
+            }
+
+            else if (Mode == SplineMode.BSpline)
+            {
+                double delta_t = 1f / Points.Length;
+                double mod_t = RepeatDouble(t, delta_t);
+                float inner_t = (float)(mod_t / delta_t);
+
+                var pointCount = Points.Length;
+                var index = (int) math.floor(t * pointCount);
+                    index = math.clamp(index, 0, pointCount);
+
+                // note, offsetting by -1 so index0 starts behind current point 
+                index -= 1;
+
+                int index0;
+                int index1;
+                int index2;
+                int index3;
+
+                if (ClosedSpline)
+                {
+                    int mod_count = Points.Length; // - 1; // -1 to ignore duplicate final point
+
+                    index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
+                    index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
+                    index2 = ((index + 2) % (mod_count) + mod_count) % mod_count;
+                    index3 = ((index + 3) % (mod_count) + mod_count) % mod_count;
+                }
+                else
+                {
+                    index0 = index + 0;
+                    index1 = index + 1;
+                    index2 = index + 2;
+                    index3 = index + 3;
+
+                    index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+                    index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+                    index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
+                    index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+                }
+
+                var point0 = Points[index0];
+                var point1 = Points[index1];
+                var point2 = Points[index2];
+                var point3 = Points[index3];
+
+                if (!ClosedSpline)
+                {
+                    BSplineValidatePositions(index, pointCount, ref point0.position, ref point1.position, ref point2.position, ref point3.position);
+                }
+
+                var result = CalculateBSplinePoint(point0, point1, point2, point3, inner_t);
+
+                if (SplineSpace == Space.Self)
+                {
+                    return JobSafe_TransformSplinePoint(result, localToWorldMatrix);
+                }
+                else
+                {
+                    return result;
+                }
+            }
+
+            // not implemented 
+            return new SplinePoint();
+        }
+
         public static Vector3 JobSafe_GetForward(NativeArray<SplinePoint> Points, SplineMode Mode, Space SplineSpace, Matrix4x4 localToWorldMatrix, bool ClosedSpline, float t)
         {
             var pointsLength = Points.Length;
@@ -3179,7 +3345,7 @@ namespace CorgiSpline
             return projectionDistanceCacheLength;
         }
 
-        public static double JobSafe_ProjectPercentToDistance(NativeArray<double> projectionDistanceCache, double projectionDistanceCacheLength, float t)
+        public static double JobSafe_ProjectPercentToDistance(NativeArray<double> projectionDistanceCache, double projectionDistanceCacheLength, double t)
         {
             var resolution = projectionDistanceCache.Length;
 
