@@ -1316,7 +1316,7 @@ namespace CorgiSpline
 
         private void InsertPoint(Spline instance, SplinePoint placingPoint)
         {
-            instance.InsertPoint(placingPoint);
+            instance.InsertPoint(placingPoint.position, out _);
             instance.UpdateNative();
             instance.SendEditorSplineUpdatedEvent();
         }

@@ -1528,9 +1528,9 @@ namespace CorgiSpline
         /// Inserts a new point into the spline, between the two points found from projecting the world positon on the sl
         /// </summary>
         /// <param name="placingPoint"></param>
-        public void InsertPoint(SplinePoint placingPoint)
+        public bool InsertPoint(Vector3 position, out int newPointIndex)
         {
-            var t = ProjectOnSpline_t(placingPoint.position); // resolves space internally 
+            var t = ProjectOnSpline_t(position); // resolves space internally 
             var pointIndex = GetPointIndexFromTime(t);
             var newPoint = GetPoint(t);
             var forward = GetForward(t);
@@ -1544,11 +1544,11 @@ namespace CorgiSpline
             // don't insert point before or after the spline (MUST be a true insert) 
             if (t > 0f && t < 1f)
             {
-
                 var pointList = Points.ToList();
                 if (Mode == SplineMode.Linear)
                 {
                     pointList.Insert(pointIndex + 1, newPoint);
+                    newPointIndex = pointIndex + 1;
                 }
                 else if (Mode == SplineMode.Bezier)
                 {
@@ -1569,20 +1569,28 @@ namespace CorgiSpline
                     pointList.Insert(pointIndex + 2 + 0, handle0);
                     pointList.Insert(pointIndex + 2 + 1, newPoint);
                     pointList.Insert(pointIndex + 2 + 2, handle1);
+                    newPointIndex = pointIndex + 2 + 1;
 
                 }
                 else if (Mode == SplineMode.BSpline)
                 {
                     pointList.Insert(pointIndex + 1, newPoint);
+                    newPointIndex = pointIndex + 1;
                 }
                 else
                 {
                     // not implemented? 
+                    newPointIndex = -1;
+                    return false; 
                 }
 
                 // update original array with list 
                 Points = pointList.ToArray();
+                return true; 
             }
+
+            newPointIndex = -1; 
+            return false; 
         }
 
         /// <summary>
