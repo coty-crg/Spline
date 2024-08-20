@@ -513,22 +513,28 @@ namespace CorgiSpline
         }
 
         /// <summary>
-        /// Gets an interpolated SplinePoint along the spline at the given world position.
+        /// Gets an interpolated SplinePoint along the spline at the given world position. 
+        /// Specifying <paramref name="min_t"/> and <paramref name="max_t"/> to narrow the search space can speed up this function. 
         /// </summary>
         /// <param name="position"></param>
+        /// <param name="min_t"></param>
+        /// <param name="max_t"></param>
         /// <returns></returns>
-        public SplinePoint ProjectOnSpline(Vector3 position)
+        public SplinePoint ProjectOnSpline(Vector3 position, float min_t = 0f, float max_t = 1f)
         {
-            var t = ProjectOnSpline_t(position);
+            var t = ProjectOnSpline_t(position, min_t: min_t, max_t: max_t);
             return GetPoint(t);
         }
 
         /// <summary>
         /// Projects a world position onto this Spline, which can be used for fetching an interpolated SplinePoint with GetPoint(t); 
+        /// Specifying <paramref name="min_t"/> and <paramref name="max_t"/> to narrow the search space can speed up this function. 
         /// </summary>
         /// <param name="position"></param>
+        /// <param name="min_t"></param>
+        /// <param name="max_t"></param>
         /// <returns></returns>
-        public float ProjectOnSpline_t(Vector3 position)
+        public float ProjectOnSpline_t(Vector3 position, float min_t = 0f, float max_t = 1f)
         {
             if (SplineSpace == Space.Self)
             {
@@ -547,6 +553,15 @@ namespace CorgiSpline
 
             var length = Points.Length;
 
+            // ensure valid search space 
+            var smallest_length_percent = 1f / Mathf.Max(1f, length - 1f);
+            var query_length_delta = max_t - min_t;
+            if(smallest_length_percent < query_length_delta)
+            {
+                min_t -= smallest_length_percent;
+                max_t += smallest_length_percent;
+            }
+
             if (Mode == SplineMode.Linear)
             {
                 // find closest point 
@@ -555,6 +570,12 @@ namespace CorgiSpline
 
                 for (var i = 0; i < length - 1; ++i)
                 {
+                    var i_length_percent = (float)i / length;
+                    if (i_length_percent < min_t || i_length_percent > max_t)
+                    {
+                        continue;
+                    }
+
                     var pointA = Points[i + 0];
                     var pointB = Points[i + 1];
 
@@ -577,6 +598,38 @@ namespace CorgiSpline
                         {
                             closestDistance = toPointDistance;
                             closestIndex = i;
+                        }
+                    }
+                }
+
+                // if no index was found, we need to do a slow query 
+                if(closestIndex == -1)
+                {
+                    for (var i = 0; i < length - 1; ++i)
+                    {
+                        var pointA = Points[i + 0];
+                        var pointB = Points[i + 1];
+
+                        var pointVector = (pointB.position - pointA.position);
+                        if (pointVector.sqrMagnitude > 0f)
+                        {
+                            var projectedPoint = ProjectLinear(pointA, pointB, position);
+                            var projectedDistance = (projectedPoint - position).magnitude;
+                            if (projectedDistance < closestDistance)
+                            {
+                                closestDistance = projectedDistance;
+                                closestIndex = i;
+                            }
+                        }
+                        else
+                        {
+                            var toPoint = pointA.position - position;
+                            var toPointDistance = toPoint.magnitude;
+                            if (toPointDistance < closestDistance)
+                            {
+                                closestDistance = toPointDistance;
+                                closestIndex = i;
+                            }
                         }
                     }
                 }
@@ -665,6 +718,12 @@ namespace CorgiSpline
                 
                 for (var i = 0; i < length - 3; i += 3)
                 {
+                    var i_length_percent = (float)i / length;
+                    if (i_length_percent < min_t || i_length_percent > max_t)
+                    {
+                        continue;
+                    }
+
                     var p0 = Points[i + 0];
                     var p1 = Points[i + 1];
                     var p2 = Points[i + 2];
@@ -683,6 +742,29 @@ namespace CorgiSpline
                     }
                 }
 
+                if(best_i == -1)
+                {
+                    for (var i = 0; i < length - 3; i += 3)
+                    {
+                        var p0 = Points[i + 0];
+                        var p1 = Points[i + 1];
+                        var p2 = Points[i + 2];
+                        var p3 = Points[i + 3];
+
+                        var t = QuadraticProject(p0.position, p1.position, p2.position, p3.position, position);
+                        var projected = QuadraticInterpolate(p0.position, p1.position, p2.position, p3.position, t);
+                        var distance = Vector3.Distance(projected, position);
+
+                        if (distance < closestDistance)
+                        {
+                            closestDistance = distance;
+
+                            best_i = i;
+                            best_t = t;
+                        }
+                    }
+                }
+
                 return (float)best_i / (groupCount) + best_t * (3f / (groupCount));
             }
             else if (Mode == SplineMode.BSpline)
@@ -695,6 +777,12 @@ namespace CorgiSpline
                 for (var i = 0; i < length; i += 1)
                 {
                     var index = i;
+                    var i_length_percent = (float) i / length;
+                    
+                    if(i_length_percent < min_t ||  i_length_percent > max_t)
+                    {
+                        continue;
+                    }
 
                     var pointCount = Points.Length;
                     index = Mathf.Clamp(index, 0, pointCount) - 1; // note, offsetting by -1 so index0 starts behind current point 
@@ -747,6 +835,67 @@ namespace CorgiSpline
 
                         best_i = i;
                         best_t = t;
+                    }
+                }
+
+                if(best_i == -1)
+                {
+                    for (var i = 0; i < length; i += 1)
+                    {
+                        var index = i;
+                        
+                        var pointCount = Points.Length;
+                        index = Mathf.Clamp(index, 0, pointCount) - 1; // note, offsetting by -1 so index0 starts behind current point 
+
+                        int index0;
+                        int index1;
+                        int index2;
+                        int index3;
+
+                        if (ClosedSpline)
+                        {
+                            int mod_count = Points.Length;
+
+                            index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
+                            index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
+                            index2 = ((index + 2) % (mod_count) + mod_count) % mod_count;
+                            index3 = ((index + 3) % (mod_count) + mod_count) % mod_count;
+                        }
+                        else
+                        {
+                            index0 = index + 0;
+                            index1 = index + 1;
+                            index2 = index + 2;
+                            index3 = index + 3;
+
+                            index0 = Mathf.Clamp(index0, 0, pointCount - 1);
+                            index1 = Mathf.Clamp(index1, 0, pointCount - 1);
+                            index2 = Mathf.Clamp(index2, 0, pointCount - 1);
+                            index3 = Mathf.Clamp(index3, 0, pointCount - 1);
+                        }
+
+                        var point0 = Points[index0];
+                        var point1 = Points[index1];
+                        var point2 = Points[index2];
+                        var point3 = Points[index3];
+
+                        if (!ClosedSpline)
+                        {
+                            BSplineValidatePositions(index, pointCount, ref point0.position, ref point1.position, ref point2.position, ref point3.position);
+                        }
+
+                        var t = BSplineProject(point0.position, point1.position, point2.position, point3.position, position);
+                        var projected = BSplineInterpolate(point0.position, point1.position, point2.position, point3.position, t);
+
+                        var distance = Vector3.Distance(projected, position);
+
+                        if (distance < closestDistance)
+                        {
+                            closestDistance = distance;
+
+                            best_i = i;
+                            best_t = t;
+                        }
                     }
                 }
 
