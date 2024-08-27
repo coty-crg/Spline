@@ -136,11 +136,11 @@ namespace CorgiSpline
                 // setup 
                 var start_forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
                 var start_up = Vector3.up; 
-                var firstPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0f);
+                var firstPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, 0d);
 
                 var end_forward = Vector3.up; //  Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, built_to_t);
                 var end_up = Vector3.right; 
-                var lastPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, built_to_t);
+                var lastPoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, (double) built_to_t);
 
                 var rotation = Quaternion.Euler(rotationEulorOffset);
 
@@ -168,7 +168,7 @@ namespace CorgiSpline
                 var tile_uv_x = 0f;
                 for (var step = 0; step < quality; ++step)
                 {
-                    var t = (float) step / (quality);
+                    var t = (double) step / (quality);
 
                     var final_point_from_t = false;
                     if (t > built_to_t)
@@ -180,7 +180,7 @@ namespace CorgiSpline
                     var up = Vector3.up;
                     var splinePoint = Spline.JobSafe_GetPoint(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
                     var position = splinePoint.position + vertexOffset;
-                    var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, t);
+                    var forward = Spline.JobSafe_GetForward(Points, Mode, SplineSpace, localToWorldMatrix, ClosedSpline, (float) t);
 
                     if(use_splinepoint_rotations)
                     {
@@ -242,13 +242,13 @@ namespace CorgiSpline
                         var uvTubeProgress = (float)tube_step * tube_delta * uv_tile_scale;
                         var uvTubeWrap = (tube_step * tube_delta) / 2f;
 
-                        var uv0 = new Vector2(uv_x, uvTubeProgress);
-                        var uv1 = new Vector2(t, uvTubeWrap);
+                        var uv0 = new Vector2((float) uv_x, uvTubeProgress);
+                        var uv1 = new Vector2((float) t, uvTubeWrap);
 
                         if (uvsMode == MeshBuilderUVs.StretchSwapXY || uvsMode == MeshBuilderUVs.TileSwapXY)
                         {
-                            uv0 = new Vector2(uvTubeProgress, uv_x);
-                            uv1 = new Vector2(uvTubeWrap, t);
+                            uv0 = new Vector2(uvTubeProgress, (float) uv_x);
+                            uv1 = new Vector2(uvTubeWrap, (float) t);
                         }
 
                         uvs0.Add(uv0);

@@ -1423,7 +1423,7 @@ namespace CorgiSpline
             {
                 var groupCount = (Points.Length - 1) - (Points.Length - 1) % 3;
 
-                double delta_t = 3f / groupCount;
+                double delta_t = 3d / groupCount;
                 double mod_t = RepeatDouble(t, delta_t);
                 float inner_t = (float)(mod_t / delta_t);
 
@@ -1465,7 +1465,7 @@ namespace CorgiSpline
             }
             else if (Mode == SplineMode.BSpline)
             {
-                double delta_t = 1f / Points.Length;
+                double delta_t = 1d / Points.Length;
                 double mod_t = RepeatDouble(t, delta_t);
                 float inner_t = (float) (mod_t / delta_t);
 
@@ -2207,6 +2207,17 @@ namespace CorgiSpline
 
             return result;
         }
+        
+        public static double3 BSplineInterpolate(double3 point0, double3 point1, double3 point2, double3 point3, double t)
+        {
+            var result = (
+                  (-point0 + point2) * 0.5d
+                + ((point0 - 2f * point1 + point2) * 0.5d
+                + (-point0 + 3f * point1 - 3f * point2 + point3) * 0.166666d * t) * t) * t
+                + (point0 + 4f * point1 + point2) * 0.166666d;
+
+            return result;
+        }
 
         public static Color BSplineInterpolate(Color color0, Color color1, Color color2, Color color3, float t)
         {
@@ -2292,6 +2303,39 @@ namespace CorgiSpline
             var result_forward = BSplineInterpolate(forward0, forward1, forward2, forward3, t);
             var result_up = BSplineInterpolate(up0, up1, up2, up3, t);
             result.rotation = Quaternion.LookRotation(result_forward, result_up); 
+
+            return result;
+        }
+
+        private static SplinePoint CalculateBSplinePoint(SplinePoint point0, SplinePoint point1, SplinePoint point2, SplinePoint point3, double t)
+        {
+            var result = new SplinePoint();
+
+            result.position = (float3) BSplineInterpolate((double3) (float3) point0.position, (double3)(float3) point1.position, (double3)(float3) point2.position, (double3)(float3) point3.position, t);
+            result.scale = (float3) BSplineInterpolate((double3) (float3) point0.scale, (double3)(float3)point1.scale, (double3)(float3)point2.scale, (double3)(float3)point3.scale, t);
+
+
+            var color0 = new double3(point0.color.r, point0.color.g, point0.color.b); 
+            var color1 = new double3(point1.color.r, point1.color.g, point1.color.b); 
+            var color2 = new double3(point2.color.r, point2.color.g, point2.color.b); 
+            var color3 = new double3(point3.color.r, point3.color.g, point3.color.b); 
+
+            result.color = (Color) (Vector4) new float4((float3) BSplineInterpolate(color0, color1, color2, color3, t), 1f);
+
+            // getting rotation is really dumb here, find a faster way 
+            var forward0 = point0.rotation * Vector3.forward;
+            var forward1 = point1.rotation * Vector3.forward;
+            var forward2 = point2.rotation * Vector3.forward;
+            var forward3 = point3.rotation * Vector3.forward;
+
+            var up0 = point0.rotation * Vector3.up;
+            var up1 = point1.rotation * Vector3.up;
+            var up2 = point2.rotation * Vector3.up;
+            var up3 = point3.rotation * Vector3.up;
+
+            var result_forward = (float3) BSplineInterpolate((double3)(float3)forward0, (double3)(float3)forward1, (double3)(float3)forward2, (double3)(float3)forward3, t);
+            var result_up = (float3) BSplineInterpolate((double3)(float3)up0, (double3)(float3)up1, (double3)(float3)up2, (double3)(float3)up3, t);
+            result.rotation = Quaternion.LookRotation(result_forward, result_up);
 
             return result;
         }
@@ -3071,7 +3115,7 @@ namespace CorgiSpline
             {
                 var groupCount = (Points.Length - 1) - (Points.Length - 1) % 3;
 
-                double delta_t = 3f / groupCount;
+                double delta_t = 3d / groupCount;
                 double mod_t = RepeatDouble(t, delta_t);
                 float inner_t = (float) (mod_t / delta_t);
 
@@ -3114,7 +3158,7 @@ namespace CorgiSpline
 
             else if (Mode == SplineMode.BSpline)
             {
-                double delta_t = 1f / Points.Length;
+                double delta_t = 1d / Points.Length;
                 double mod_t = RepeatDouble(t, delta_t);
                 float inner_t = (float)(mod_t / delta_t);
 
@@ -3237,7 +3281,7 @@ namespace CorgiSpline
             {
                 var groupCount = (Points.Length - 1) - (Points.Length - 1) % 3;
 
-                double delta_t = 3f / groupCount;
+                double delta_t = 3d / groupCount;
                 double mod_t = RepeatDouble(t, delta_t);
                 float inner_t = (float)(mod_t / delta_t);
 
@@ -3277,16 +3321,15 @@ namespace CorgiSpline
                     return result;
                 }
             }
-
             else if (Mode == SplineMode.BSpline)
             {
-                double delta_t = 1f / Points.Length;
+                double delta_t = 1d / Points.Length;
                 double mod_t = RepeatDouble(t, delta_t);
-                float inner_t = (float)(mod_t / delta_t);
+                double inner_t = (double)(mod_t / delta_t);
 
                 var pointCount = Points.Length;
                 var index = (int) math.floor(t * pointCount);
-                    index = math.clamp(index, 0, pointCount);
+                    index = Mathf.Clamp(index, 0, pointCount);  
 
                 // note, offsetting by -1 so index0 starts behind current point 
                 index -= 1;
