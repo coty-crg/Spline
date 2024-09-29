@@ -1057,6 +1057,7 @@ namespace CorgiSpline
                             var hit = RXLookingGlass.IntersectRayGameObject(worldRay, go, out RaycastHit info);
                             if (hit)
                             {
+                                
                                 previousMeshPoint0 = info.point;
                                 previousMeshPoint1 = info.point + info.normal.normalized * PlaceOffsetFromSurface;
 
@@ -1079,133 +1080,135 @@ namespace CorgiSpline
                     point = previousMeshSurfacePoint;
                     return hasPreviousMeshSurfacePoint;
                 case SplinePlacePointMode.CollisionSurface:
-                    RaycastHit collisionInfo;
-                    var collisionHit = Physics.Raycast(worldRay, out collisionInfo, 256f, PlaceLayerMask, QueryTriggerInteraction.Ignore);
-                    if (collisionHit)
                     {
-                        if(SnapToNavMesh && UnityEngine.AI.NavMesh.SamplePosition(collisionInfo.point, out UnityEngine.AI.NavMeshHit navMeshInfo, 16f, int.MaxValue))
+                        RaycastHit collisionInfo;
+                        var collisionHit = Physics.Raycast(worldRay, out collisionInfo, 256f, PlaceLayerMask, QueryTriggerInteraction.Ignore);
+                        if (collisionHit)
                         {
-                            var navMeshUp = navMeshInfo.normal;
-
-                            var navMeshForward = Vector3.ProjectOnPlane(Vector3.forward, navMeshUp);
-                            if (navMeshForward.sqrMagnitude > 0.001f)
+                            if(SnapToNavMesh && UnityEngine.AI.NavMesh.SamplePosition(collisionInfo.point, out UnityEngine.AI.NavMeshHit navMeshInfo, 16f, int.MaxValue))
                             {
-                                navMeshForward = navMeshForward.normalized;
-                            }
-                            else
-                            {
-                                navMeshForward = Vector3.forward;
-                            }
+                                var navMeshUp = navMeshInfo.normal;
 
-                            var navMeshPointRotation = Quaternion.LookRotation(navMeshForward, navMeshUp);
-                            point = new SplinePoint(navMeshInfo.position, navMeshPointRotation, Vector3.one, Color.white);
-                            return true;
-                        }
-
-                        if (SnapToNearestVert && collisionInfo.triangleIndex >= 0)
-                        {
-                            var meshFilter = collisionInfo.collider.GetComponent<MeshFilter>();
-                            var mesh = meshFilter.sharedMesh;
-
-                            var localToWorld = meshFilter.transform.localToWorldMatrix;
-
-                            var vertices = mesh.vertices;
-                            var normals = mesh.normals;
-
-                            var triangles = mesh.triangles;
-                            var triIndex = collisionInfo.triangleIndex;
-
-                            var vertIndex0 = triangles[triIndex * 3 + 0];
-                            var vertIndex1 = triangles[triIndex * 3 + 1];
-                            var vertIndex2 = triangles[triIndex * 3 + 2];
-
-                            var vertex0 = localToWorld.MultiplyPoint(vertices[vertIndex0]);
-                            var vertex1 = localToWorld.MultiplyPoint(vertices[vertIndex1]);
-                            var vertex2 = localToWorld.MultiplyPoint(vertices[vertIndex2]);
-
-                            var normal0 = localToWorld.MultiplyVector(normals[vertIndex0]);
-                            var normal1 = localToWorld.MultiplyVector(normals[vertIndex1]);
-                            var normal2 = localToWorld.MultiplyVector(normals[vertIndex2]);
-
-                            var distance0 = Vector3.Distance(vertex0, collisionInfo.point);
-                            var distance1 = Vector3.Distance(vertex1, collisionInfo.point);
-                            var distance2 = Vector3.Distance(vertex2, collisionInfo.point);
-
-                            var rotation0 = Quaternion.LookRotation(normal0, Vector3.up);
-                            var rotation1 = Quaternion.LookRotation(normal1, Vector3.up);
-                            var rotation2 = Quaternion.LookRotation(normal2, Vector3.up);
-
-                            if (distance0 < distance1 && distance0 < distance2)
-                            {
-                                Handles.color = Color.white; 
-                                Handles.DrawLine(vertex0, vertex0 + normal0 * PlaceOffsetFromSurface);
-
-                                point = new SplinePoint(vertex0 + normal0 * PlaceOffsetFromSurface, rotation0, Vector3.one, Color.white);
-                            }
-                            else if (distance1 < distance0 && distance1 < distance2)
-                            {
-                                Handles.color = Color.white;
-                                Handles.DrawLine(vertex1, vertex1 + normal1 * PlaceOffsetFromSurface);
-
-                                point = new SplinePoint(vertex1 + normal1 * PlaceOffsetFromSurface, rotation1, Vector3.one, Color.white);
-                            }
-                            else
-                            {
-                                Handles.color = Color.white;
-                                Handles.DrawLine(vertex2, vertex2 + normal2 * PlaceOffsetFromSurface);
-
-                                point = new SplinePoint(vertex2 + normal2 * PlaceOffsetFromSurface, rotation2, Vector3.one, Color.white);
-                            }
-
-                            return true;
-                        }
-                        else if (SnapToNearestVert && collisionInfo.collider as BoxCollider != null)
-                        {
-                            var boxCollider = collisionInfo.collider as BoxCollider;
-                            var boxLocalToWorld = boxCollider.transform.localToWorldMatrix;
-
-                            var min = boxCollider.center - boxCollider.size * 0.5f;
-                            var max = boxCollider.center + boxCollider.size * 0.5f;
-
-                            _boxVertCache[0] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, min.y, min.z));
-                            _boxVertCache[1] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, min.y, max.z));
-                            _boxVertCache[2] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, max.y, min.z));
-                            _boxVertCache[3] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, max.y, max.z));
-                            _boxVertCache[4] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, min.y, min.z));
-                            _boxVertCache[5] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, min.y, max.z));
-                            _boxVertCache[6] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, max.y, min.z));
-                            _boxVertCache[7] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, max.y, max.z));
-
-                            var closestDistance = float.MaxValue;
-                            var closestPointIndex = -1;
-
-                            for (int i = 0; i < 8; i++)
-                            {
-                                var distance = Vector3.Distance(collisionInfo.point, _boxVertCache[i]);
-                                if (distance < closestDistance)
+                                var navMeshForward = Vector3.ProjectOnPlane(Vector3.forward, navMeshUp);
+                                if (navMeshForward.sqrMagnitude > 0.001f)
                                 {
-                                    closestDistance = distance;
-                                    closestPointIndex = i;
+                                    navMeshForward = navMeshForward.normalized;
                                 }
+                                else
+                                {
+                                    navMeshForward = Vector3.forward;
+                                }
+
+                                var navMeshPointRotation = Quaternion.LookRotation(navMeshForward, navMeshUp);
+                                point = new SplinePoint(navMeshInfo.position, navMeshPointRotation, Vector3.one, Color.white);
+                                return true;
+                            }
+
+                            if (SnapToNearestVert && collisionInfo.triangleIndex >= 0)
+                            {
+                                var meshFilter = collisionInfo.collider.GetComponent<MeshFilter>();
+                                var mesh = meshFilter.sharedMesh;
+
+                                var localToWorld = meshFilter.transform.localToWorldMatrix;
+
+                                var vertices = mesh.vertices;
+                                var normals = mesh.normals;
+
+                                var triangles = mesh.triangles;
+                                var triIndex = collisionInfo.triangleIndex;
+
+                                var vertIndex0 = triangles[triIndex * 3 + 0];
+                                var vertIndex1 = triangles[triIndex * 3 + 1];
+                                var vertIndex2 = triangles[triIndex * 3 + 2];
+
+                                var vertex0 = localToWorld.MultiplyPoint(vertices[vertIndex0]);
+                                var vertex1 = localToWorld.MultiplyPoint(vertices[vertIndex1]);
+                                var vertex2 = localToWorld.MultiplyPoint(vertices[vertIndex2]);
+
+                                var normal0 = localToWorld.MultiplyVector(normals[vertIndex0]);
+                                var normal1 = localToWorld.MultiplyVector(normals[vertIndex1]);
+                                var normal2 = localToWorld.MultiplyVector(normals[vertIndex2]);
+
+                                var distance0 = Vector3.Distance(vertex0, collisionInfo.point);
+                                var distance1 = Vector3.Distance(vertex1, collisionInfo.point);
+                                var distance2 = Vector3.Distance(vertex2, collisionInfo.point);
+
+                                var rotation0 = Quaternion.LookRotation(normal0, Vector3.up);
+                                var rotation1 = Quaternion.LookRotation(normal1, Vector3.up);
+                                var rotation2 = Quaternion.LookRotation(normal2, Vector3.up);
+
+                                if (distance0 < distance1 && distance0 < distance2)
+                                {
+                                    Handles.color = Color.white; 
+                                    Handles.DrawLine(vertex0, vertex0 + normal0 * PlaceOffsetFromSurface);
+
+                                    point = new SplinePoint(vertex0 + normal0 * PlaceOffsetFromSurface, rotation0, Vector3.one, Color.white);
+                                }
+                                else if (distance1 < distance0 && distance1 < distance2)
+                                {
+                                    Handles.color = Color.white;
+                                    Handles.DrawLine(vertex1, vertex1 + normal1 * PlaceOffsetFromSurface);
+
+                                    point = new SplinePoint(vertex1 + normal1 * PlaceOffsetFromSurface, rotation1, Vector3.one, Color.white);
+                                }
+                                else
+                                {
+                                    Handles.color = Color.white;
+                                    Handles.DrawLine(vertex2, vertex2 + normal2 * PlaceOffsetFromSurface);
+
+                                    point = new SplinePoint(vertex2 + normal2 * PlaceOffsetFromSurface, rotation2, Vector3.one, Color.white);
+                                }
+
+                                return true;
+                            }
+                            else if (SnapToNearestVert && collisionInfo.collider as BoxCollider != null)
+                            {
+                                var boxCollider = collisionInfo.collider as BoxCollider;
+                                var boxLocalToWorld = boxCollider.transform.localToWorldMatrix;
+
+                                var min = boxCollider.center - boxCollider.size * 0.5f;
+                                var max = boxCollider.center + boxCollider.size * 0.5f;
+
+                                _boxVertCache[0] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, min.y, min.z));
+                                _boxVertCache[1] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, min.y, max.z));
+                                _boxVertCache[2] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, max.y, min.z));
+                                _boxVertCache[3] = boxLocalToWorld.MultiplyPoint(new Vector3(min.x, max.y, max.z));
+                                _boxVertCache[4] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, min.y, min.z));
+                                _boxVertCache[5] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, min.y, max.z));
+                                _boxVertCache[6] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, max.y, min.z));
+                                _boxVertCache[7] = boxLocalToWorld.MultiplyPoint(new Vector3(max.x, max.y, max.z));
+
+                                var closestDistance = float.MaxValue;
+                                var closestPointIndex = -1;
+
+                                for (int i = 0; i < 8; i++)
+                                {
+                                    var distance = Vector3.Distance(collisionInfo.point, _boxVertCache[i]);
+                                    if (distance < closestDistance)
+                                    {
+                                        closestDistance = distance;
+                                        closestPointIndex = i;
+                                    }
+                                }
+
+                                Handles.color = Color.white;
+                                Handles.DrawLine(collisionInfo.point, collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface);
+
+                                point = new SplinePoint(_boxVertCache[closestPointIndex] + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one, Color.white);
+                                return true;
                             }
 
                             Handles.color = Color.white;
                             Handles.DrawLine(collisionInfo.point, collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface);
 
-                            point = new SplinePoint(_boxVertCache[closestPointIndex] + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one, Color.white);
+                            point = new SplinePoint(collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one, Color.white);
                             return true;
                         }
-
-                        Handles.color = Color.white;
-                        Handles.DrawLine(collisionInfo.point, collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface);
-
-                        point = new SplinePoint(collisionInfo.point + collisionInfo.normal * PlaceOffsetFromSurface, Quaternion.LookRotation(collisionInfo.normal, Vector3.up), Vector3.one, Color.white);
-                        return true;
-                    }
-                    else
-                    {
-                        point = new SplinePoint();
-                        return false;
+                        else
+                        {
+                            point = new SplinePoint();
+                            return false;
+                        }
                     }
 
                 case SplinePlacePointMode.InsertBetweenPoints:

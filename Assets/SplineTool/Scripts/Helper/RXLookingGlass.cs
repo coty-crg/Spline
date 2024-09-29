@@ -48,6 +48,15 @@ namespace CorgiSpline
                 }
             }
 
+            var terrainColliders = go.GetComponentsInChildren<TerrainCollider>();
+            foreach (var terrianCollider in terrainColliders)
+            {
+                if(terrianCollider.Raycast(ray, out hit, 256f))
+                {
+                    return true; 
+                }
+            }
+
             hit = new RaycastHit();
             return false;
         }
