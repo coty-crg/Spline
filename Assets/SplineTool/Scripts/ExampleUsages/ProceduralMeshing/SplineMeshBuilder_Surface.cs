@@ -123,10 +123,10 @@ namespace CorgiSpline
 
                 // iterate over the spline, from the beginning and the end
                 // for each two of those points, generate a vertex 
-                for (var step = 0; step <= (quality / 4); ++step)
+                for (var step = 0; step <= (quality / 2); ++step)
                 {
-                    var t_0 = 0.0d + ((double) step / (quality / 2));
-                    var t_1 = 1.0d - ((double) step / (quality / 2));
+                    var t_0 = 0.0d + ((double) step / quality);
+                    var t_1 = 1.0d - ((double) step / quality);
 
                     if(t_0 > built_to_t)
                     {
