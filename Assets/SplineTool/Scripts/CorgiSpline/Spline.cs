@@ -46,6 +46,7 @@ namespace CorgiSpline
         [Tooltip("Only necessary if you care about using Splines in the Job System. Some of the example scripts use this.")] 
         public bool UpdateNativeArrayOnEnable = true;
 
+
         [SerializeField, HideInInspector] private SplineMode Mode = SplineMode.Linear;
         [SerializeField, HideInInspector] private Space SplineSpace = Space.World;
         [SerializeField, HideInInspector] private bool ClosedSpline;
@@ -56,6 +57,9 @@ namespace CorgiSpline
         public bool EditorAlwaysDraw;
         public bool EditorAlwaysFacePointsForwardAndUp;
         public float EditorGizmosScale = 1.0f;
+
+        [Tooltip("(Editor Only) Keep points snapped to nearby TerrainColliders. Note: This only works when this Spline's Transform is a child of a Terrain with a TerrainCollider.")] 
+        public bool EditorKeepPointsSnappedToTerrain;
 
         public delegate void RuntimeSplineDisabledEvent(Spline spline);
 
@@ -1854,6 +1858,43 @@ namespace CorgiSpline
                 }
 
                 Points[p] = selectedPoint;
+            }
+
+            if (isLocalSpace)
+            {
+                SetSplineSpace(Space.Self, true);
+            }
+        }
+
+        /// <summary>
+        /// When this spline is a child of a Terrain, use this function to keep points snapped to the parent terrain.
+        /// </summary>
+        public void SnapPointsToParentTerrain()
+        {
+            var terrainCollider = GetComponentInParent<TerrainCollider>();
+            if (terrainCollider == null) return;
+            
+            var isLocalSpace = GetSplineSpace() == Space.Self;
+
+            if (isLocalSpace)
+            {
+                SetSplineSpace(Space.World, true);
+            }
+
+            for (var i = 0; i < Points.Length; ++i)
+            {
+                var point = Points[i];
+                var worldPosition = point.position;
+
+                var origin = worldPosition + Vector3.up * 16f;
+                var direction = Vector3.down;
+                var ray = new Ray(origin, direction);
+
+                if(terrainCollider.Raycast(ray, out var hitInfo, 64f))
+                {
+                    point.position = hitInfo.point;
+                    Points[i] = point; 
+                }
             }
 
             if (isLocalSpace)

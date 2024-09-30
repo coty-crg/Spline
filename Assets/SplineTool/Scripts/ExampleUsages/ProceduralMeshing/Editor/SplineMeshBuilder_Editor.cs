@@ -332,6 +332,10 @@ namespace CorgiSpline
             }
 
             Selection.activeGameObject = newGameobject;
+
+#if UNITY_EDITOR
+            UnityEditor.Selection.SetActiveObjectWithContext(newGameobject, newGameobject);
+#endif
         }
     }
 }

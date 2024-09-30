@@ -6,39 +6,19 @@ namespace CorgiSpline
     using UnityEngine;
     using UnityEditor;
 
-    [CustomEditor(typeof(SplineMeshBuilder_Tube))]
-    public class SplineMeshBuilder_Tube_Editor : SplineMeshBuilder_Editor
+    [CustomEditor(typeof(SplineMeshBuilder_Surface))]
+    public class SplineMeshBuilder_Surface_Editor : SplineMeshBuilder_Editor
     {
-        protected SerializedProperty tube_quality;
-        protected SerializedProperty minimum_distance_between_points;
-        protected SerializedProperty max_distance_between_points;
-        protected SerializedProperty minimum_dot_between_forwards;
-
         protected override void OnEnable()
         {
             base.OnEnable();
-
-            tube_quality                        = serializedObject.FindProperty("tube_quality");
-            minimum_distance_between_points     = serializedObject.FindProperty("minimum_distance_between_points");
-            max_distance_between_points         = serializedObject.FindProperty("max_distance_between_points");
-            minimum_dot_between_forwards        = serializedObject.FindProperty("minimum_dot_between_forwards");
         }
 
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
 
-            var instance = (SplineMeshBuilder_Tube) target;
-
-            GUILayout.BeginVertical("GroupBox");
-            {
-                EditorGUILayout.LabelField("Tube Quality Settings", EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(tube_quality);
-                EditorGUILayout.PropertyField(minimum_distance_between_points);
-                EditorGUILayout.PropertyField(max_distance_between_points);
-                EditorGUILayout.PropertyField(minimum_dot_between_forwards);
-            }
-            GUILayout.EndVertical(); 
+            var instance = (SplineMeshBuilder_Surface) target;
 
             if (GUI.changed)
             {
@@ -47,18 +27,18 @@ namespace CorgiSpline
             }
         }
 
-        [MenuItem("GameObject/CorgiSpline/Meshes/Curvy Tube", priority = 10)]
+        [MenuItem("GameObject/CorgiSpline/Meshes/Surface", priority = 10)]
         public static void MenuItemCreateMeshBuilder_Tubey()
         {
             var editorConfig = SplineEditorConfig.FindConfig();
-            var newGameobject = new GameObject("NewSplineMesh_Tube");
+            var newGameobject = new GameObject("NewSplineMesh_Surface");
                 newGameobject.AddComponent<MeshFilter>();
 
             var spline = newGameobject.AddComponent<Spline>();
                 spline.SetSplineSpace(Space.Self, false);
                 spline.EditorAlwaysFacePointsForwardAndUp = true;
 
-            var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_Tube>();
+            var meshBuilder = newGameobject.AddComponent<SplineMeshBuilder_Surface>();
                 meshBuilder.SplineReference = spline;
 
             var newMeshRenderer = newGameobject.AddComponent<MeshRenderer>();

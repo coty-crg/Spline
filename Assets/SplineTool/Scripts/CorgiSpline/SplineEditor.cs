@@ -52,6 +52,8 @@ namespace CorgiSpline
         private SerializedProperty _junctionSplineEnd;
         private SerializedProperty _junctionEnd_t;
 
+        private SerializedProperty EditorKeepPointsSnappedToTerrain;
+
         private bool _showJunctionPanel;
 
         // helper gui draw functions
@@ -67,6 +69,8 @@ namespace CorgiSpline
             _junctionEndTightness = serializedObject.FindProperty("_junctionEndTightness");
             _junctionSplineEnd = serializedObject.FindProperty("_junctionSplineEnd");
             _junctionEnd_t = serializedObject.FindProperty("_junctionEnd_t");
+
+            EditorKeepPointsSnappedToTerrain = serializedObject.FindProperty("EditorKeepPointsSnappedToTerrain");
 
             backgroundTexture = Texture2D.whiteTexture;
             textureStyle = new GUIStyle { normal = new GUIStyleState { background = backgroundTexture } };
@@ -211,6 +215,9 @@ namespace CorgiSpline
                     EditorUtility.SetDirty(instance);
                 }
 
+
+                EditorGUILayout.PropertyField(EditorKeepPointsSnappedToTerrain); 
+
                 GUILayout.EndVertical();
 
                 EditorGUILayout.Space();
@@ -290,6 +297,15 @@ namespace CorgiSpline
                     {
                         PlacePlaneOffset = EditorGUILayout.Vector3Field("Plane Offset", PlacePlaneOffset);
                         PlacePlaneNormalRotation.eulerAngles = EditorGUILayout.Vector3Field("Plane Rotation", PlacePlaneNormalRotation.eulerAngles);
+                    }
+
+                    if (instance.EditorKeepPointsSnappedToTerrain)
+                    {
+                        Undo.RecordObject(instance, "Forced Terrain Snap");
+                        instance.SnapPointsToParentTerrain();
+                        instance.UpdateNative();
+                        instance.SendEditorSplineUpdatedEvent();
+                        EditorUtility.SetDirty(instance);
                     }
 
                     if (instance.EditorAlwaysFacePointsForwardAndUp)
@@ -743,6 +759,11 @@ namespace CorgiSpline
 
                     // update original points with modified list 
                     instance.Points = pointList.ToArray();
+
+                    if(instance.EditorKeepPointsSnappedToTerrain)
+                    {
+                        instance.SnapPointsToParentTerrain();
+                    }
 
                     if (instance.EditorAlwaysFacePointsForwardAndUp)
                     {
@@ -1300,6 +1321,11 @@ namespace CorgiSpline
                     AppendPoint(instance, placingPoint.position, placingPoint.rotation, placingPoint.scale);
                 }
 
+                if (instance.EditorKeepPointsSnappedToTerrain)
+                {
+                    instance.SnapPointsToParentTerrain();
+                }
+
                 if (instance.EditorAlwaysFacePointsForwardAndUp)
                 {
                     instance.SetSplinePointsRotationForward();
@@ -1450,7 +1476,7 @@ namespace CorgiSpline
 
                 if (anyRotated)
                 {
-                    var delta_rotation = Quaternion.Inverse(original_point.rotation) * splinePoint.rotation;
+                    var delta_rotation = Quaternion.Inverse(original_point.rotation) * splinePoint.rotation; 
 
                     for (var i = 0; i < SelectedPoints.Count; ++i)
                     {
@@ -1474,6 +1500,11 @@ namespace CorgiSpline
                     }
 
                     Repaint();
+                }
+
+                if (instance.EditorKeepPointsSnappedToTerrain)
+                {
+                    instance.SnapPointsToParentTerrain();
                 }
 
                 if (instance.EditorAlwaysFacePointsForwardAndUp)
@@ -1865,6 +1896,10 @@ namespace CorgiSpline
             {
                 newGameobject.transform.SetParent(Selection.activeTransform); 
             }
+
+#if UNITY_EDITOR
+            UnityEditor.Selection.SetActiveObjectWithContext(newGameobject, newGameobject); 
+#endif
 
             return newGameobject;
         }
