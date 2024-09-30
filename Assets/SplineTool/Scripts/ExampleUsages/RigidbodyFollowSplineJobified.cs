@@ -106,7 +106,7 @@ namespace CorgiSpline
                 rb.velocity = data.velocity;
                 rb.rotation = data.rotation;
             }
-        }
+        } 
 
         private void Update()
         {
