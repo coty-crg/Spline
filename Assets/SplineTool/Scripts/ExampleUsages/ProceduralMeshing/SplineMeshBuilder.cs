@@ -419,7 +419,10 @@ namespace CorgiSpline
             }
 
             var meshFilter = GetComponent<MeshFilter>();
-            meshFilter.sharedMesh = _mesh;
+            if(meshFilter != null)
+            {
+                meshFilter.sharedMesh = _mesh;
+            }
 
             var meshCollider = GetComponent<MeshCollider>();
             if(meshCollider != null)
