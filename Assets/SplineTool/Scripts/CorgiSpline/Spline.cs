@@ -16,7 +16,7 @@ namespace CorgiSpline
         /// <summary>
         /// Serialized Points. Used in-editor for serialization.
         /// </summary>
-        public SplinePoint[] Points = new SplinePoint[0];
+        public List<SplinePoint> Points = new List<SplinePoint>();
 
         /// <summary>
         /// Junction dependency. If this is not null this spline begins as a junction. 
@@ -146,7 +146,7 @@ namespace CorgiSpline
 
         public void UpdateNative()
         {
-            var point_count = Points.Length;
+            var point_count = Points.Count;
 
             if (NativePoints.Length != point_count || !NativePoints.IsCreated)
             {
@@ -201,7 +201,7 @@ namespace CorgiSpline
         /// </summary>
         public void UpdateStartJunction()
         {
-            if(_junctionSplineBegin == null || Points.Length < 1)
+            if(_junctionSplineBegin == null || Points.Count < 1)
             {
                 return;
             }
@@ -223,7 +223,7 @@ namespace CorgiSpline
                     break;
                 case SplineMode.BSpline:
                 case SplineMode.Bezier:
-                    if (Points.Length > 1)
+                    if (Points.Count > 1)
                     {
                         var junctionSplineForward = _junctionSplineBegin.GetForward(_junctionBegin_t);
                         var junctionHandle = beginJunctionSplinePoint;
@@ -247,7 +247,7 @@ namespace CorgiSpline
         /// </summary>
         public void UpdateEndJunction()
         {
-            if (_junctionSplineEnd == null || Points.Length < 1)
+            if (_junctionSplineEnd == null || Points.Count < 1)
             {
                 return;
             }
@@ -256,11 +256,11 @@ namespace CorgiSpline
 
             if (GetSplineSpace() == Space.Self)
             {
-                Points[Points.Length - 1] = InverseTransformSplinePoint(endJunctionSplinePoint);
+                Points[Points.Count - 1] = InverseTransformSplinePoint(endJunctionSplinePoint);
             }
             else
             {
-                Points[Points.Length - 1] = endJunctionSplinePoint;
+                Points[Points.Count - 1] = endJunctionSplinePoint;
             }
 
             switch (GetSplineMode())
@@ -270,7 +270,7 @@ namespace CorgiSpline
 
                 case SplineMode.BSpline:
                 case SplineMode.Bezier:
-                    if (Points.Length > 2)
+                    if (Points.Count > 2)
                     {
                         var junctionSplineForward = _junctionSplineEnd.GetForward(_junctionEnd_t);
                         var junctionHandle = endJunctionSplinePoint;
@@ -278,11 +278,11 @@ namespace CorgiSpline
 
                         if(GetSplineSpace() == Space.Self)
                         {
-                            Points[Points.Length - 1 - 1] = InverseTransformSplinePoint(junctionHandle);
+                            Points[Points.Count - 1 - 1] = InverseTransformSplinePoint(junctionHandle);
                         }
                         else
                         {
-                            Points[Points.Length - 1 - 1] = junctionHandle;
+                            Points[Points.Count - 1 - 1] = junctionHandle;
                         }
                     }
                     break;
@@ -314,7 +314,7 @@ namespace CorgiSpline
                 if (newMode == SplineMode.Bezier)
                 {
                     var create_count = 0;
-                    var point_mod = (Points.Length - 1) % 3;
+                    var point_mod = (Points.Count - 1) % 3;
                     if (point_mod == 0) create_count = 0;
                     else if (point_mod == 1) create_count = 2;
                     else if (point_mod == 2) create_count = 1;
@@ -324,9 +324,9 @@ namespace CorgiSpline
                         var final_point = GetPoint(1f);
                         var final_forward = GetForward(1f);
 
-                        var final_index = Points.Length;
-                        ResizePointArray(Points.Length + create_count);
-                        for (var i = final_index; i < Points.Length; ++i)
+                        var final_index = Points.Count;
+                        ResizePointArray(Points.Count + create_count);
+                        for (var i = final_index; i < Points.Count; ++i)
                         {
                             final_point.position += final_forward;
                             Points[i] = final_point;
@@ -355,11 +355,11 @@ namespace CorgiSpline
             var isBezier = GetSplineMode() == SplineMode.Bezier;
             if(isBezier)
             {
-                return Points.Length / 3; 
+                return Points.Count / 3; 
             }
             else
             {
-                return Points.Length;
+                return Points.Count;
             }
         }
 
@@ -394,7 +394,7 @@ namespace CorgiSpline
             {
                 if (updatePoints)
                 {
-                    for (var i = 0; i < Points.Length; ++i)
+                    for (var i = 0; i < Points.Count; ++i)
                     {
                         var point = Points[i];
 
@@ -457,17 +457,17 @@ namespace CorgiSpline
                 position = transform.InverseTransformPoint(position);
             }
 
-            if (Points.Length == 0)
+            if (Points.Count == 0)
             {
                 return 0f;
             }
 
-            if (Points.Length == 1)
+            if (Points.Count == 1)
             {
                 return 0f;
             }
 
-            var length = Points.Length;
+            var length = Points.Count;
 
             // ensure valid search space 
             var smallest_length_percent = 1f / Mathf.Max(1f, length - 1f);
@@ -565,7 +565,7 @@ namespace CorgiSpline
                     point0 = Points[index_a];
                     point1 = Points[index_b];
                 }
-                else if (!ClosedSpline && closestIndex == Points.Length - 1)
+                else if (!ClosedSpline && closestIndex == Points.Count - 1)
                 {
                     lowest_index = closestIndex - 1;
 
@@ -583,7 +583,7 @@ namespace CorgiSpline
 
                     if (ClosedSpline)
                     {
-                        var mod_value = Points.Length - 1;
+                        var mod_value = Points.Count - 1;
                         index_a = ((index_a % mod_value) + mod_value) % mod_value;
                         index_b = ((index_b % mod_value) + mod_value) % mod_value;
                         index_c = ((index_c % mod_value) + mod_value) % mod_value;
@@ -617,9 +617,9 @@ namespace CorgiSpline
 
                 var projectedPosition = ProjectLinear(point0, point1, position);
                 var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-                var total_t = (float)lowest_index / (Points.Length - 1) + percentageBetweenPoints * (1f / (Points.Length - 1));
+                var total_t = (float)lowest_index / (Points.Count - 1) + percentageBetweenPoints * (1f / (Points.Count - 1));
 
-                // Debug.Log($"{lowest_index} - {closestIndex} / {Points.Length}, {percentageBetweenPoints}, {total_t}");
+                // Debug.Log($"{lowest_index} - {closestIndex} / {Points.Count}, {percentageBetweenPoints}, {total_t}");
 
                 return total_t;
             }
@@ -630,7 +630,7 @@ namespace CorgiSpline
                 var best_t = 0f;
                 var best_i = -1;
                 
-                var groupCount = (Points.Length - 1) - (Points.Length - 1) % 3;
+                var groupCount = (Points.Count - 1) - (Points.Count - 1) % 3;
                 
                 for (var i = 0; i < length - 3; i += 3)
                 {
@@ -700,7 +700,7 @@ namespace CorgiSpline
                         continue;
                     }
 
-                    var pointCount = Points.Length;
+                    var pointCount = Points.Count;
                     index = Mathf.Clamp(index, 0, pointCount) - 1; // note, offsetting by -1 so index0 starts behind current point 
 
                     int index0;
@@ -710,7 +710,7 @@ namespace CorgiSpline
 
                     if (ClosedSpline)
                     {
-                        int mod_count = Points.Length;
+                        int mod_count = Points.Count;
 
                         index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                         index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
@@ -760,7 +760,7 @@ namespace CorgiSpline
                     {
                         var index = i;
                         
-                        var pointCount = Points.Length;
+                        var pointCount = Points.Count;
                         index = Mathf.Clamp(index, 0, pointCount) - 1; // note, offsetting by -1 so index0 starts behind current point 
 
                         int index0;
@@ -770,7 +770,7 @@ namespace CorgiSpline
 
                         if (ClosedSpline)
                         {
-                            int mod_count = Points.Length;
+                            int mod_count = Points.Count;
 
                             index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                             index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
@@ -817,7 +817,7 @@ namespace CorgiSpline
 
                 if (best_i < 0) best_i = 0; 
 
-                return (float)best_i / Points.Length + best_t * (1f / Points.Length);
+                return (float)best_i / Points.Count + best_t * (1f / Points.Count);
             }
 
             return 0f;
@@ -944,17 +944,17 @@ namespace CorgiSpline
         /// <returns></returns>
         public float ProjectOnSpline_t(Camera camera, Vector3 screenPosition)
         {
-            if (Points.Length == 0)
+            if (Points.Count == 0)
             {
                 return 0f;
             }
 
-            if (Points.Length == 1)
+            if (Points.Count == 1)
             {
                 return 0f;
             }
 
-            var length = Points.Length;
+            var length = Points.Count;
 
             if (Mode == SplineMode.Linear)
             {
@@ -1023,7 +1023,7 @@ namespace CorgiSpline
                         point1 = TransformSplinePoint(point1);
                     }
                 }
-                else if (!ClosedSpline && closestIndex == Points.Length - 1)
+                else if (!ClosedSpline && closestIndex == Points.Count - 1)
                 {
                     lowest_index = closestIndex - 1;
 
@@ -1047,7 +1047,7 @@ namespace CorgiSpline
 
                     if (ClosedSpline)
                     {
-                        var mod_value = Points.Length - 1;
+                        var mod_value = Points.Count - 1;
                         index_a = ((index_a % mod_value) + mod_value) % mod_value;
                         index_b = ((index_b % mod_value) + mod_value) % mod_value;
                         index_c = ((index_c % mod_value) + mod_value) % mod_value;
@@ -1100,7 +1100,7 @@ namespace CorgiSpline
 
                 var projectedPosition = ProjectLinear(point0, point1, screenPosition);
                 var percentageBetweenPoints = GetPercentageLinear(point0, point1, projectedPosition);
-                var total_t = (float)lowest_index / (Points.Length - 1) + percentageBetweenPoints * (1f / (Points.Length - 1));
+                var total_t = (float)lowest_index / (Points.Count - 1) + percentageBetweenPoints * (1f / (Points.Count - 1));
 
                 return total_t;
             }
@@ -1111,7 +1111,7 @@ namespace CorgiSpline
                 var best_i = 0;
                 var best_t = 0f;
 
-                var groupCount = (Points.Length - 1) - (Points.Length - 1) % 3;
+                var groupCount = (Points.Count - 1) - (Points.Count - 1) % 3;
 
                 for (var i = 0; i < length - 3; i += 3)
                 {
@@ -1158,7 +1158,7 @@ namespace CorgiSpline
                  
                 for (var i = 0; i < length; i += 1)
                 {
-                    var pointCount = Points.Length;
+                    var pointCount = Points.Count;
                     var index = Mathf.Clamp(i, 0, pointCount) - 1; // note, offsetting by -1 so index0 starts behind current point 
 
                     int index0;
@@ -1168,7 +1168,7 @@ namespace CorgiSpline
 
                     if (ClosedSpline)
                     {
-                        int mod_count = Points.Length;
+                        int mod_count = Points.Count;
 
                         index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                         index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
@@ -1230,7 +1230,7 @@ namespace CorgiSpline
                     }
                 }
 
-                return (float)best_i / Points.Length + best_t * (1f / Points.Length);
+                return (float)best_i / Points.Count + best_t * (1f / Points.Count);
             }
             else
             {
@@ -1282,7 +1282,7 @@ namespace CorgiSpline
         /// <returns></returns>
         public SplinePoint GetPoint(float t)
         {
-            if (Points.Length == 0)
+            if (Points.Count == 0)
             {
                 return new SplinePoint();
             }
@@ -1298,18 +1298,18 @@ namespace CorgiSpline
 
             if (Mode == SplineMode.Linear)
             {
-                var delta_t = 1f / (Points.Length - 1);
+                var delta_t = 1f / (Points.Count - 1);
 
-                var index0 = Mathf.FloorToInt(t * (Points.Length - 1));
+                var index0 = Mathf.FloorToInt(t * (Points.Count - 1));
                 var index1 = index0 + 1;
 
-                index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
-                index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
+                index0 = Mathf.Clamp(index0, 0, Points.Count - 1);
+                index1 = Mathf.Clamp(index1, 0, Points.Count - 1);
 
                 var mod_t = t - delta_t * index0;
                 var inner_t = mod_t / delta_t;
 
-                if (index0 == Points.Length - 1)
+                if (index0 == Points.Count - 1)
                 {
                     var firstPoint = Points[index0];
 
@@ -1337,19 +1337,19 @@ namespace CorgiSpline
             }
             else if (Mode == SplineMode.Bezier)
             {
-                var groupCount = (Points.Length - 1) - (Points.Length - 1) % 3;
+                var groupCount = (Points.Count - 1) - (Points.Count - 1) % 3;
 
                 double delta_t = 3d / groupCount;
                 double mod_t = RepeatDouble(t, delta_t);
                 float inner_t = (float)(mod_t / delta_t);
 
                 var index0 = Mathf.FloorToInt(t * groupCount);
-                index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
+                index0 = Mathf.Clamp(index0, 0, Points.Count - 1);
                 index0 = index0 - index0 % 3;
 
-                if (index0 >= Points.Length - 3)
+                if (index0 >= Points.Count - 3)
                 {
-                    var lastPoint = Points[Points.Length - 1];
+                    var lastPoint = Points[Points.Count - 1];
                 
                     if (SplineSpace == Space.Self)
                     {
@@ -1381,11 +1381,11 @@ namespace CorgiSpline
             }
             else if (Mode == SplineMode.BSpline)
             {
-                double delta_t = 1d / Points.Length;
+                double delta_t = 1d / Points.Count;
                 double mod_t = RepeatDouble(t, delta_t);
                 float inner_t = (float) (mod_t / delta_t);
 
-                var pointCount = Points.Length;
+                var pointCount = Points.Count;
                 var index = Mathf.FloorToInt(t * pointCount);
                 index = Mathf.Clamp(index, 0, pointCount);
 
@@ -1399,7 +1399,7 @@ namespace CorgiSpline
 
                 if (ClosedSpline)
                 {
-                    int mod_count = Points.Length; // - 1; // -1 to ignore duplicate final point
+                    int mod_count = Points.Count; // - 1; // -1 to ignore duplicate final point
 
                     index0 = ((index + 0) % (mod_count) + mod_count) % mod_count;
                     index1 = ((index + 1) % (mod_count) + mod_count) % mod_count;
@@ -1413,10 +1413,10 @@ namespace CorgiSpline
                     index2 = index + 2;
                     index3 = index + 3;
 
-                    index0 = Mathf.Clamp(index0, 0, Points.Length - 1);
-                    index1 = Mathf.Clamp(index1, 0, Points.Length - 1);
-                    index2 = Mathf.Clamp(index2, 0, Points.Length - 1);
-                    index3 = Mathf.Clamp(index3, 0, Points.Length - 1);
+                    index0 = Mathf.Clamp(index0, 0, Points.Count - 1);
+                    index1 = Mathf.Clamp(index1, 0, Points.Count - 1);
+                    index2 = Mathf.Clamp(index2, 0, Points.Count - 1);
+                    index3 = Mathf.Clamp(index3, 0, Points.Count - 1);
                 }
 
                 var point0 = Points[index0];
@@ -1472,7 +1472,7 @@ namespace CorgiSpline
         /// <returns></returns>
         public int GetPointIndexFromTime(float t)
         {
-            if (Points.Length == 0)
+            if (Points.Count == 0)
             {
                 return -1;
             }
@@ -1481,16 +1481,16 @@ namespace CorgiSpline
 
             if (Mode == SplineMode.Linear)
             {
-                return Mathf.FloorToInt(t * (Points.Length - 1));
+                return Mathf.FloorToInt(t * (Points.Count - 1));
             }
             else if (Mode == SplineMode.Bezier)
             {
-                var index_estimate = Mathf.FloorToInt(t * Points.Length);
+                var index_estimate = Mathf.FloorToInt(t * Points.Count);
                 return index_estimate - index_estimate % 3;
             }
             else if (Mode == SplineMode.BSpline)
             {
-                return Mathf.FloorToInt(t * Points.Length);
+                return Mathf.FloorToInt(t * Points.Count);
             }
 
             // not implemented 
@@ -1505,7 +1505,7 @@ namespace CorgiSpline
         /// </summary>
         public void ReversePoints()
         {
-            var point_count = Points.Length;
+            var point_count = Points.Count;
             var point_count_half = point_count / 2;
 
             for (var i = 0; i < point_count_half; ++i)
@@ -1542,19 +1542,19 @@ namespace CorgiSpline
             {
                 case SplineMode.Linear:
                 case SplineMode.BSpline:
-                    ResizePointArray(Points.Length + 1);
-                    var last_index = Points.Length - 1;
+                    ResizePointArray(Points.Count + 1);
+                    var last_index = Points.Count - 1;
                     Points[last_index] = new SplinePoint(position, rotation, scale, Color.white);
                     break;
                 case SplineMode.Bezier:
-                    if (Points.Length == 0)
+                    if (Points.Count == 0)
                     {
-                        ResizePointArray(Points.Length + 1);
+                        ResizePointArray(Points.Count + 1);
                         Points[0] = new SplinePoint(position + Vector3.forward * 0, rotation, scale, Color.white);
                     }
-                    else if (Points.Length == 1)
+                    else if (Points.Count == 1)
                     {
-                        ResizePointArray(Points.Length + 3);
+                        ResizePointArray(Points.Count + 3);
 
                         var firstPointPos = Points[0].position;
                         var fromFirstPointPos = position - firstPointPos;
@@ -1566,10 +1566,10 @@ namespace CorgiSpline
                     }
                     else
                     {
-                        ResizePointArray(Points.Length + 3);
+                        ResizePointArray(Points.Count + 3);
 
-                        var index_prev_handle = Points.Length - 5;
-                        var index_prev_point = Points.Length - 4;
+                        var index_prev_handle = Points.Count - 5;
+                        var index_prev_point = Points.Count - 4;
 
                         var prev_handle = Points[index_prev_handle];
                         var prev_point = Points[index_prev_point];
@@ -1581,9 +1581,9 @@ namespace CorgiSpline
                         prev_handle.position = prev_point.position - new_to_prev * distanceScale;
                         Points[index_prev_handle] = prev_handle;
 
-                        Points[Points.Length - 3] = new SplinePoint(prev_point.position + new_to_prev * distanceScale, rotation, scale, Color.white);    // handle 1
-                        Points[Points.Length - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale, Color.white);               // handle 2 
-                        Points[Points.Length - 1] = new SplinePoint(position, rotation, scale, Color.white);                                             // point 
+                        Points[Points.Count - 3] = new SplinePoint(prev_point.position + new_to_prev * distanceScale, rotation, scale, Color.white);    // handle 1
+                        Points[Points.Count - 2] = new SplinePoint(position - new_to_prev * distanceScale, rotation, scale, Color.white);               // handle 2 
+                        Points[Points.Count - 1] = new SplinePoint(position, rotation, scale, Color.white);                                             // point 
                     }
                     break; 
             }
@@ -1650,7 +1650,7 @@ namespace CorgiSpline
                 }
 
                 // update original array with list 
-                Points = pointList.ToArray();
+                Points = pointList;
                 return true; 
             }
 
@@ -1666,11 +1666,18 @@ namespace CorgiSpline
         {
             if (newLength < 0) newLength = 0;
 
-            var newArray = new SplinePoint[newLength];
-            var copyLength = Mathf.Min(Points.Length, newLength);
-            for (var i = 0; i < copyLength; ++i)
+            var newArray = new List<SplinePoint>(newLength);
+            var copyLength = Mathf.Min(Points.Count, newLength);
+            for (var i = 0; i < newLength; ++i)
             {
-                newArray[i] = Points[i];
+                if(i < copyLength)
+                {
+                    newArray.Add(Points[i]);
+                }
+                else
+                {
+                    newArray.Add(new SplinePoint()); 
+                }
             }
 
             Points = newArray;
@@ -1683,7 +1690,7 @@ namespace CorgiSpline
         {
             if (!ClosedSpline) return;
 
-            var length = Points.Length;
+            var length = Points.Count;
 
             switch (Mode)
             {
@@ -1738,13 +1745,13 @@ namespace CorgiSpline
                     switch (GetSplineMode())
                     {
                         case SplineMode.Linear:
-                            ResizePointArray(Points.Length + 1);
+                            ResizePointArray(Points.Count + 1);
                             break;
                         case SplineMode.Bezier:
-                            ResizePointArray(Points.Length + 3);
+                            ResizePointArray(Points.Count + 3);
                             break;
                         case SplineMode.BSpline:
-                            // ResizePointArray(Points.Length + 1);
+                            // ResizePointArray(Points.Count + 1);
                             break;
                         default:
                             // not implemented 
@@ -1760,13 +1767,13 @@ namespace CorgiSpline
                     switch (GetSplineMode())
                     {
                         case SplineMode.Linear:
-                            ResizePointArray(Points.Length - 1); // remove extra point 
+                            ResizePointArray(Points.Count - 1); // remove extra point 
                             break;
                         case SplineMode.Bezier:
-                            ResizePointArray(Points.Length - 3); // remove extra points
+                            ResizePointArray(Points.Count - 3); // remove extra points
                             break;
                         case SplineMode.BSpline:
-                            // ResizePointArray(Points.Length - 1); // remove extra point 
+                            // ResizePointArray(Points.Count - 1); // remove extra point 
                             break;
                         default:
                             // not implemented 
@@ -1814,7 +1821,7 @@ namespace CorgiSpline
                 var i = pointIndices[p];
                 var selectedPoint = Points[i];
 
-                var selected_t = (float)p / Points.Length;
+                var selected_t = (float)p / Points.Count;
                 var selected_forward = GetForward(selected_t);
                 var selected_up = Vector3.up;
 
@@ -1844,11 +1851,11 @@ namespace CorgiSpline
                 SetSplineSpace(Space.World, true);
             }
 
-            for (var p = 0; p < Points.Length; ++p)
+            for (var p = 0; p < Points.Count; ++p)
             {
                 var selectedPoint = Points[p];
 
-                var selected_t = (float) p / Points.Length;
+                var selected_t = (float) p / Points.Count;
                 var selected_forward = GetForward(selected_t);
                 var selected_up = Vector3.up;
 
@@ -1881,7 +1888,7 @@ namespace CorgiSpline
                 SetSplineSpace(Space.World, true);
             }
 
-            for (var i = 0; i < Points.Length; ++i)
+            for (var i = 0; i < Points.Count; ++i)
             {
                 var point = Points[i];
                 var worldPosition = point.position;
@@ -2023,7 +2030,7 @@ namespace CorgiSpline
 
             transform.DetachChildren();
 
-            var pointCount = Points.Length;
+            var pointCount = Points.Count;
             var pointsClone = new SplinePoint[pointCount];
 
             if (GetSplineSpace() == Space.Self)
@@ -2078,13 +2085,13 @@ namespace CorgiSpline
             }
 
             // copy points into easier to modify list 
-            var pointList = Points.ToList();
+            var pointList = Points;
 
             switch (GetSplineMode())
             {
                 // if we have neighbor handles, find them and delete them too.. 
                 case SplineMode.Bezier:
-                    SplinePoint.GetHandleIndexes(GetSplineMode(), GetSplineClosed(), Points.Length,
+                    SplinePoint.GetHandleIndexes(GetSplineMode(), GetSplineClosed(), Points.Count,
                         point_index, out int handleIndex0, out int handleIndex1);
 
                     if (pointList.Count > 0 && pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
@@ -2100,7 +2107,7 @@ namespace CorgiSpline
             }
 
             // set 
-            Points = pointList.ToArray();
+            Points = pointList;
         }
 
         public static SplinePoint LerpSplinePoint(SplinePoint point0, SplinePoint point1, float t)
@@ -2523,7 +2530,7 @@ namespace CorgiSpline
             var length = 0f;
 
             var space = GetSplineSpace();
-            var pointLength = Points.Length;
+            var pointLength = Points.Count;
 
             switch (Mode)
             {
@@ -2583,7 +2590,7 @@ namespace CorgiSpline
                 var splineSpace = GetSplineSpace();
                 SetSplineSpace(Space.World, true);
 
-                for(var i = 0; i < Points.Length - 1; ++i)
+                for(var i = 0; i < Points.Count - 1; ++i)
                 {
                     var pointA = Points[i + 0];
                     var pointB = Points[i + 1];
@@ -2654,10 +2661,10 @@ namespace CorgiSpline
                 var splineSpace = GetSplineSpace();
                 SetSplineSpace(Space.World, true);
 
-                var raycastCommands = new NativeArray<RaycastCommand>(Points.Length - 1, Allocator.TempJob);
+                var raycastCommands = new NativeArray<RaycastCommand>(Points.Count - 1, Allocator.TempJob);
                 var raycastHits = new NativeArray<RaycastHit>(raycastCommands.Length, Allocator.TempJob);
 
-                for (var i = 0; i < Points.Length - 1; ++i)
+                for (var i = 0; i < Points.Count - 1; ++i)
                 {
                     var pointA = Points[i + 0];
                     var pointB = Points[i + 1];
@@ -3537,7 +3544,7 @@ namespace CorgiSpline
 
         private void DrawLinearGizmos()
         {
-            for (var i = 1; i < Points.Length; ++i)
+            for (var i = 1; i < Points.Count; ++i)
             {
                 var previous = Points[i - 1];
                 var current = Points[i];
@@ -3659,7 +3666,7 @@ namespace CorgiSpline
                 return;
             }
 
-            for(var i = 0; i < Points.Length; ++i)
+            for(var i = 0; i < Points.Count; ++i)
             {
                 var splinePoint = Points[i];
 
@@ -3692,7 +3699,7 @@ namespace CorgiSpline
         {
             if (Mode == SplineMode.Linear)
             {
-                for (var i = 1; i < Points.Length; ++i)
+                for (var i = 1; i < Points.Count; ++i)
                 {
                     var previous = Points[i - 1];
                     var current = Points[i];

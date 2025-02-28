@@ -353,15 +353,15 @@ namespace CorgiSpline
 
                         var first_point_index = SelectedPoints[0];
 
-                        if (first_point_index >= instance.Points.Length)
+                        if (first_point_index >= instance.Points.Count)
                         {
-                            first_point_index = instance.Points.Length - 1;
+                            first_point_index = instance.Points.Count - 1;
                         }
                         else if (first_point_index < 0)
                         {
                             first_point_index = 0;
                         }
-                        else if (instance.Points.Length == 0)
+                        else if (instance.Points.Count == 0)
                         {
                             SelectedPoints.Clear();
                             return;
@@ -507,7 +507,7 @@ namespace CorgiSpline
                             instance.SendEditorSplineUpdatedEvent();
 
                             SelectedPoints.Clear();
-                            SelectedPoints.Add(instance.Points.Length - 1);
+                            SelectedPoints.Add(instance.Points.Count - 1);
 
                             EditorUtility.SetDirty(instance);
                         }
@@ -726,7 +726,7 @@ namespace CorgiSpline
                     SelectedPoints.Sort();
 
                     // copy points into easier to modify list 
-                    var pointList = instance.Points.ToList();
+                    var pointList = instance.Points;
 
                     // then delete from highest to lowest 
                     for (var i = SelectedPoints.Count - 1; i >= 0; --i)
@@ -741,7 +741,7 @@ namespace CorgiSpline
                         {
                             // if we have neighbor handles, find them and delete them too.. 
                             case SplineMode.Bezier:
-                                SplinePoint.GetHandleIndexes(instance.GetSplineMode(), instance.GetSplineClosed(), instance.Points.Length,
+                                SplinePoint.GetHandleIndexes(instance.GetSplineMode(), instance.GetSplineClosed(), instance.Points.Count,
                                     point_index, out int handleIndex0, out int handleIndex1);
 
                                 if (pointList.Count > 0 && pointList.Count > handleIndex1) pointList.RemoveAt(handleIndex1);
@@ -758,7 +758,7 @@ namespace CorgiSpline
                     }
 
                     // update original points with modified list 
-                    instance.Points = pointList.ToArray();
+                    instance.Points = pointList;
 
                     if(instance.EditorKeepPointsSnappedToTerrain)
                     {
@@ -857,7 +857,7 @@ namespace CorgiSpline
 
             SelectedPoints.Clear();
 
-            for (var i = 0; i < spline.Points.Length; ++i)
+            for (var i = 0; i < spline.Points.Count; ++i)
             {
                 SelectedPoints.Add(i);
             }
@@ -881,7 +881,7 @@ namespace CorgiSpline
             var selectedPointButtonSb = new System.Text.StringBuilder();
 
             var selected_none = SelectedPoints.Count == 0;
-            var selected_all = SelectedPoints.Count == spline.Points.Length;
+            var selected_all = SelectedPoints.Count == spline.Points.Count;
 
             if (selected_none)
             {
@@ -917,7 +917,7 @@ namespace CorgiSpline
                 selectedMenu.AddItem(new GUIContent("Select All"), selected_all, OnAllPointsSelected, spline);
                 selectedMenu.AddItem(new GUIContent("Select None"), selected_none, OnNoPointsSelected);
 
-                var length = spline.Points.Length;
+                var length = spline.Points.Count;
                 if (spline.GetSplineClosed())
                 {
                     switch (spline.GetSplineMode())
@@ -1290,7 +1290,7 @@ namespace CorgiSpline
             if (PlaceMode != SplinePlacePointMode.InsertBetweenPoints)
             {
                 // keep a copy so we can revert the operation 
-                var points_clone = (SplinePoint[])instance.Points.Clone();
+                var points_clone = instance.Points.ToList();
 
                 // perform the operation
                 AppendPoint(instance, placingPoint.position, placingPoint.rotation, placingPoint.scale);
@@ -1357,7 +1357,7 @@ namespace CorgiSpline
 
         private void DrawSelectedSplineHandle(Spline instance, int point_index)
         {
-            if(point_index < 0 || point_index >= instance.Points.Length)
+            if(point_index < 0 || point_index >= instance.Points.Count)
             {
                 return;
             }
@@ -1435,7 +1435,7 @@ namespace CorgiSpline
                     instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(thisPoint.position));
                 }
 
-                if (instance.GetEndSplineJunction() != null && point_index == instance.Points.Length - 1)
+                if (instance.GetEndSplineJunction() != null && point_index == instance.Points.Count - 1)
                 {
                     instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(thisPoint.position));
                 }
@@ -1451,7 +1451,10 @@ namespace CorgiSpline
 
                         UpdateHandlesWhenPointMoved(instance, other_index, splinePointDelta);
 
-                        instance.Points[other_index].position += delta_move;
+                        var point = instance.Points[other_index];
+                            point.position += delta_move;
+
+                        instance.Points[other_index] = point;
 
                         var otherPoint = instance.Points[other_index];
                         if(instance.GetSplineSpace() == Space.Self)
@@ -1465,7 +1468,7 @@ namespace CorgiSpline
                             instance.SetStartJunctionPercent(instance.GetStartSplineJunction().ProjectOnSpline_t(otherPoint.position));
                         }
 
-                        if (instance.GetEndSplineJunction() != null && other_index == instance.Points.Length - 1)
+                        if (instance.GetEndSplineJunction() != null && other_index == instance.Points.Count - 1)
                         {
                             instance.SetEndJunctionPercent(instance.GetEndSplineJunction().ProjectOnSpline_t(otherPoint.position));
                         }
@@ -1482,7 +1485,10 @@ namespace CorgiSpline
                     {
                         var other_index = SelectedPoints[i];
                         if (other_index == point_index) continue;
-                        instance.Points[other_index].rotation *= delta_rotation;
+
+                        var point = instance.Points[other_index];
+                            point.rotation *= delta_rotation;
+                        instance.Points[other_index] = point; 
                     }
 
                     Repaint();
@@ -1496,7 +1502,9 @@ namespace CorgiSpline
                     {
                         var other_index = SelectedPoints[i];
                         if (other_index == point_index) continue;
-                        instance.Points[other_index].scale += delta_scale;
+                        var point = instance.Points[other_index];
+                            point.scale += delta_scale;
+                        instance.Points[other_index] = point; 
                     }
 
                     Repaint();
@@ -1531,7 +1539,7 @@ namespace CorgiSpline
 
                     var index = point_index % 3 == 1 ? pointIndex0 : pointIndex1;
 
-                    if (index < 0 || index >= instance.Points.Length)
+                    if (index < 0 || index >= instance.Points.Count)
                     {
                         return;
                     }
@@ -1541,7 +1549,7 @@ namespace CorgiSpline
                     Handles.color = Color.gray;
                     Handles.DrawLine(splinePoint.position, anchorPoint.position);
 
-                    if (MirrorAnchors && point_index != 1 && point_index != instance.Points.Length - 2)
+                    if (MirrorAnchors && point_index != 1 && point_index != instance.Points.Count - 2)
                     {
                         var otherHandleIndex = index == pointIndex0
                             ? pointIndex0 - 1
@@ -1559,10 +1567,10 @@ namespace CorgiSpline
                 }
                 else
                 {
-                    if (instance.Points.Length > 1)
+                    if (instance.Points.Count > 1)
                     {
                         var handleIndex0 = point_index != 0 ? point_index - 1 : point_index + 1;
-                        var handleIndex1 = point_index != instance.Points.Length - 1 ? point_index + 1 : point_index - 1;
+                        var handleIndex1 = point_index != instance.Points.Count - 1 ? point_index + 1 : point_index - 1;
 
                         var handle0 = instance.Points[handleIndex0];
                         var handle1 = instance.Points[handleIndex1];
@@ -1587,7 +1595,7 @@ namespace CorgiSpline
             var position = instance.Points[handle_index].position;
 
             var anchorIndex = SplinePoint.GetAnchorIndex(instance.GetSplineMode(), handle_index);
-            if (anchorIndex < instance.Points.Length)
+            if (anchorIndex < instance.Points.Count)
             {
                 var anchorPoint = instance.Points[anchorIndex];
                 Handles.color = new Color(0.75f, 0.75f, 0.75f, 1f);
@@ -1600,7 +1608,7 @@ namespace CorgiSpline
 
             var first_selected_point = SelectedPoints.Count > 0 ? SelectedPoints[0] : -1;
 
-            var length = instance.Points.Length;
+            var length = instance.Points.Count;
             if (instance.GetSplineClosed())
             {
                 switch (instance.GetSplineMode())
